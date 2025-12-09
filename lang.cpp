@@ -71,6 +71,7 @@ pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>> codeToTokens( vector<string>
 	vector<VALUE_TOKENS> 	valueToken;
 
 	bool isVariableTurn = true;
+	int arrayOpenedCount = 0;
 
 	for( ; startCurPtr < tokens.size(); ++startCurPtr ) {
 		string curToken = tokens[ startCurPtr ];
@@ -90,6 +91,7 @@ pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>> codeToTokens( vector<string>
 		}
 
 		else if ( curToken == "{" ){
+			arrayOpenedCount++;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_OPEN );
 		}
 		
@@ -99,6 +101,7 @@ pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>> codeToTokens( vector<string>
 		}
 
 		else if(curToken == "}"){
+			arrayOpenedCount--;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_CLOSE );
 		}
 
@@ -113,7 +116,9 @@ pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>> codeToTokens( vector<string>
 				varTokens.push_back( VARIABLE_TOKENS::NAME );
 			}else{
 				ValueQueue.push( tokens[ startCurPtr ] );
-				valueToken.push_back( VALUE_TOKENS:: )
+				if( arrayOpenedCount > 0 )
+					valueToken.push_back( VALUE_TOKENS::ARRAY_VALUE );
+				else valueToken.push_back( VALUE_TOKENS::NORMAL_VALUE );
 			}
 		}		
 	}
@@ -225,11 +230,16 @@ class ArrayList{
 };
 
 int main(){
-	vector<string> test =  { "pidi", "name", "=", "190", ";" };
+	vector<string> test =  { "pidi", "name", "kootam", "=", "{", "sdf", ",", "{", "}", "34", "}", ",", "sd", ";" };
 	size_t index = 0;
 	auto res = codeToTokens( test, index );
 	vector<VARIABLE_TOKENS>t = res.first;
 	for(int x = 0; x < t.size(); x++){
 		cout << (int)t[x] << endl;
+	}
+	cout << '\n';
+	vector<VALUE_TOKENS>r = res.second;
+	for(int x = 0; x < r.size(); x++){
+		cout << (int)r[x] << endl;
 	}
 }
