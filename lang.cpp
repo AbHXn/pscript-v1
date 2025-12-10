@@ -6,8 +6,6 @@
 #include <string>
 #include <optional>
 
-/************************* RUN TESTS ********************************/
-
 using namespace std;
 
 using VarDtype = variant<string, long int, double, bool>;
@@ -177,28 +175,39 @@ class SingleElement{
 		}
 };
 
+static int curly_opened = 0;
+
 class ArrayList{
 	private:
 		variant<vector<SingleElement>, vector<ArrayList>> arrayList;
 		vector<size_t> dimensions;	
 		size_t totalElementsAllocated;
 
+
 		static unique_ptr<ArrayList> _arrayListBuilder( 
 												vector<VALUE_TOKENS>& arrayTokenList, 
-												size_t curIndex, 
+												size_t& curIndex, 
 												queue<string>& valueQueue
 		) {
+
 			auto newArrayList = make_unique< ArrayList >();
 			vector<SingleElement> resultList;
 			
 			while( curIndex < arrayTokenList.size() ){
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
+					curIndex++;
 					continue;
 				}
 
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
-					unique_ptr<ArrayList> array = _arrayListBuilder( arrayTokenList, curIndex + 1, valueQueue );
+					curIndex++;
+					curly_opened++;
+
+					unique_ptr<ArrayList> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
 					newArrayList->push_ArrayList( *array );
+
+					if( !curly_opened )
+						return newArrayList;
 				}
 
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_VALUE ){
@@ -212,9 +221,12 @@ class ArrayList{
 				}
 
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_CLOSE ){
+					curly_opened--;
+
 					newArrayList->push_SingleElement( resultList );
 					return newArrayList;
 				}
+				curIndex++;
 			}
 			return newArrayList;
 
@@ -344,9 +356,11 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE>& va
 				}
 				
 				ArrayList newArray = ArrayList::createArray( valueTokens, currentPointer );
-				
-				topVariable.value = newArray;				
+
+				topVariable.value = newArray;			
+
 				updatedVariable++;
+				break;
 				
 			}
 			case VALUE_TOKENS::NORMAL_VALUE:{
@@ -369,6 +383,7 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE>& va
 
 				topVariable.value = *newElement;
 				updatedVariable++;
+				break;
 			}
 		}
 
@@ -390,38 +405,44 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE>& va
 		if( !continueChecking )
 			break;
 	}
-	cout << (bool) (currentStage == VALUE_TOKENS::VALUE_END) << endl;
 
 	return currentStage == VALUE_TOKENS::VALUE_END;
 }
 
+
+vector<vector<string>> tests = {
+	{"pidi", "test", "=", "325345", ";"},
+	{"pidi", "admin", "=", "admin", ";"},
+	{"pidi", "test", ",", "admin", "=", "2332", ",", "345", ";"},
+	{"pidi", "test", "kootam", "=", "{", "{", "asg", ",", "sadg", "}", "}", ";"}
+};
+
 int main(){
-	vector<string> test =  { "pidi", "test", "=", "23325.3454", ";" };
-	size_t index = 0;
-	auto res = codeToTokens( test, index );
-	vector<VARIABLE_TOKENS>t = res.first;
-	for(int x = 0; x < t.size(); x++){
-		cout << (int)t[x] << endl;
+	for(vector<string> test: tests){
+		size_t index = 0;
+		auto res = codeToTokens( test, index );
+		vector<VARIABLE_TOKENS>t = res.first;
+		for(int x = 0; x < t.size(); x++){
+			cout << (int)t[x] << endl;
+		}
+
+		cout << '\n';
+		vector<VALUE_TOKENS>r = res.second;
+		for(int x = 0; x < r.size(); x++){
+			cout << (int)r[x] << endl;
+		}
+
+		vector<VARIABLE> var;
+		size_t ind = 0;
+		auto te = codeToTokens( test, ind );
+		vector<VARIABLE_TOKENS> first = te.first;
+		vector<VALUE_TOKENS> second = te.second;
+
+		if( isValidVariableSyntax( first, var ) && isValidValueSyntax( second, var )){
+			cout << "VALID" << endl;
+			cout << var.size() << endl;
+		}
+		cout << '\n';
 	}
-
-	cout << '\n';
-	vector<VALUE_TOKENS>r = res.second;
-	for(int x = 0; x < r.size(); x++){
-		cout << (int)r[x] << endl;
-	}
-
-	cout << VarQueue.size() << ' ' << ValueQueue.size() << endl;
-
-	vector<VARIABLE> var;
-	size_t ind = 0;
-	auto te = codeToTokens( test, ind );
-	vector<VARIABLE_TOKENS> first = te.first;
-	vector<VALUE_TOKENS> second = te.second;
-
-	if( isValidVariableSyntax( first, var ) && isValidValueSyntax( second, var )){
-		VARIABLE test = var[0];
-		cout << test.variableName << endl;
-	}
-
-	
+	return 0;	
 }
