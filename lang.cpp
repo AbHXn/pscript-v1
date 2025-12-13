@@ -8,8 +8,16 @@
 
 using namespace std;
 
+/*
+   1) print complex arrays, 
+   2) make this code small
+   3) varible name check
+   4) condition checks
+   5) error handling
+   6) typecasting
+*/
+
 using VarDtype = variant<string, long int, double, bool>;
-struct VARIABLE;
 
 enum class DTYPES{
 	VALUE_NOT_DEFINED, 
@@ -55,11 +63,10 @@ unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH 
 // value syntax handling...
 unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 	{ VALUE_TOKENS::NORMAL_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END } 			},
-	{ VALUE_TOKENS::COMMA, 		  { VALUE_TOKENS::NORMAL_VALUE }							}, 
-	// ARRAY CASE
 	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE } 	},
 	{ VALUE_TOKENS::ARRAY_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::ARRAY_CLOSE } 	   	},
-	{ VALUE_TOKENS::COMMA, 	  	 { VALUE_TOKENS::ARRAY_VALUE, VALUE_TOKENS::ARRAY_OPEN } 	},
+	{ VALUE_TOKENS::COMMA, 	  	 { VALUE_TOKENS::ARRAY_VALUE, VALUE_TOKENS::ARRAY_OPEN, 
+								   VALUE_TOKENS::NORMAL_VALUE } 							},
 	{ VALUE_TOKENS::ARRAY_CLOSE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END }		   	}
 };
 
@@ -132,7 +139,7 @@ pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>> codeToTokens( vector<string>
 
 
 class SingleElement{
-	private:
+	public:
 		VarDtype data;
 		bool isValueDefined = false;
 	
@@ -154,31 +161,23 @@ class SingleElement{
 			else return DTYPES::BOOLEAN;
 		}
 
-		void assignValue(const VarDtype& value )
-		{
+		void assignValue(const VarDtype& value ){
 			this->data 	= value;
 			this->isValueDefined = true;
 		}
-		
-		template <typename Dtype>
-		optional<Dtype> getValue( void ) 
-		const {
+
+		optional<VarDtype> getValue( void ) const {
 			DTYPES realType = this->getValueDtypes( );
-			
 			if( realType == DTYPES::VALUE_NOT_DEFINED )
 				return nullopt;
-
-			if( auto data = get_if<Dtype>( &this->data ) )
-				return *data;
-
-			return nullopt;
+			return data;
 		}
 };
 
 static int curly_opened = 0;
 
 class ArrayList{
-	private:
+	public:
 		variant<vector<SingleElement>, vector<ArrayList>> arrayList;
 		vector<size_t> dimensions;	
 		size_t totalElementsAllocated;
@@ -198,10 +197,10 @@ class ArrayList{
 					curIndex++;
 					continue;
 				}
+				// pidi test kootam = {{{1, 2, 3}, {3, 4}}, {3, 4}};
 
-				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
-					curIndex++;
-					curly_opened++;
+				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
+					curIndex++; curly_opened++;
 
 					unique_ptr<ArrayList> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
 					newArrayList->push_ArrayList( *array );
@@ -222,8 +221,8 @@ class ArrayList{
 
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_CLOSE ){
 					curly_opened--;
-
-					newArrayList->push_SingleElement( resultList );
+					if( resultList.size() > 0 )
+						newArrayList->push_SingleElement( resultList );
 					return newArrayList;
 				}
 				curIndex++;
@@ -234,18 +233,21 @@ class ArrayList{
 
 	public:
 		static ArrayList createArray( vector<VALUE_TOKENS>& arrayTokenList, size_t& currentPointer ){
-			return *_arrayListBuilder( arrayTokenList, currentPointer,  ValueQueue );	
+			unique_ptr<ArrayList> arrayResult = _arrayListBuilder( arrayTokenList, currentPointer,  ValueQueue );	
+			return *arrayResult;
 		}
 
 		void push_SingleElement( vector<SingleElement>& singleElementList ){
-			arrayList = singleElementList;
+			this->arrayList = singleElementList;
 		}
 
 		void push_ArrayList( ArrayList& arrayListElement ){
-			auto* vec = std::get_if<std::vector<ArrayList>>(&arrayList);
-
-		    if (!vec) return;
-		    vec->push_back(arrayListElement);
+			auto* vec = get_if<vector<ArrayList>>( &arrayList );
+		    if ( !vec ){
+		    	vector<ArrayList> newArrayList = { arrayListElement };
+		    	this->arrayList = newArrayList;
+		    }
+		    else vec->push_back(arrayListElement);		    	
 		}
 
 };
@@ -266,6 +268,46 @@ unique_ptr<VARIABLE> getNewVariable( string varName ){
 
 	return newVariable;
 }
+
+/*=======================================================================*/
+
+void printArray( ArrayList& array, size_t row ){
+	auto arr = get_if<vector<ArrayList>> ( &array.arrayList );
+	if( arr ){
+		cout << "ARRAY LIST\n";
+		for(ArrayList& ar: *arr)
+			printArray( ar, row + 1 );
+	}
+	else{
+		auto sarr = get_if<vector<SingleElement>> ( &array.arrayList );
+		cout << "ROW: " << row << endl;
+		for(SingleElement& elemData: *sarr){
+			std::visit([](auto &val) {
+	       		cout << val << " ";
+	    	}, elemData.data);
+		}
+		cout << endl;
+	}
+}
+
+void printVariable( VARIABLE data ){
+	variant<SingleElement, ArrayList> value = data.value;
+	cout << "Variable Name: " << data.variableName << endl;
+
+	if( auto ptr = get_if<SingleElement>(&value) ){		
+		cout << "Value: ";
+		std::visit([](auto &val) {
+       		cout << val << "\n";
+    	}, ptr->data);
+
+
+	}else{
+		auto ptr1 = get_if<ArrayList> (&value);
+		printArray( *ptr1, 0 );
+	}
+}
+
+/*======================================================================*/
 
 bool isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vector<VARIABLE>& variableStack ){
 	if( !varTokens.size() )
@@ -356,8 +398,7 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE>& va
 				}
 				
 				ArrayList newArray = ArrayList::createArray( valueTokens, currentPointer );
-
-				topVariable.value = newArray;			
+				topVariable.value = newArray;	
 
 				updatedVariable++;
 				break;
@@ -367,7 +408,7 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE>& va
 				VARIABLE& topVariable = variable[updatedVariable];
 
 				if( topVariable.varStatus & (unsigned int) FLAGS::IS_TYPE_ARRAY ){
-					// raise exeption; given type is an array
+					// raise exeption; given type is an array					
 					return false;
 				}
 
@@ -402,47 +443,74 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE>& va
 			}
 		}
 
-		if( !continueChecking )
+		if( !continueChecking ){
+			cout << (int)valueTokens[currentPointer - 1] << endl;
+			cout << "need " << (int)valueTokens[ currentPointer ] << endl;
 			break;
+		}
 	}
 
 	return currentStage == VALUE_TOKENS::VALUE_END;
 }
 
 
+// pidi test = {{ {1, 2, 3}, {3, 4} }, {3, 4}}
+
 vector<vector<string>> tests = {
-	{"pidi", "test", "=", "325345", ";"},
-	{"pidi", "admin", "=", "admin", ";"},
-	{"pidi", "test", ",", "admin", "=", "2332", ",", "345", ";"},
-	{"pidi", "test", "kootam", "=", "{", "{", "asg", ",", "sadg", "}", "}", ";"}
+	{"pidi", "test1", "=", "325345", ";"},
+	{"pidi", "adminva", "=", "adminvl", ";"},
+	{"pidi", "test2", ",", "admin", "=", "2332", ",", "345", ";"},
+	{"pidi", "test3", "kootam", "=", "{", "asg", ",", "sadg", "}", ";"},
+
+	{ "pidi", "test", "kootam", "=", "{", "{", "{", "1", ",", "2", ",", "3", ",", "}", ",",
+		"{", "3", ",", "4", "}", "}", ",", "{", "3", ",", "4", ",", "}", "}", ";" },
+	{ "pidi", "admin", ",", "error", "kootam", ",", "test", "=", "345.45", ",",
+		"{", "{", "1", ",", "3", "}", "}", ",", "true", ";" }
+
 };
 
+// pidi admin, error kootam, test = 345.45, {{1, 3}}, true;
+
 int main(){
+	int round = 1;
 	for(vector<string> test: tests){
+		cout << "ROUND " << round << endl;
+		cout << test[1] << endl;
+
+		while( !ValueQueue.empty() ){
+			ValueQueue.pop();
+		}
+
+		while( !VarQueue.empty() ){
+			VarQueue.pop();
+		}
+
 		size_t index = 0;
+
 		auto res = codeToTokens( test, index );
-		vector<VARIABLE_TOKENS>t = res.first;
-		for(int x = 0; x < t.size(); x++){
-			cout << (int)t[x] << endl;
-		}
-
-		cout << '\n';
 		vector<VALUE_TOKENS>r = res.second;
-		for(int x = 0; x < r.size(); x++){
-			cout << (int)r[x] << endl;
-		}
-
 		vector<VARIABLE> var;
+		
 		size_t ind = 0;
 		auto te = codeToTokens( test, ind );
+
 		vector<VARIABLE_TOKENS> first = te.first;
 		vector<VALUE_TOKENS> second = te.second;
 
-		if( isValidVariableSyntax( first, var ) && isValidValueSyntax( second, var )){
+		bool a, b;
+
+		if( (a = isValidVariableSyntax( first, var )) && (b = isValidValueSyntax( second, var ))){
 			cout << "VALID" << endl;
-			cout << var.size() << endl;
+			for(int x = 0; x < var.size(); x++)
+				printVariable( var[x] );
+		}else {
+			if( !a ){
+				cout << "INvalid variable\n";
+			}else cout << "invalid value\n";
+			cout << "INVALID SYNTAX\n";
 		}
 		cout << '\n';
+		round++;
 	}
 	return 0;	
 }
