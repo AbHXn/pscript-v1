@@ -37,9 +37,9 @@ enum class FLAGS{
 	IS_PRIVATE		= 1 << 2,
 };
 
-queue<string> VarQueue, ValueQueue;
+std::queue<std::string> VarQueue, ValueQueue;
 
-unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
+std::unordered_map <VARIABLE_TOKENS, std::vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
 	{ VARIABLE_TOKENS::VAR_START, 	{ VARIABLE_TOKENS::NAME } 								  },
 
 	{ VARIABLE_TOKENS::NAME,		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
@@ -51,7 +51,7 @@ unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH 
 	{ VARIABLE_TOKENS::COMMA, 		{ VARIABLE_TOKENS::NAME } 						  		  }	
 };
 
-unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
+std::unordered_map <VALUE_TOKENS, std::vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 	{ VALUE_TOKENS::NORMAL_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END } 			},
 	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE } 	},
 	{ VALUE_TOKENS::ARRAY_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::ARRAY_CLOSE } 	   	},
@@ -76,32 +76,32 @@ class SingleElement{
 			const VarDtype& value 
 			);
 
-		optional<VarDtype> getValue( void ) const;
+		std::optional<VarDtype> getValue( void ) const;
 
 };
 
 static int curly_opened = 0;
 class ArrayList{
 	private:
-		variant<vector<SingleElement>, vector<ArrayList>> arrayList;
-		vector<size_t> dimensions;	
+		std::variant<std::vector<SingleElement>, std::vector<ArrayList>> arrayList;
+		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated;
 
 
-		static unique_ptr<ArrayList> _arrayListBuilder( 
-									vector<VALUE_TOKENS>& arrayTokenList, 
+		static std::unique_ptr<ArrayList> _arrayListBuilder( 
+									std::vector<VALUE_TOKENS>& arrayTokenList, 
 									size_t& curIndex, 
-									queue<string>& valueQueue
+									std::queue<std::string>& valueQueue
 									); 
 	public:
 
 		static ArrayList createArray( 
-				vector<VALUE_TOKENS>& arrayTokenList, 
+				std::vector<VALUE_TOKENS>& arrayTokenList, 
 				size_t& currentPointer 
 				);
 
 		void push_SingleElement( 
-				vector<SingleElement>& singleElementList 
+				std::vector<SingleElement>& singleElementList 
 				);
 		
 		void push_ArrayList( 
@@ -112,32 +112,32 @@ class ArrayList{
 };
 
 namespace VARIABLE_HANDLER{
-	pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>> codeToTokens( 
-							vector<string>& tokens, 
+	std::pair<std::vector<VARIABLE_TOKENS>, std::vector<VALUE_TOKENS>> codeToTokens( 
+							std::vector<std::string>& tokens, 
 							size_t& curIndexPtr 
 							);
 
 	struct VARIABLE{
-		string variableName		;
+		std::string variableName;
 		unsigned int varStatus 	;
 		DTYPES variableType 	;
-		variant<SingleElement, ArrayList> value;
+		std::variant<SingleElement, ArrayList> value;
 
 		void printVariable( void );
 	};
 
 
 	bool isValidVariableSyntax( 
-			vector<VARIABLE_TOKENS>& varTokens, 
-			vector<VARIABLE>& variableStack 
+			std::vector<VARIABLE_TOKENS>& varTokens, 
+			std::vector<VARIABLE>& variableStack 
 			);
 
 	bool isValidValueSyntax( 
-			vector<VALUE_TOKENS>& valueTokens, 
-			vector<VARIABLE>& variable 
+			std::vector<VALUE_TOKENS>& valueTokens, 
+			std::vector<VARIABLE>& variable 
 			);
 
-	unique_ptr<VARIABLE> getNewVariable( string varName );
+	std::unique_ptr<VARIABLE> getNewVariable( std::string varName );
 };
 
 #endif
