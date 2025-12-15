@@ -2,70 +2,119 @@
 #include <vector>
 #include <string>
 #include <queue>
+#include <memory>
+
+#include "Dtypes.hpp"
 
 using namespace std;
 
-enum class EXPR_TOKENS{
-	ADD 	, 
-	SUB 	, 
-	DIV 	, 
-	MULT 	,
-	MOD 	,
-	VAL     ,
-	B_OPEN  ,
-	B_CLOSE ,
+struct HMAP{
+
+};
+struct TempVar{
+	DTYPES varType;
+	VarDtype TempValue;
 };
 
-queue<string> exprValue;
+enum class EXPR{ ADD, SUB, MUL, DIV, MOD, OPEN, CLOSE };
+enum class VALUE_TYPE { TEMP_VAULE, VMAP_VALUE, EXPR_OPTR  };
 
-vector<EXPR_TOKENS> getTokensFromString( vector<string>& tokens, size_t currentIndex ){
-	vector<EXPR_TOKENS> exprTokens;
+struct Value{
+	VALUE_TYPE ValueType;
+	union {
+		HMAP*	 MapValue;
+		TempVar* TempValue;
+		EXPR 	 Optr;
+	} CurValue;
+};
 
-	for( ; currentIndex < tokens.size(); currentIndex++ ){
-		string currentToken = tokens[ currentIndex ];
-
-		if( currentToken == "+" ){
-			exprTokens.push_back( EXPR_TOKENS::ADD );
-		}
-		else if( currentToken == "-" ){
-			exprTokens.push_back( EXPR_TOKENS::SUB );
-		}
-		else if( currentToken == "%" ){
-			exprTokens.push_back( EXPR_TOKENS::MOD );
-		}
-		else if( currentToken == "*" ){
-			exprTokens.push_back( EXPR_TOKENS::MULT );
-		}
-		else if( currentToken == "/" ){
-			exprTokens.push_back( EXPR_TOKENS::DIV );
-		}
-		else if( currentToken == "(" ){
-			exprTokens.push_back( EXPR_TOKENS::B_OPEN );
-		}
-		else if( currentToken == ")" ){
-			exprTokens.push_back( EXPR_TOKENS::B_CLOSE );
-		}else{
-			// check if temp value or a key in hashmap ( can be result from function, or variable );
-			exprValue.push( currentToken );
-		}
-	}
-	return exprTokens;
-}
-
-class ValueInfo{
+class ExprHandler{
 	public:
-		enum Type { TEMP, HASH } ValueType;
-		union {
-			// Hashmap
-			// ValueDtype
-		}Value;
-}
+		vector<Value> exprChain;
+
+		void convertToPostFix( void ){
+
+		}
+
+		VarDtype Evaluate( void ){
+			
+		}
+
+		void createChainFromStringToken( vector<string>& chain, size_t& startIndex ){
+			for( ; startIndex < chain.size(); startIndex++ ){
+				string curToken = chain[ startIndex ];
+				unique_ptr<Value> newValue = make_unique<Value>();
+
+				if( curToken == "+" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::ADD;
+					exprChain.push_back( *newValue );
+				}
+				else if( curToken == "-" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::SUB;
+					exprChain.push_back( *newValue );
+				}
+				else if( curToken == "*" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::MUL;
+					exprChain.push_back( *newValue );
+				}
+				else if( curToken == "/" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::DIV;
+					exprChain.push_back( *newValue );
+				}
+				else if( curToken == "(" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::OPEN;
+					exprChain.push_back( *newValue );
+				}
+				else if( curToken == ")" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::CLOSE;
+					exprChain.push_back( *newValue );
+				}
+				else if( curToken == "%" )
+				{
+					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
+					newValue->CurValue.Optr = EXPR::MOD;
+					exprChain.push_back( *newValue );
+				}
+				else{
+					try{
+						auto result = DtypeHelper::getTypeAndValue( curToken );
+						newValue->ValueType = VALUE_TYPE::TEMP_VAULE;
+						
+						unique_ptr<TempVar> tempData = make_unique<TempVar>( );
+						tempData->varType  = result.first;
+
+						newValue->CurValue.TempValue = tempData.get( );
+						exprChain.push_back( *newValue );
+					}
+					catch ( const InvalidDTypeError& err ){
+						if( DtypeHelper::isValidVariableName( curToken ) ) {
+							cout << "In Vmap\n";
+							//********************* GET FROM VMAP
+						}
+					}
+				}
+			}
+		}		
+};
 
 int main(){
-	vector<string> test = { "1", "+", "3", "/", "(", "30", "-", "23", ")" };
+	vector<string> test = { "1", "+", "3", "/", "(", "30", "-", "23", "+", "admin", ")" };
 	size_t currentIndex = 0;
-	vector<EXPR_TOKENS> res = getTokensFromString( test, currentIndex );
-	for(EXPR_TOKENS data: res)
-		cout << (int) data << endl;
+	ExprHandler* n = new ExprHandler();
+	n->createChainFromStringToken( test, currentIndex );
+	for(Value data: n->exprChain)
+		cout << (int) data.ValueType << endl;
 	return 0;
 }

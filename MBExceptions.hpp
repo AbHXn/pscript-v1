@@ -4,23 +4,21 @@
 #include <string.h>
 #include <stdexcept>
 
-using namespace std;
-
-class InvalidNameError: public runtime_error {
+class InvalidNameError: public std::runtime_error {
 	public:
-		explicit InvalidNameError( const string& varName ): 
+		explicit InvalidNameError( const std::string& varName ): 
 			runtime_error( "Mariadik ulla variable thaade: " + varName ) {};
 };
 
-class VariableDeclarationMissing: public runtime_error{
+class VariableDeclarationMissing: public std::runtime_error{
 	public:
 		explicit VariableDeclarationMissing( ):
 			runtime_error( "Variable illand enth property oole\n" ){};
 };
 
-class InvalidDTypeError: public runtime_error{
+class InvalidDTypeError: public std::runtime_error{
 	public:
-		explicit InvalidDTypeError( const string& msg ):
+		explicit InvalidDTypeError( const std::string& msg ):
 			runtime_error( "Invalid Dtype " + msg ){};
 };
 

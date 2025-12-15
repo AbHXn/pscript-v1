@@ -2,7 +2,6 @@
 
 using namespace std;
 
-
 pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>>  
 VARIABLE_HANDLER::codeToTokens( vector<string>& tokens, size_t& curIndexPtr ){
 	int startCurPtr = curIndexPtr;
@@ -185,7 +184,6 @@ ArrayList::printArray( void ) const {
         std::cout << "]";
     }
 }
-
 
 unique_ptr<VARIABLE_HANDLER::VARIABLE> 
 VARIABLE_HANDLER::getNewVariable( string varName ){

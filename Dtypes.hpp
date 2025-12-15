@@ -1,7 +1,11 @@
 #ifndef DTYPES_HPP
 #define DTYPES_HPP
 
-using VarDtype = variant<string, long int, double, bool>;
+#include <variant>
+#include <string>
+#include "MBExceptions.hpp"
+
+using VarDtype = std::variant<std::string, long int, double, bool>;
 
 enum class DTYPES{
 	VALUE_NOT_DEFINED, 
@@ -13,7 +17,7 @@ enum class DTYPES{
 
 class DtypeHelper{
 	public:
-		static bool isValidVariableName(const string& name){
+		static bool isValidVariableName(const std::string& name){
 			if (name.empty())
 				return false;
 			
@@ -26,7 +30,7 @@ class DtypeHelper{
 		    return true;
 		}
 
-		static pair<DTYPES, VarDtype> getTypeAndValue(const string& token){
+		static std::pair<DTYPES, VarDtype> getTypeAndValue(const std::string& token){
 		    if (!token.empty() && token.front() == '"'){
 		        if (token.back() == '"' && token.size() >= 2)
 		            return { DTYPES::STRING, token.substr(1, token.size() - 2) };
@@ -69,10 +73,10 @@ class DtypeHelper{
 		            return { DTYPES::INT, val };
 		        }
 		    }
-		    catch (const out_of_range&){
+		    catch (const std::out_of_range&){
 		        throw InvalidDTypeError("number overflow: " + token);
 		    }
-		    catch (const invalid_argument&){
+		    catch (const std::invalid_argument&){
 		        throw InvalidDTypeError("invalid number: " + token);
 		    }
 		}
