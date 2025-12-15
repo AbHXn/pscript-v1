@@ -198,27 +198,19 @@ VARIABLE_HANDLER::getNewVariable( string varName ){
 	return newVariable;
 }
 
-/*=======================================================================*/
-
-
-void printVariable( VARIABLE_HANDLER::VARIABLE data ){
-	variant<SingleElement, ArrayList> value = data.value;
-	cout << "Variable Name: " << data.variableName << endl;
-
-	if( auto ptr = get_if<SingleElement>(&value) ){		
-		cout << "Value: ";
+void 
+VARIABLE_HANDLER::VARIABLE::printVariable( void ){
+	variant<SingleElement, ArrayList> value = this->value;
+	if( auto ptr = get_if<SingleElement>( &value ) ){		
 		std::visit([](auto &val) {
        		cout << val << "\n";
     	}, ptr->data);
-
 
 	}else{
 		const auto ptr1 = get_if<ArrayList> (&value);
 		ptr1->printArray();
 	}
 }
-
-/*======================================================================*/
 
 bool 
 VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vector<VARIABLE_HANDLER::VARIABLE>& variableStack ){
@@ -259,6 +251,8 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 					}
 					break;
 				}
+				default:
+					break;
 			}
 
 			if( currentPointer + 1 >= varTokens.size() )
@@ -352,6 +346,8 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 
 					break;
 				}
+				default:
+					break;
 			}
 
 			if( currentPointer + 1 >= valueTokens.size() )
@@ -437,7 +433,7 @@ int main(){
 		if( (a = VARIABLE_HANDLER::isValidVariableSyntax( first, var )) && (b = VARIABLE_HANDLER::isValidValueSyntax( second, var ))){
 			cout << "VALID" << endl;
 			for(int x = 0; x < var.size(); x++)
-				printVariable( var[x] );
+				var[x].printVariable( );
 		}else {
 			if( !a ){
 				cout << "INvalid variable\n";

@@ -77,6 +77,7 @@ class SingleElement{
 			);
 
 		optional<VarDtype> getValue( void ) const;
+
 };
 
 static int curly_opened = 0;
@@ -121,6 +122,8 @@ namespace VARIABLE_HANDLER{
 		unsigned int varStatus 	;
 		DTYPES variableType 	;
 		variant<SingleElement, ArrayList> value;
+
+		void printVariable( void );
 	};
 
 
