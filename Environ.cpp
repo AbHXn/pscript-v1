@@ -34,14 +34,14 @@ class Environment{
 
 int main( int argc, char* argv[] ){
 	if( argc != 2 ){
-		cout << "program file\n";
+		cerr << "Error: Didn't specify Program File\n";
 		return -1;
 	}
 
 	optional<vector<string>> optData = parseTheCodeToTokens( argv[ 1 ] );
 
 	if( !optData.has_value() ){
-		cout << "Failed to create tokens\n";
+		cerr << "Error: Failed To Create Tokens\n";
 		return -1;
 	}
 
@@ -67,9 +67,10 @@ int main( int argc, char* argv[] ){
 			}
 		}
 		else if( datas[ curPointer ] == "para" ){
-			
+			auto outputResult = Output::stringToTokens( datas, curPointer );
+			Output::runTheIOTOKENS( outputResult.first, outputResult.second );
 		}
-
+		
 		curPointer++;
 	}
 

@@ -3,13 +3,16 @@
 #include <queue>
 #include <iostream>
 
+#include "Dtypes.hpp"
+#include "MBExceptions.hpp"
+
 using namespace std;
 
 enum class IOTOKENS{ DISPLAY, CONCAT, INPUT, END };
 
 class Output{
 	public:
-		pair<vector<IOTOKENS>, queue<string>>
+		static pair<vector<IOTOKENS>, queue<string>>
 		stringToTokens( vector<string>& tokens, size_t startIndex ){
 			vector<IOTOKENS> resultTokens;
 			queue<string> outputContent;
@@ -25,12 +28,18 @@ class Output{
 			 	
 			 	else if( curTokens == ";" ){
 			 		resultTokens.push_back( IOTOKENS::END );
-			 		return { resultTokens, outputContent }
+			 		return { resultTokens, outputContent };
 			 	}
 			 	
 			 	else {
 			 		// output content can be tempVal, hashValu, expr, condi
-			 		outputContent.push( curTokens );
+			 		try{
+			 			auto result = DtypeHelper::getTypeAndValue( curTokens );
+			 			outputContent.push( curTokens );
+			 		}
+			 		catch( InvalidDTypeError& err ){
+
+			 		}
 			 	}
 			}
 			cerr << "Forget ; ? may be a chance for invalid output\n";
