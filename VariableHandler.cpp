@@ -2,6 +2,30 @@
 
 using namespace std;
 
+std::queue<std::string> VarQueue, ValueQueue;
+
+
+std::unordered_map <VARIABLE_TOKENS, std::vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
+	{ VARIABLE_TOKENS::VAR_START, 	{ VARIABLE_TOKENS::NAME } 								  },
+
+	{ VARIABLE_TOKENS::NAME,		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
+					  				  VARIABLE_TOKENS::ARRAY, VARIABLE_TOKENS::VAR_ENDS }     },
+
+	{ VARIABLE_TOKENS::ARRAY, 		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
+					  				  VARIABLE_TOKENS::VAR_ENDS } 		 					  },
+
+	{ VARIABLE_TOKENS::COMMA, 		{ VARIABLE_TOKENS::NAME } 						  		  }	
+};
+
+std::unordered_map <VALUE_TOKENS, std::vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
+	{ VALUE_TOKENS::NORMAL_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END } 			},
+	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE } 	},
+	{ VALUE_TOKENS::ARRAY_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::ARRAY_CLOSE } 	   	},
+	{ VALUE_TOKENS::COMMA, 	  	 { VALUE_TOKENS::ARRAY_VALUE, VALUE_TOKENS::ARRAY_OPEN, 
+								   VALUE_TOKENS::NORMAL_VALUE } 							},
+	{ VALUE_TOKENS::ARRAY_CLOSE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END }		   	}
+};
+
 pair<vector<VARIABLE_TOKENS>, vector<VALUE_TOKENS>>  
 VARIABLE_HANDLER::codeToTokens( vector<string>& tokens, size_t& curIndexPtr ){
 	int startCurPtr = curIndexPtr;
@@ -159,29 +183,27 @@ void
 ArrayList::printArray( void ) const {
 	const auto* nested = get_if<vector<ArrayList>>(&this->arrayList);
 	if ( nested ){
-        std::cout << "[";
+        cout << "[";
         for (size_t i = 0; i < nested->size(); ++i){
             (*nested)[i].printArray();
             if (i + 1 < nested->size())
-                std::cout << ", ";
+                cout << ", ";
         }
-        std::cout << "]";
+        cout << "]";
         return ;
     }
     const auto* flat = get_if<vector<SingleElement>>(&this->arrayList);
    	if ( flat ){
-        std::cout << "[";
+        cout << "[";
         for (size_t i = 0; i < flat->size(); ++i){
-            std::visit(
+            visit(
                 [](const auto& value) {
-                    std::cout << value;
-                },
-                (*flat)[i].data
-            );
+                    cout << value;
+                }, (*flat)[i].data );
             if (i + 1 < flat->size())
-                std::cout << ", ";
+                cout << ", ";
         }
-        std::cout << "]";
+        cout << "]";
     }
 }
 
@@ -239,7 +261,7 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 					break;
 				}
 
-				case VARIABLE_TOKENS::ARRAY:{
+				case VARIABLE_TOKENS::ARRAY: {
 					if( variableStack.empty() ){
 						return false;
 					}
@@ -363,13 +385,15 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 				}
 			}
 
-			if( !continueChecking ){
-				cout << (int)valueTokens[currentPointer - 1] << endl;
-				cout << "need " << (int)valueTokens[ currentPointer ] << endl;
+			if( !continueChecking )
 				break;
-			}
 		}
-
+		while( !VarQueue.empty() ){
+			VarQueue.pop();
+		}
+		while( !ValueQueue.empty() ){
+			ValueQueue.pop();
+		}
 		return currentStage == VALUE_TOKENS::VALUE_END;
 	}
 	catch ( const VariableDeclarationMissing& err ){
@@ -380,65 +404,4 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 		cout << err.what() << endl;
 		return false;
 	}
-}
-
-
-// // pidi test = {{ {1, 2, 3}, {3, 4} }, {3, 4}}
-
-vector<vector<string>> tests = {
-	{"pidi","kootam", "=", "325345", ";"},
-	{"pidi", "adminva", "=", "adminvl", ";"},
-	{"pidi", "test2", ",", "test34", "=", "2332", ",", "345", ";"},
-	{"pidi", "test3", "kootam", "=", "{", "23", ",", "34", "}", ";"},
-
-	{ "pidi", "test", "kootam", "=", "{", "{", "{", "1", ",", "2", ",", "3", ",", "}", ",",
-		"{", "3", ",", "4", "}", "}", ",", "{", "3", ",", "4", ",", "}", "}", ";" },
-	{ "pidi", "admin", ",", "error", "kootam", ",", "test", "=", "345.45", ",",
-		"{", "{", "1", ",", "3", "}", "}", ",", "true", ";" }
-
-};
-
-// pidi admin, error kootam, test = 345.45, {{1, 3}}, true;
-
-int main(){
-	int round = 1;
-	for(vector<string> test: tests){
-		cout << "ROUND " << round << endl;
-		cout << test[1] << endl;
-
-		while( !ValueQueue.empty() ){
-			ValueQueue.pop();
-		}
-
-		while( !VarQueue.empty() ){
-			VarQueue.pop();
-		}
-
-		size_t index = 0;
-
-		auto res = VARIABLE_HANDLER::codeToTokens( test, index );
-		vector<VALUE_TOKENS>r = res.second;
-		vector<VARIABLE_HANDLER::VARIABLE> var;
-		
-		size_t ind = 0;
-		auto te = VARIABLE_HANDLER::codeToTokens( test, ind );
-
-		vector<VARIABLE_TOKENS> first = te.first;
-		vector<VALUE_TOKENS> second = te.second;
-
-		bool a, b;
-
-		if( (a = VARIABLE_HANDLER::isValidVariableSyntax( first, var )) && (b = VARIABLE_HANDLER::isValidValueSyntax( second, var ))){
-			cout << "VALID" << endl;
-			for(int x = 0; x < var.size(); x++)
-				var[x].printVariable( );
-		}else {
-			if( !a ){
-				cout << "INvalid variable\n";
-			}else cout << "invalid value\n";
-		}
-		cout << '\n';
-		round++;
-	}
-	return 0;	
 }

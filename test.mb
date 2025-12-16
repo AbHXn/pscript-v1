@@ -1,0 +1,3 @@
+pidi data 			= "admin";
+pidi test 			= 35.45;
+pidi te kootam 		= {1, 2, 3};

@@ -5,7 +5,7 @@ ittuthiri index < 10 {
     pidi data = edutho(purath);
     data <- integer;
     num.ketu(data);
-    index += 1;
+    index = index + 1;
 }
 
 pindi binary(pidi search, pidi arr kootam){

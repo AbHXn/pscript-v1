@@ -4,6 +4,7 @@
 #include <queue>
 #include <memory>
 #include <unordered_map>
+#include <type_traits>
 
 #include "Dtypes.hpp"
 
@@ -14,7 +15,7 @@ struct HMAP{
 };
 
 struct TempVar{
-	DTYPES varType;
+	DTYPES 	 varType;
 	VarDtype TempValue;
 };
 
@@ -40,10 +41,89 @@ unordered_map<EXPR, short unsigned int> BODMAS = {
 	{ EXPR::OPEN,	5 }
 };
 
-class ExprHandler{
+Value VarDtypeOperation( const Value& left, const Value& right, EXPR optr ){
+	VarDtype leftValue, rightValue;
+	DTYPES leftType, rightType;
 
+	if( left.ValueType == VALUE_TYPE::TEMP_VAULE ){
+		leftValue = left.CurValue.TempValue->TempValue;
+		leftType  = left.CurValue.TempValue->varType;
+	}
+
+	else if( left.ValueType == VALUE_TYPE::VMAP_VALUE ){
+		// get Map value
+	}else {
+		// raise error
+	}
+
+	if( right.ValueType == VALUE_TYPE::TEMP_VAULE ){
+		rightValue = right.CurValue.TempValue->TempValue;
+		rightType  = right.CurValue.TempValue->varType;
+	}
+
+	else if( right.ValueType == VALUE_TYPE::VMAP_VALUE ){
+		// get Map value
+	}else{
+		// Raise error
+	}
+
+	return visit([leftValue, leftType, rightValue, rightType]( VarDtype& lft, VarDtype& rht) -> Value {
+		unique_ptr<Value> newValue = make_unique<Value>();		
+		newValue->ValueType = VALUE_TYPE::TEMP_VAULE;
+		unique_ptr<TempVar> tempValue = make_unique<TempVar>();
+
+		if ( is_arithmetic_v<leftValue> && is_arithmetic_v<rightValue> ){
+			switch( optr ){
+				case EXPR::ADD:
+					tempValue->TempValue = leftValue + rightValue;
+					break;
+				case EXPR::SUB:
+					tempValue->TempValue = leftValue + rightValue;
+					break;
+				case EXPR::DIV:
+					if( rightValue == 0 ){
+						// raise div by zero error
+					}
+					tempValue->TempValue = leftValue / rightValue;
+					break;
+				case EXPR::MUL:
+					tempValue->TempValue = leftValue * rightValue;
+					break;
+				case EXPR::MOD:
+					tempValue->TempValue = leftValue % rightValue;
+					break;
+				default:
+					// raise error;
+					break;
+			}
+			if( leftType == DTYPES::DOUBLE || rightType == DTYPES::DOUBLE )
+				tempValue->varType = DTYPES::DOUBLE;
+
+			else if( leftType == DTYPES::INT || rightType == DTYPES::INT )
+				tempValue->varType = DTYPES::INT;
+
+			else tempValue->varType = DTYPES::BOOL;
+		}
+		else if( is_same_v<leftValue, string> && is_same_v<rightValue, string> ){
+			tempValue->TempValue = leftValue + rightValue;
+			tempValue->varType = DTYPES::STRING;
+		}
+		else{
+			// raise invalid dtypes
+		}
+		newValue->CurValue.TempValue = tempValue.get();
+		return *newValue;
+	}, leftValue, rightValue);
+}
+
+class ExprHandler{
 	public:
 		vector<Value> exprChain;
+
+		VarDtype evaluateTheChain( void ){
+			vector<Value> evaluationStack;
+
+		}
 
 		vector<Value> convertToPostFix( size_t& startIndex ){
 			vector<Value> postfixExpr, exprStack;
@@ -90,49 +170,29 @@ class ExprHandler{
 			for( ; startIndex < chain.size(); startIndex++ ){
 				string curToken = chain[ startIndex ];
 				unique_ptr<Value> newValue = make_unique<Value>();
+				newValue->ValueType = VALUE_TYPE::EXPR_OPTR;
 
 				if( curToken == "+" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::ADD;
-					exprChain.push_back( *newValue );
-				}
+				
 				else if( curToken == "-" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::SUB;
-					exprChain.push_back( *newValue );
-				}
+				
 				else if( curToken == "*" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::MUL;
-					exprChain.push_back( *newValue );
-				}
+				
 				else if( curToken == "/" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::DIV;
-					exprChain.push_back( *newValue );
-				}
+				
 				else if( curToken == "(" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::OPEN;
-					exprChain.push_back( *newValue );
-				}
+				
 				else if( curToken == ")" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::CLOSE;
-					exprChain.push_back( *newValue );
-				}
+				
 				else if( curToken == "%" )
-				{
-					newValue->ValueType 	= VALUE_TYPE::EXPR_OPTR;
 					newValue->CurValue.Optr = EXPR::MOD;
-					exprChain.push_back( *newValue );
-				}
+				
 				else{
 					try{
 						auto result = DtypeHelper::getTypeAndValue( curToken );
@@ -146,11 +206,11 @@ class ExprHandler{
 					}
 					catch ( const InvalidDTypeError& err ){
 						if( DtypeHelper::isValidVariableName( curToken ) ) {
-							cout << "In Vmap\n";
 							//********************* GET FROM VMAP
 						}
 					}
 				}
+				exprChain.push_back( *newValue );
 			}
 		}		
 };
