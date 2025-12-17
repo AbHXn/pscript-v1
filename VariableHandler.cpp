@@ -4,16 +4,12 @@ using namespace std;
 
 std::queue<std::string> VarQueue, ValueQueue;
 
-
 std::unordered_map <VARIABLE_TOKENS, std::vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
 	{ VARIABLE_TOKENS::VAR_START, 	{ VARIABLE_TOKENS::NAME } 								  },
-
 	{ VARIABLE_TOKENS::NAME,		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
 					  				  VARIABLE_TOKENS::ARRAY, VARIABLE_TOKENS::VAR_ENDS }     },
-
 	{ VARIABLE_TOKENS::ARRAY, 		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
 					  				  VARIABLE_TOKENS::VAR_ENDS } 		 					  },
-
 	{ VARIABLE_TOKENS::COMMA, 		{ VARIABLE_TOKENS::NAME } 						  		  }	
 };
 
@@ -42,32 +38,26 @@ VARIABLE_HANDLER::codeToTokens( vector<string>& tokens, size_t& curIndexPtr ){
 		if( curToken == "pidi" ){
 			varTokens.push_back( VARIABLE_TOKENS::VAR_START );
 		}
-		
 		else if( curToken == ","){
 			( isVariableTurn ) ? 
 				varTokens.push_back( VARIABLE_TOKENS::COMMA )
 				: valueToken.push_back( VALUE_TOKENS::COMMA );
 		}
-		
 		else if( curToken == "kootam" ){
 			varTokens.push_back( VARIABLE_TOKENS::ARRAY );
 		}
-
 		else if ( curToken == "{" ){
 			arrayOpenedCount++;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_OPEN );
 		}
-		
 		else if( curToken == "="){
 			varTokens.push_back( VARIABLE_TOKENS::VALUE_ASSIGN );
 			isVariableTurn = false;
 		}
-
 		else if(curToken == "}"){
 			arrayOpenedCount--;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_CLOSE );
 		}
-
 		else if(curToken == ";"){
 			( isVariableTurn ) ? 
 				varTokens.push_back( VARIABLE_TOKENS::VAR_ENDS )
@@ -110,16 +100,13 @@ SingleElement::getValue( void ) const {
 unique_ptr<ArrayList>
 ArrayList::_arrayListBuilder( vector<VALUE_TOKENS>& arrayTokenList, size_t& curIndex, queue<string>& valueQueue) {
 	auto newArrayList = make_unique< ArrayList >();
-	vector<SingleElement> resultList;
 
 	try{
-
 		while( curIndex < arrayTokenList.size() ){
 			if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
 				curIndex++;
 				continue;
 			}
-
 			if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
 				curIndex++; curly_opened++;
 
@@ -140,13 +127,11 @@ ArrayList::_arrayListBuilder( vector<VALUE_TOKENS>& arrayTokenList, size_t& curI
 				newVariable->assignType( valueInfo.first );						
 				newVariable->assignValue( valueInfo.second );
 
-				resultList.push_back( *newVariable );
+				newArrayList->push_SingleElement( *newVariable );
 			}
 
 			else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_CLOSE ){
 				curly_opened--;
-				if( resultList.size() > 0 )
-					newArrayList->push_SingleElement( resultList );
 				return newArrayList;
 			}
 			curIndex++;
@@ -165,67 +150,52 @@ ArrayList::createArray( vector<VALUE_TOKENS>& arrayTokenList, size_t& currentPoi
 }
 
 void 
-ArrayList::push_SingleElement( vector<SingleElement>& singleElementList ){
-	this->arrayList = singleElementList;
+ArrayList::push_SingleElement( SingleElement& singleElement ){
+	this->arrayList.push_back( singleElement );
 }
 
 void 
 ArrayList::push_ArrayList( ArrayList& arrayListElement ){
-	auto* vec = get_if<vector<ArrayList>>( &arrayList );
-    if ( !vec ){
-    	vector<ArrayList> newArrayList = { arrayListElement };
-    	this->arrayList = newArrayList;
-    }
-    else vec->push_back(arrayListElement);		    	
+	this->arrayList.push_back( arrayListElement );	    	
 }
 
 void 
 ArrayList::printArray( void ) const {
-	const auto* nested = get_if<vector<ArrayList>>(&this->arrayList);
-	if ( nested ){
-        cout << "[";
-        for (size_t i = 0; i < nested->size(); ++i){
-            (*nested)[i].printArray();
-            if (i + 1 < nested->size())
-                cout << ", ";
-        }
-        cout << "]";
-        return ;
-    }
-    const auto* flat = get_if<vector<SingleElement>>(&this->arrayList);
-   	if ( flat ){
-        cout << "[";
-        for (size_t i = 0; i < flat->size(); ++i){
-            visit(
-                [](const auto& value) {
-                    cout << value;
-                }, (*flat)[i].data );
-            if (i + 1 < flat->size())
-                cout << ", ";
-        }
-        cout << "]";
-    }
+	auto arrayList = this->arrayList;
+	for(int x = 0; x < arrayList.size(); x++){
+		const auto* nested = get_if< ArrayList >( &(this->arrayList)[x] );
+		if( nested ){ 
+			cout << "["; ( *nested ).printArray(); cout << "]";
+			if( x + 1 < arrayList.size() )
+				cout << ", ";
+	    }else{
+		    const auto* flat = get_if<SingleElement>( &(this->arrayList)[x] );
+		   	if ( flat ){
+	            visit( [](const auto& value) { cout << value; }, ( *flat ).data );
+	            if ( x + 1 < arrayList.size() )
+	                cout << ", ";
+	        }
+    	}
+	}
+    
 }
 
 unique_ptr<VARIABLE_HANDLER::VARIABLE> 
 VARIABLE_HANDLER::getNewVariable( string varName ){
 	auto newVariable = make_unique<VARIABLE_HANDLER::VARIABLE>( );
-	
 	newVariable->variableName = varName;
 	newVariable->varStatus 	  = ( unsigned int ) FLAGS::IS_PRIVATE;
 	newVariable->variableType = DTYPES::VALUE_NOT_DEFINED;
-
 	return newVariable;
 }
 
 void 
-VARIABLE_HANDLER::VARIABLE::printVariable( void ){
+VARIABLE_HANDLER::VARIABLE::printVariable( void ) const{
 	variant<SingleElement, ArrayList> value = this->value;
 	if( auto ptr = get_if<SingleElement>( &value ) ){		
 		std::visit([](auto &val) {
-       		cout << val << "\n";
+       		cout << val;
     	}, ptr->data);
-
 	}else{
 		const auto ptr1 = get_if<ArrayList> (&value);
 		ptr1->printArray();
@@ -236,15 +206,12 @@ bool
 VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vector<VARIABLE_HANDLER::VARIABLE>& variableStack ){
 	if( !varTokens.size() )
 		return false;
-
 	VARIABLE_TOKENS currentStage = VARIABLE_TOKENS::VAR_START;
 	size_t currentPointer		 = 0;
-
 	try{
 		while( currentStage == varTokens[ currentPointer ] ){		
 			if( currentStage == VARIABLE_TOKENS::VALUE_ASSIGN )
 				break;
-
 			switch( varTokens[ currentPointer ] ){
 				case VARIABLE_TOKENS::NAME: {
 					if( VarQueue.empty() )
@@ -260,7 +227,6 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 					}
 					break;
 				}
-
 				case VARIABLE_TOKENS::ARRAY: {
 					if( variableStack.empty() ){
 						return false;
@@ -277,11 +243,9 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 
 			if( currentPointer + 1 >= varTokens.size() )
 				break;
-
 			currentPointer++;
 			vector<VARIABLE_TOKENS> nextPossibleTokens = VARIABLE_DECLARE_GRAPH[ varTokens[ currentPointer - 1 ] ];
 			bool continueChecking = false;
-
 			for( int x = 0; x < nextPossibleTokens.size(); x++ ){
 				if( nextPossibleTokens[ x ] == varTokens[ currentPointer ] ){
 					currentStage = varTokens[ currentPointer ];
@@ -304,66 +268,49 @@ bool
 VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<VARIABLE_HANDLER::VARIABLE>& variable ){
 	if( !valueTokens.size() )
 		return false;
-
 	VALUE_TOKENS currentStage = VALUE_TOKENS::NORMAL_VALUE;
 	size_t currentPointer 	  = 0;
 	size_t updatedVariable 	  = 0;
-
 	try {
-
 		if( valueTokens[ currentPointer ] == VALUE_TOKENS::ARRAY_OPEN )
 			currentStage = VALUE_TOKENS::ARRAY_OPEN;
-
 		while( valueTokens[ currentPointer ] == currentStage ){
 			if( currentStage == VALUE_TOKENS::VALUE_END )
 				break;
-
 			if( updatedVariable >= variable.size() ){
 				throw VariableDeclarationMissing( );
 			}
-
 			switch( valueTokens[ currentPointer ] ){
-				case VALUE_TOKENS::ARRAY_OPEN: {
-					
+				case VALUE_TOKENS::ARRAY_OPEN: {		
 					VARIABLE_HANDLER::VARIABLE& topVariable = variable[ updatedVariable ];
-
 					if( !( topVariable.varStatus & (unsigned int) FLAGS::IS_TYPE_ARRAY ) ){
 						// raise exeption; given type is not an array
 						return false;
 					}
-					
 					ArrayList newArray = ArrayList::createArray( valueTokens, currentPointer );
 					topVariable.value = newArray;	
-
 					updatedVariable++;
 					break;
 					
 				}
 				case VALUE_TOKENS::NORMAL_VALUE:{
 					VARIABLE_HANDLER::VARIABLE& topVariable = variable[updatedVariable];
-
 					if( topVariable.varStatus & (unsigned int) FLAGS::IS_TYPE_ARRAY ){
 						// raise exeption; given type is an array					
 						return false;
 					}
-
 					if( ValueQueue.empty() ){
 						// no variable found to update
 						return false;
 					}
 					string value = ValueQueue.front();
-
 					auto newElement = make_unique<SingleElement>();
 					auto typedValue = DtypeHelper::getTypeAndValue( value );
-
 					newElement->assignType( typedValue.first );
 					newElement->assignValue( typedValue.second );
-
 					ValueQueue.pop();
-
 					topVariable.value = *newElement;
 					updatedVariable++;
-
 					break;
 				}
 				default:
@@ -372,19 +319,15 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 
 			if( currentPointer + 1 >= valueTokens.size() )
 				break;
-
 			currentPointer++;
 			bool continueChecking = false;
-
 			vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer - 1 ] ];
-
 			for(int x = 0; x < graph.size(); x++ ){
 				if( valueTokens[ currentPointer ] == graph[ x ] ){
 					currentStage = valueTokens[ currentPointer ];
 					continueChecking = true;
 				}
 			}
-
 			if( !continueChecking )
 				break;
 		}
@@ -404,4 +347,9 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 		cout << err.what() << endl;
 		return false;
 	}
+}
+
+std::ostream& operator<<(std::ostream& os, const VARIABLE_HANDLER::VARIABLE& var){
+    var.printVariable();
+    return os;
 }

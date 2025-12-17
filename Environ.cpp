@@ -10,6 +10,7 @@ using namespace std;
 #include "VariableHandler.hpp"
 #include "IOHandler.hpp"
 #include "Parser.hpp"
+#include "EnvironDef.hpp"
 
 enum class MAP_ITEM_TYPE{
 	VARIABLE, 
@@ -22,32 +23,27 @@ struct MapItem{
 	VARIABLE_HANDLER::VARIABLE var;
 };
 
-class Environment{
-	private:
-		unordered_map<string, MapItem> VMAP;
 
-	public:
-		void pushToVMAP( string key, MapItem& mapItem ){
-			this->VMAP[ key ] = mapItem;
-		}
-};
+std::ostream& operator<<(std::ostream& os, const MapItem& item)
+{
+    item.var.printVariable();
+    return os;
+}
+
+Environment<MapItem> MN;
 
 int main( int argc, char* argv[] ){
 	if( argc != 2 ){
 		cerr << "Error: Didn't specify Program File\n";
 		return -1;
 	}
-
 	optional<vector<string>> optData = parseTheCodeToTokens( argv[ 1 ] );
 
 	if( !optData.has_value() ){
 		cerr << "Error: Failed To Create Tokens\n";
 		return -1;
 	}
-
 	vector<string> datas = optData.value();
-
-	unique_ptr<Environment> MAIN_ENVIRON = make_unique<Environment>();
 	size_t curPointer = 0;
 
 	while( curPointer < datas.size() ){
@@ -60,15 +56,14 @@ int main( int argc, char* argv[] ){
 				
 				for(int x = 0; x < varList.size(); x++){
 					unique_ptr<MapItem> mapItem = make_unique<MapItem>();
-
 					mapItem->mapType = MAP_ITEM_TYPE::VARIABLE;
 					mapItem->var = varList[ x ];
+					MN.pushToVMAP( varList[x].variableName, *mapItem );
 				}
 			}
 		}
 		else if( datas[ curPointer ] == "para" ){
-			auto outputResult = Output::stringToTokens( datas, curPointer );
-			Output::runTheIOTOKENS( outputResult.first, outputResult.second );
+			runIOHandler( datas, curPointer, MN );
 		}
 		
 		curPointer++;

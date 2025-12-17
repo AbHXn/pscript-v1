@@ -7,12 +7,13 @@
 
 using VarDtype = std::variant<std::string, long int, double, bool>;
 
-enum class DTYPES{
-	VALUE_NOT_DEFINED, 
-	STRING 			 , 
-	INT 			 , 
-	DOUBLE 			 , 
-	BOOLEAN
+enum class DTYPES{ VALUE_NOT_DEFINED, STRING, INT, DOUBLE, BOOLEAN};
+enum class RHS_TYPE { TEMP_VALUE, VMAP_VALUE, FUNCTION_CALL, EXPR, CONDITIONAL };
+
+template <typename VarType>
+struct RHS_VALUE{
+	RHS_TYPE valueType;
+	VarType value;
 };
 
 class DtypeHelper{
@@ -20,10 +21,8 @@ class DtypeHelper{
 		static bool isValidVariableName(const std::string& name){
 			if (name.empty())
 				return false;
-			
 			if (!isalpha(name[0]) && name[0] != '_')
 				return false;
-
 		    for (size_t i = 1; i < name.size(); ++i)
 				if (!isalnum(name[i]) && name[i] != '_')
 					return false;
@@ -40,13 +39,11 @@ class DtypeHelper{
 		        return { DTYPES::BOOLEAN, true };
 		    if (token == "false")
 		        return { DTYPES::BOOLEAN, false };
-
+		    
 		    bool hasDot = false;
 		    size_t start = (token[0] == '-' ? 1 : 0);
-
 		    if (start == token.size())
 		        throw InvalidDTypeError("invalid number");
-
 		    for (size_t i = start; i < token.size(); ++i){
 		        if (token[i] == '.'){
 		            if (hasDot)

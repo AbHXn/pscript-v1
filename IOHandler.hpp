@@ -2,75 +2,89 @@
 #include <string>
 #include <queue>
 #include <iostream>
+#include <variant>
+#include <utility>
 
 #include "Dtypes.hpp"
 #include "MBExceptions.hpp"
+#include "EnvironDef.hpp"
 
 using namespace std;
 
-enum class IOTOKENS{ DISPLAY, CONCAT, INPUT, END };
+enum class IOTOKENS { DISPLAY, CONCAT, INPUT, END };
 
-class Output{
-	public:
-		static pair<vector<IOTOKENS>, queue<string>>
-		stringToTokens( vector<string>& tokens, size_t startIndex ){
-			vector<IOTOKENS> resultTokens;
-			queue<string> outputContent;
-
-			for( ; startIndex < tokens.size(); startIndex++ ){
-			 	string curTokens = tokens[ startIndex ];
-
-			 	if( curTokens == "para" )
-			 		resultTokens.push_back( IOTOKENS::DISPLAY );
-			 	
-			 	else if( curTokens == "koode" )
-					resultTokens.push_back( IOTOKENS::CONCAT ); 
-			 	
-			 	else if( curTokens == ";" ){
-			 		resultTokens.push_back( IOTOKENS::END );
-			 		return { resultTokens, outputContent };
-			 	}
-			 	
-			 	else {
-			 		// output content can be tempVal, hashValu, expr, condi
-			 		try{
-			 			auto result = DtypeHelper::getTypeAndValue( curTokens );
-			 			outputContent.push( curTokens );
-			 		}
-			 		catch( InvalidDTypeError& err ){
-
-			 		}
-			 	}
-			}
-			cerr << "Forget ; ? may be a chance for invalid output\n";
-			return { resultTokens, outputContent };
-		}
-		
-		static void 
-		runTheIOTOKENS( vector<IOTOKENS>& tokens, queue<string>& outputContents ){
-			if( !outputContents.size() || !tokens.size() )
-				return;
-			if( tokens.back() != IOTOKENS::END ){
-				// raise error (forget ;)
-				return;
-			}
-			bool firstDisplay = true;
-			for(int x = 0; x < tokens.size(); x++){
-				// if no more contents to display then break
-				if( outputContents.empty() )
-					break;
-				string outputContent = outputContents.front();
-				outputContents.pop();
-				if( tokens[ x ] == IOTOKENS::DISPLAY ){
-					if( firstDisplay )
-						firstDisplay = false;
-					else cout << '\n';
-					cout << outputContent;
-				}
-				else if( tokens[ x ] == IOTOKENS::CONCAT ){
-					cout << ' ' << outputContent; 
-				}
-			}
-			cout << '\n';
-		}
+template <typename VMAPDTYPE>
+struct DISPLAY_CONTENT {
+    bool IS_VMAP_ITEM;
+    std::variant<VMAPDTYPE, std::string> display;
 };
+
+class Output {
+	public:
+	    template <typename Vtype>
+	    pair<vector<IOTOKENS>, queue<DISPLAY_CONTENT<Vtype>>>
+	    stringToTokens( vector<string>& tokens, size_t& startIndex, Environment<Vtype>& env) {
+	        vector<IOTOKENS> resultTokens;
+	        queue<DISPLAY_CONTENT<Vtype>> outputContent;
+
+	        for (; startIndex < tokens.size(); startIndex++) {
+	            string curTokens = tokens[startIndex];
+	            if (curTokens == "para")
+	                resultTokens.push_back(IOTOKENS::DISPLAY);
+	            else if (curTokens == "koode")
+	                resultTokens.push_back(IOTOKENS::CONCAT);
+	            else if (curTokens == ";") {
+	                resultTokens.push_back(IOTOKENS::END);
+	                return { resultTokens, outputContent };
+	            }
+	            else {
+	                try {
+	                    DtypeHelper::getTypeAndValue(curTokens);
+	                    DISPLAY_CONTENT<Vtype> dContent;
+	                    dContent.IS_VMAP_ITEM = false;
+	                    dContent.display = curTokens;
+	                    outputContent.push(dContent);
+	                }
+	                catch (InvalidDTypeError&) {
+	                    auto vmapData = env.getFromVmap(curTokens);
+	                    if (vmapData.has_value()) {
+	                        DISPLAY_CONTENT<Vtype> dContent;
+	                        dContent.IS_VMAP_ITEM = true;
+	                        dContent.display = vmapData.value();
+	                        outputContent.push(dContent);
+	                    }
+	                }
+	            }
+	        }
+	        cerr << "Forget ; ? may be a chance for invalid output\n";
+	        return { resultTokens, outputContent };
+	    }
+
+	    template <typename Vtype>
+	    void runTheIOTOKENS( vector<IOTOKENS>& tokens, queue<DISPLAY_CONTENT<Vtype>>& outputContents ){
+	        if (tokens.empty() || outputContents.empty()) return;
+	        if (tokens.back() != IOTOKENS::END) return;
+
+	        for (size_t i = 0; i < tokens.size(); ++i) {
+	            if (outputContents.empty()) break;
+	            auto content = outputContents.front();
+	            outputContents.pop();
+	            
+	            if (tokens[i] == IOTOKENS::DISPLAY) {
+	                std::visit([](auto&& value) { cout << value; }, content.display);
+	            }
+	            else if (tokens[i] == IOTOKENS::CONCAT) {
+	            	cout <<' ';
+	                std::visit([](auto&& value) { cout << value; }, content.display);
+	            }
+	        }
+	        cout << '\n';
+	    }
+};
+
+template <typename Vtype>
+void runIOHandler( vector<string>& tokens, size_t& startIndex, Environment<Vtype>& env ) {
+    Output Displayer;
+    auto displayContents = Displayer.stringToTokens(tokens, startIndex, env);
+    Displayer.runTheIOTOKENS(displayContents.first, displayContents.second);
+}

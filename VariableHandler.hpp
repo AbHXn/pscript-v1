@@ -47,11 +47,9 @@ class SingleElement{
 		void assignType( 
 				DTYPES type 
 				);
-
 		void assignValue(
 			const VarDtype& value 
 			);
-
 		std::optional<VarDtype> getValue( void ) const;
 
 };
@@ -59,31 +57,26 @@ class SingleElement{
 static int curly_opened = 0;
 class ArrayList{
 	private:
-		std::variant<std::vector<SingleElement>, std::vector<ArrayList>> arrayList;
+		std::vector<std::variant<SingleElement, ArrayList>> arrayList;
+		//std::variant<std::vector<SingleElement>, std::vector<ArrayList>> arrayList;
 		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated;
-
-
 		static std::unique_ptr<ArrayList> _arrayListBuilder( 
 									std::vector<VALUE_TOKENS>& arrayTokenList, 
 									size_t& curIndex, 
 									std::queue<std::string>& valueQueue
 									); 
 	public:
-
 		static ArrayList createArray( 
 				std::vector<VALUE_TOKENS>& arrayTokenList, 
 				size_t& currentPointer 
 				);
-
 		void push_SingleElement( 
-				std::vector<SingleElement>& singleElementList 
+				SingleElement& singleElementList 
 				);
-		
 		void push_ArrayList( 
 				ArrayList& arrayListElement 
 				);
-		
 		void printArray( void ) const;
 };
 
@@ -92,27 +85,23 @@ namespace VARIABLE_HANDLER{
 							std::vector<std::string>& tokens, 
 							size_t& curIndexPtr 
 							);
-
 	struct VARIABLE{
 		std::string variableName;
 		unsigned int varStatus 	;
 		DTYPES variableType 	;
 		std::variant<SingleElement, ArrayList> value;
 
-		void printVariable( void );
+		void printVariable( void ) const;
 	};
-
-
+	
 	bool isValidVariableSyntax( 
 			std::vector<VARIABLE_TOKENS>& varTokens, 
 			std::vector<VARIABLE>& variableStack 
 			);
-
 	bool isValidValueSyntax( 
 			std::vector<VALUE_TOKENS>& valueTokens, 
 			std::vector<VARIABLE>& variable 
 			);
-
 	std::unique_ptr<VARIABLE> getNewVariable( std::string varName );
 };
 

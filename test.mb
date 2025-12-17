@@ -1,5 +1,5 @@
-pidi data 			= "admin";
-pidi test 			= 35.45;
-pidi te kootam 		= {1, 2, 3};
-
-para "admin is greate" koode admin koode 19;
+pidi arr kootam = {
+			{ {1, 2, 3}, "admin", "error" },
+			{ 2, 3, 4, {3, 4, 5} },
+			};
+para arr;
