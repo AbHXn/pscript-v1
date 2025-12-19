@@ -204,13 +204,12 @@ VARIABLE_HANDLER::VARIABLE::printVariable( void ) const{
 
 bool 
 VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vector<VARIABLE_HANDLER::VARIABLE>& variableStack ){
-	if( !varTokens.size() )
-		return false;
+	if( !varTokens.size() ) return false;
 	VARIABLE_TOKENS currentStage = VARIABLE_TOKENS::VAR_START;
-	size_t currentPointer		 = 0;
+	size_t currentPointer = 0;
 	try{
 		while( currentStage == varTokens[ currentPointer ] ){		
-			if( currentStage == VARIABLE_TOKENS::VALUE_ASSIGN )
+			if( currentStage == VARIABLE_TOKENS::VALUE_ASSIGN ) 
 				break;
 			switch( varTokens[ currentPointer ] ){
 				case VARIABLE_TOKENS::NAME: {
@@ -228,9 +227,8 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 					break;
 				}
 				case VARIABLE_TOKENS::ARRAY: {
-					if( variableStack.empty() ){
+					if( variableStack.empty() )
 						return false;
-					}
 					else{
 						VARIABLE_HANDLER::VARIABLE& backStack = variableStack.back();
 						backStack.varStatus |= ( unsigned int ) FLAGS::IS_TYPE_ARRAY;
@@ -240,7 +238,6 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 				default:
 					break;
 			}
-
 			if( currentPointer + 1 >= varTokens.size() )
 				break;
 			currentPointer++;
@@ -256,9 +253,15 @@ VARIABLE_HANDLER::isValidVariableSyntax( vector<VARIABLE_TOKENS>& varTokens, vec
 			if( !continueChecking )
 				break;
 		}
-		return currentStage == VARIABLE_TOKENS::VALUE_ASSIGN;
+		if( currentStage != VARIABLE_TOKENS::VALUE_ASSIGN )
+			throw InvalidSyntaxError( "Occures Syntax error in Variable declaration" );
+		return true;
 	} 
 	catch ( const InvalidNameError& err ){
+		cout << err.what() << endl;
+		return false;
+	}
+	catch ( const InvalidSyntaxError& err ){
 		cout << err.what() << endl;
 		return false;
 	}
@@ -284,8 +287,7 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 				case VALUE_TOKENS::ARRAY_OPEN: {		
 					VARIABLE_HANDLER::VARIABLE& topVariable = variable[ updatedVariable ];
 					if( !( topVariable.varStatus & (unsigned int) FLAGS::IS_TYPE_ARRAY ) ){
-						// raise exeption; given type is not an array
-						return false;
+						throw InvalidDTypeError( "Variable " + topVariable.variableName + " is not kootam" );
 					}
 					ArrayList newArray = ArrayList::createArray( valueTokens, currentPointer );
 					topVariable.value = newArray;	
@@ -296,8 +298,7 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 				case VALUE_TOKENS::NORMAL_VALUE:{
 					VARIABLE_HANDLER::VARIABLE& topVariable = variable[updatedVariable];
 					if( topVariable.varStatus & (unsigned int) FLAGS::IS_TYPE_ARRAY ){
-						// raise exeption; given type is an array					
-						return false;
+						throw InvalidDTypeError( "Variable " + topVariable.variableName + " is kootam" );	
 					}
 					if( ValueQueue.empty() ){
 						// no variable found to update
@@ -337,13 +338,19 @@ VARIABLE_HANDLER::isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens, vector<
 		while( !ValueQueue.empty() ){
 			ValueQueue.pop();
 		}
-		return currentStage == VALUE_TOKENS::VALUE_END;
+		if( currentStage != VALUE_TOKENS::VALUE_END)
+			throw InvalidSyntaxError("Occures Syntax error in Variable initialization");
+		return true;
 	}
 	catch ( const VariableDeclarationMissing& err ){
 		cout << err.what() << endl;
 		return false;
 	}
 	catch( const InvalidDTypeError& err ){
+		cout << err.what() << endl;
+		return false;
+	}
+	catch( const InvalidSyntaxError& err ){
 		cout << err.what() << endl;
 		return false;
 	}

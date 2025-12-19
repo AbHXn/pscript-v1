@@ -60,10 +60,13 @@ int main( int argc, char* argv[] ){
 					mapItem->var = varList[ x ];
 					MN.pushToVMAP( varList[x].variableName, *mapItem );
 				}
+			}else{
+				return -1;
 			}
 		}
 		else if( datas[ curPointer ] == "para" ){
-			runIOHandler( datas, curPointer, MN );
+			if( !runIOHandler( datas, curPointer, MN ))
+				return -1;
 		}
 		
 		curPointer++;
