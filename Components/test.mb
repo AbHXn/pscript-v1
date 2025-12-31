@@ -1,0 +1,11 @@
+pindi even_test( pidi num ){
+	nok num % 2 == 0 {
+		para "num is even\n";
+	}: umbi {
+		para "num is odd\n";
+	};
+}
+
+even_test(6);
+even_test(34);
+even_test(23);
