@@ -24,6 +24,9 @@ static bool isHitsDefinedTokens( const std::string& token ) {
 class DtypeHelper{
 	public:
 		static bool isValidVariableName(const std::string& name){
+			if( name == "sheri" || name == "thettu")
+				return false;
+
 			if (name.empty()) return false;
 			if (!isalpha(name[0]) && name[0] != '_') return false;
 			
@@ -39,9 +42,9 @@ class DtypeHelper{
 		            return { DTYPES::STRING, token.substr(1, token.size() - 2) };
 		        throw InvalidDTypeError("unterminated string literal");
 		    }
-		    if (token == "true")
+		    if (token == "sheri")
 		        return { DTYPES::BOOLEAN, true };
-		    if (token == "false")
+		    if (token == "thettu")
 		        return { DTYPES::BOOLEAN, false };
 		    
 		    bool hasDot = false;

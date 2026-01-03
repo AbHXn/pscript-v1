@@ -218,7 +218,7 @@ pair<
 		vector<variant<string, vector<string>>>
 	>
 > 
-codeToTokens( const vector<string>& tokens, size_t& startCurPtr, string exprectedEnd = ";" ){
+codeToTokens( const vector<string>& tokens, size_t& startCurPtr ){
 	vector<VARIABLE_TOKENS> varTokens;
 	vector<VALUE_TOKENS> 	valueToken;
 
@@ -259,7 +259,7 @@ codeToTokens( const vector<string>& tokens, size_t& startCurPtr, string exprecte
 			arrayOpenedCount--;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_CLOSE );
 		}
-		else if(curToken == exprectedEnd){
+		else if(curToken == ";"){
 			( isVariableTurn ) ? varTokens.push_back( VARIABLE_TOKENS::VAR_ENDS )
 				 			   : valueToken.push_back( VALUE_TOKENS::VALUE_END );
 			return { { varTokens, valueToken }, { VarQueue, valueVector } };

@@ -5,18 +5,14 @@
 
 using namespace std;
 
-enum class ENV_TYPE{ NORMAL, FUNCTION, CLASS, LOOP };
-
 class FunctionRunner;
-// In ast add function call possible
 
 class ProgramBody{
 	public:
 		unique_ptr<FunctionRunner> funcRunner;
 
-		string envName = "x";
+		string envName = "ENV234$*";
 		ProgramBody* parent = nullptr;
-		ENV_TYPE envType = ENV_TYPE::NORMAL;
 
 		unordered_map<string, unique_ptr<MapItem>> VMAP;
 

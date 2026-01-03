@@ -101,7 +101,7 @@ stringToCondTokens( const vector<string>& tokens, size_t& start, size_t& endPtr 
 
 			else if( curToken == "umbi" ){
 				condTokens.push_back( COND_TOKENS::ELSE );
-				conditions.push_back( { { "true" }, start + 1 } );
+				conditions.push_back( { { "sheri" }, start + 1 } );
 			}
 
 			else{

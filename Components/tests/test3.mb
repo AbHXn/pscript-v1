@@ -1,0 +1,50 @@
+thenga breaker(pidi n){
+    pidi i = 0;
+    pidi total = 0;
+
+    ittuthiri i < n {
+        pidi j = 0;
+        pidi inner = 0;
+
+        ittuthiri j < n {
+            nok j == i {
+                inner = inner + 2;
+            } :umbi {
+                inner = inner + 1;
+            };
+
+            nok inner > n {
+                total = total + inner;
+                poda total;
+            };
+
+            j = j + 1;
+        }
+
+        total = total + inner;
+        i = i + 1;
+    }
+
+    poda total;
+}
+
+
+thenga megaTest(pidi x){
+    pidi a = breaker(x);
+    pidi b = breaker(x + 1);
+
+    nok a > b {
+        poda a - b;
+    } :umbi {
+        poda b - a;
+    };
+}
+
+
+pidi r1 = megaTest(3);
+pidi r2 = megaTest(4);
+pidi r3 = megaTest(5);
+
+para r1 koode "\n";
+para r2 koode "\n";
+para r3 koode "\n";

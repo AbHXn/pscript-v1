@@ -10,7 +10,7 @@
 using namespace std;
 
 unordered_set<string> REGISTERED_FUNC_TOKEN = {
-	"pindi", "(", ")", "{", "}", ",", "pidi", "kootam"
+	"thenga", "(", ")", "{", "}", ",", "pidi", "kootam"
 };
 
 unordered_set<string> REGISTERED_FUNC_BODY_TOKENS = {
@@ -113,7 +113,7 @@ isValidFunction( vector<FUNC_TOKENS>& tokens ){
 		
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter end } token in pindi" );
+	throw InvalidSyntaxError( "Do dont encounter end } token in thenga" );
 }
 
 FunctionTokenReturn
@@ -130,7 +130,7 @@ stringToFuncTokens( const vector<string>&tokens, size_t& startIndex ){
 	for( ; startIndex < tokens.size(); startIndex++ ){
 		string curToken = tokens[ startIndex ];
 
-		if( curToken == "pindi" )
+		if( curToken == "thenga" )
 			funcTokens.push_back( FUNC_TOKENS::FUNC_START );
 
 		else if( curToken == "(" )
@@ -195,7 +195,7 @@ stringToFuncTokens( const vector<string>&tokens, size_t& startIndex ){
 		}
 		prev = !funcTokens.empty() ? funcTokens.back() : prev;
 	}
-	throw InvalidSyntaxError("Invalid syntax error in pindi declaration");
+	throw InvalidSyntaxError("Invalid syntax error in thenga declaration");
 }
 
 /* --------------------------- FUNC CALL HANDLER --------------------------------*/
@@ -246,38 +246,46 @@ isValidFuncCall( vector<FUNC_CALL_TOKEN>& callTokens ){
 		}
 		if( !continueNext ){
 			cout << (int)currentStage << ' ' << (int) nextExpected << endl;
-			throw InvalidSyntaxError( "Invalid Token encounter in pindi call" );
+			throw InvalidSyntaxError( "Invalid Token encounter in thenga call" );
 		}
 		
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter end ; token in pindi call" );
+	throw InvalidSyntaxError( "Do dont encounter end ; token in thenga call" );
 }
 
 struct FunctionCallReturns{
 	vector<FUNC_CALL_TOKEN> callTokens;
 	vector<vector<string>> argsVector;
+	string funcName;
+
+	FunctionCallReturns() = default;
 
 	FunctionCallReturns( 
 		vector<FUNC_CALL_TOKEN> callTokens,
-		vector<vector<string>> argsVector
+		vector<vector<string>> argsVector,
+		string funcName
 	){
 		this->callTokens = callTokens;
 		this->argsVector = argsVector;
+		this->funcName 	 = funcName;
 	}
 };
 
 FunctionCallReturns stringToFunctionCallTokens( const vector<string>& tokens, size_t& curPtr ){
 	vector<FUNC_CALL_TOKEN> ctokens;
 	vector<vector<string>> argsTokens;
+	string funcCallName;
 
 	FUNC_CALL_TOKEN prev = FUNC_CALL_TOKEN::NOTHING;
 
 	for( ; curPtr < tokens.size(); curPtr++ ){
 		string curToken = tokens[ curPtr ];
 
-		if( prev == FUNC_CALL_TOKEN::NOTHING )
+		if( prev == FUNC_CALL_TOKEN::NOTHING ){
 			ctokens.push_back( FUNC_CALL_TOKEN::FUNC_NAME );
+			funcCallName = curToken;
+		}
 
 		else if( curToken == "(" ){
 			ctokens.push_back( FUNC_CALL_TOKEN::ARG_OPEN );
@@ -311,7 +319,7 @@ FunctionCallReturns stringToFunctionCallTokens( const vector<string>& tokens, si
 						argsTokens.push_back( curVector );
 					}
 					ctokens.push_back( FUNC_CALL_TOKEN::ARG_CLOSE );
-					return FunctionCallReturns( ctokens, argsTokens );
+					return FunctionCallReturns( ctokens, argsTokens, funcCallName );
 				}
 
 				curVector.push_back( curToken );
@@ -320,9 +328,6 @@ FunctionCallReturns stringToFunctionCallTokens( const vector<string>& tokens, si
 		}
 		prev = ctokens.back();
 	}
-	cout << tokens.size() << endl;
-	for( auto x: tokens )
-		cout << x << endl;
 	throw InvalidSyntaxError("Invalid Syntax In Function Call statement");
 }
 

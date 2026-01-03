@@ -5,11 +5,19 @@ class LoopRunner;
 vector<string> fullTokens;
 size_t pointer = 0;
 
+enum class CALLER{
+	LOOP 		,
+	FUNCTION 	,
+	CONDITIONAL 
+};
+
+template <typename T>
+optional<VALUE_DATA>
+ProgramExecutor( const vector<string>& tokens, size_t& currentPtr, CALLER C_CLASS, T* prntClass, size_t endPtr = 0 );
+
 class FunctionRunner: public ProgramBody {
 	public:
-
-		optional<VALUE_DATA>
-		handleBody( const vector<string>& tokens, size_t& currentPtr, size_t endPtr );
+		string functionName;
 
 		void IOHandlerRunner( const vector<string>& tokens, size_t& start ){
 			auto tokensAndData = stringToIoTokens( tokens, start );
@@ -85,7 +93,6 @@ class FunctionRunner: public ProgramBody {
 			queue<VarDtype> finalValueQueue;
 			auto varsAndVals = InsTokensAndData.second;
 
-
 			queue<MapItem*> mapVariables;
 			for( string& var: varsAndVals.first ){
 
@@ -156,7 +163,7 @@ class FunctionRunner: public ProgramBody {
 				this->addToMap( funcTokens.funcName, move( funcMapItem ) );
 			}
 
-			else throw InvalidSyntaxError( "Syntax Error occured in pindi" );
+			else throw InvalidSyntaxError( "Syntax Error occured in thenga" );
 
 		}
 
@@ -178,26 +185,29 @@ class FunctionRunner: public ProgramBody {
 				}
 
 				try{
+					// check if it is a temp value
 					auto typeValue = DtypeHelper::getTypeAndValue( curToken );
 					simpleVector.push_back("NUM");
 					resolvedVector.push( typeValue.second );
 				}
 				catch( const InvalidDTypeError& err ){
+					// check if it is defined
 					auto VMAPData = this->getFromVmap( curToken );
 
 					if( VMAPData != nullptr ){
+						// if it is variable then get its value
 						if( VMAPData->mapType == MAPTYPE::VARIABLE ){
 							VarDtype copyData = ValueHelper::getValueFromMapItem( VMAPData );
 							resolvedVector.push( copyData );
 							simpleVector.push_back("VAR");
 						}
+						// if it is a function then call it and get the value
 						else if( VMAPData->mapType == MAPTYPE::FUNCTION ){
 							try{
 								FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
-
+								// if it is zero args function 
 								if( pt.argsVector.size() == 0){
-									auto data = this->runVoidFunction( VMAPData, fullTokens );
-								
+									auto data = this->zeroArgFunction( VMAPData, fullTokens, pt.funcName );
 									if( data.has_value() ){
 										simpleVector.push_back("FUNC");
 										resolvedVector.push( move( data.value() ) );
@@ -210,45 +220,55 @@ class FunctionRunner: public ProgramBody {
 										resolvedVector.push( move( data.value() ) );
 									}
 								}
+								x--; // stringfuncalltokens it hits then unknown token get that token back
 							}
 							catch ( InvalidSyntaxError& err ){
 								cout << err.what() << endl;
 							}
 						}
 					}
-					throw err;
+					// if everything failed then its unknown token
+					else throw InvalidSyntaxError( "Unknown Token " + curToken );
 				}
-
 			}
-
 			return { move(resolvedVector), simpleVector };
 		}
 
 		optional<VALUE_DATA>	
-		runVoidFunction( MapItem* func, const vector<string>& tokens ){
+		zeroArgFunction( MapItem* func, const vector<string>& tokens, string funcName ){
 			auto& funcFromMap = get<unique_ptr<FUNCTION_MAP_DATA>>( func->var );
 
 			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 			size_t funcEndStartPtr = funcFromMap->bodyEndPtr;
 
 			unique_ptr<FunctionRunner> newFuncRunner = make_unique<FunctionRunner>();
-			newFuncRunner->parent = this;
-			return newFuncRunner->handleBody( tokens, funcBodyStartPtr, funcEndStartPtr );
+			newFuncRunner->functionName = funcName;
+			
+			if( funcName == this->functionName )
+				newFuncRunner->parent = this->parent;
+			else newFuncRunner->parent = this;
+
+			return ProgramExecutor( tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr );
 			
 		}
 
 		optional<VALUE_DATA>	
 		handleFunctionCall( MapItem* func, const vector<string>& tokens, size_t& currentPtr, optional<FunctionCallReturns> data = nullopt ){
-			FunctionCallReturns Data = stringToFunctionCallTokens( tokens, currentPtr );
+			FunctionCallReturns Data;
 			if( data.has_value() )
 				Data = data.value();
+			else Data = stringToFunctionCallTokens( tokens, currentPtr );
 
 			if( isValidFuncCall( Data.callTokens ) ){
 				if( Data.argsVector.size() == 0 )
-					return runVoidFunction( func, tokens );
+					return zeroArgFunction( func, tokens, Data.funcName );
 
 				unique_ptr<FunctionRunner> newFuncRunner = make_unique<FunctionRunner>();
-				newFuncRunner->parent = this;
+				newFuncRunner->functionName = Data.funcName;
+				
+				if( Data.funcName == this->functionName )
+					newFuncRunner->parent = this->parent;
+				else newFuncRunner->parent = this;
 
 				auto& funcFromMap = get<unique_ptr<FUNCTION_MAP_DATA>>( func->var );
 
@@ -303,41 +323,44 @@ class FunctionRunner: public ProgramBody {
 				size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 				size_t funcEndStartPtr = funcFromMap->bodyEndPtr;
 				
-				return newFuncRunner->handleBody( fullTokens, funcBodyStartPtr, funcEndStartPtr );
+				return ProgramExecutor<FunctionRunner>( fullTokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr );
 			}
 			throw InvalidSyntaxError("Invalid function call");
 		}
 
 		void VarHandlerRunner( const vector<string>& test, size_t& start ){
-			auto tokens  = codeToTokens( test, start );
-			auto toks 	 = tokens.first;
-			auto names 	 = tokens.second;
+			auto tokens  = codeToTokens( test, start ); // convert variable to tokens ( leaves entire value parts )
+			auto toks 	 = tokens.first;  				// variable tokens and value tokens
+			auto names 	 = tokens.second; 				// values
 
 			vector<unique_ptr<VARIABLE_HOLDER<VARIABLE_HOLDER_DATA>>> vars;
 
-			bool isValidVar = isValidVariableSyntax<VARIABLE_HOLDER_DATA>( toks.first, vars, names.first );
-
-			for( auto& varVerification: vars ){
-				auto data = this->getFromVmap( varVerification->key );
-				if( data != nullptr )
-					throw VariableAlreayExists( varVerification->key );
-			} 
-
-			if( isValidVar ){
+			// check if it is valid variable syntax by DFS ing the GRAPH
+			if( isValidVariableSyntax<VARIABLE_HOLDER_DATA>( toks.first, vars, names.first ) ){
+				// check if variable alread exists or created				
+				for( auto& varVerification: vars ){
+					auto data = this->getFromVmap( varVerification->key );	
+					if( data ) throw VariableAlreayExists( varVerification->key );
+				} 
+				
 				auto valueVectors = names.second;
-
+				
 				queue<VARIABLE_HOLDER_DATA> finalValueQueue;
 
 				for( auto& VarientData: valueVectors ){
+					// if it holds vector string then it may be an operations or function calls
+					// or may be array calls
 					if( holds_alternative< vector<string> > ( VarientData ) ){
 						auto data = get<vector<string>> ( VarientData );
 
+						// resolve the value to final stage, if function call return value etc..
 						auto [ resValQueue, resToken ] = vectorResolver( data );
 
 						queue<VALUE_DATA> refinedQueue; 
 
  						while( !resValQueue.empty() ){
 							auto top = move( resValQueue.front() );
+
 							resValQueue.pop();
 
 							if( holds_alternative<unique_ptr<MapItem>>( top ) ){
@@ -437,8 +460,6 @@ class Conditional: public FunctionRunner{
 			this->lpRunner = move( lpRunner );
 		}
 
-		void handleBody( const vector<string>& tokens, size_t& currentPtr );
-
 		void CondHandlerRunner( const vector<string>& test, size_t& start ){
 			size_t endOfNOK = 0;
 			auto tokens = stringToCondTokens( test, start, endOfNOK );
@@ -470,7 +491,7 @@ class Conditional: public FunctionRunner{
 
 				if( get<bool>(asEval) ){
 					start = data.second + 1;
-					this->handleBody( test, start );
+					ProgramExecutor( test, start, CALLER::CONDITIONAL, this );
 					start = endOfNOK;
 					return;
 				}
@@ -483,8 +504,6 @@ class Conditional: public FunctionRunner{
 
 class LoopRunner: public FunctionRunner{
 	public:		
-		void handleBody( const vector<string>& tokens, size_t& currentPtr );
-		
 		void 
 		LoopHandlerRunner ( const vector<string>& tokens, size_t& currentPtr ){
 			size_t beginCopy = currentPtr;
@@ -515,18 +534,21 @@ class LoopRunner: public FunctionRunner{
 				if( runTheBodyAgain ){
 					size_t bodyStart = bodyIns.first;
 					try{
-						this->handleBody( tokens, bodyStart );
+						ProgramExecutor( tokens, bodyStart, CALLER::LOOP, this );
 						currentPtr = beginCopy;
 					} 
 					catch( const InvalidSyntaxError& err ){
-						const string& expTok = tokens[ bodyStart - 1 ];
+						const string& expTok = tokens[ bodyStart ];
 						if( expTok == "theku" )
 							break;
 
 						else if( expTok == "pinnava" )
 							currentPtr = beginCopy;
 						
-						else throw err;
+						else {
+							currentPtr = bodyStart;
+							throw err;
+						}
 					}
 					return;
 				}
@@ -538,128 +560,80 @@ class LoopRunner: public FunctionRunner{
 
 };
 
-
-void LoopRunner::handleBody( const vector<string>& tokens, size_t& currentPtr ){
-	while( currentPtr < tokens.size() ){
-		if( tokens[ currentPtr ] == "pidi" ){
-			this->VarHandlerRunner( tokens, currentPtr );
-		}
-		else if( tokens[currentPtr] == "nok" ){
-			unique_ptr<LoopRunner> lpHandler = make_unique<LoopRunner>();
-			shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
-			cdHandler->parent = this;
-			cdHandler->CondHandlerRunner( tokens, currentPtr );
-		}
-		else if( tokens[ currentPtr ] == "}" ){
-			if( this->parent == nullptr )
-				throw InvalidSyntaxError( "unknown token }" );
-			return ;
-		}
-		else if( tokens[ currentPtr ] == "para" ){
-			this->IOHandlerRunner( tokens, currentPtr );
-		}
-		else if( tokens[ currentPtr ] == "ittuthiri" ){
-			unique_ptr<LoopRunner> newLpHander = make_unique<LoopRunner>();
-			newLpHander->parent = this;
-			newLpHander->LoopHandlerRunner( tokens, currentPtr );
-			currentPtr--;
-		}
-		else{
-			this->InstructionHandlerRunner( tokens, currentPtr );
-		}
-		currentPtr++;
-	}
-}
-
-void Conditional::handleBody( const vector<string>& tokens, size_t& currentPtr ){
-	while( currentPtr < tokens.size() ){
-		if( tokens[ currentPtr ] == "pidi" ){
-			this->VarHandlerRunner( tokens, currentPtr );
-		}
-		else if( tokens[currentPtr] == "nok" ){
-			try{
-				unique_ptr<LoopRunner> lpHandler = make_unique<LoopRunner>();
-				shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
-				cdHandler->parent = this;
-				cdHandler->CondHandlerRunner( tokens, currentPtr );
-			}
-			catch( const InvalidSyntaxError& err ){
-				throw InvalidSyntaxError("Invalid Syntax In conditional");
-			}
-		}
-		else if( tokens[ currentPtr ] == "}" ){
-			if( this->parent == nullptr )
-				throw InvalidSyntaxError( "unknown token }" );
-			return ;
-		}
-		else if( tokens[ currentPtr ] == "para" ){
-			this->IOHandlerRunner( tokens, currentPtr );
-		}
-		else if( tokens[ currentPtr ] == "ittuthiri" ){
-			unique_ptr<LoopRunner> newLpHander = make_unique<LoopRunner>();
-			newLpHander->parent = this;
-			newLpHander->LoopHandlerRunner( tokens, currentPtr );
-			currentPtr--;
-		}
-		else{
-			this->InstructionHandlerRunner( tokens, currentPtr );
-		}
-		currentPtr++;
-	}
-}
-
-
+template <typename PARENT_CLASS>
 optional<VALUE_DATA>
-FunctionRunner::handleBody( 
-								const vector<string>& tokens, 
-								size_t& currentPtr, 
-								size_t endPtr = 0
+ProgramExecutor( const vector<string>& tokens, 
+				 size_t& currentPtr, 
+				 CALLER C_CLASS, 
+				 PARENT_CLASS* prntClass, 
+				 size_t endPtr
 ){
+	size_t backUpPtr = currentPtr;
+
 	while( currentPtr < tokens.size() ){
+
 		if( endPtr && currentPtr >= endPtr - 1 )
 			return nullopt;
 
 		if( tokens[ currentPtr ] == "pidi" ){
-			this->VarHandlerRunner( tokens, currentPtr );
+			prntClass->VarHandlerRunner( tokens, currentPtr );
 		}
 		else if( tokens[currentPtr] == "nok" ){
 			try{
 				unique_ptr<LoopRunner> lpHandler = make_unique<LoopRunner>();
 				shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
-				cdHandler->parent = this;
+				cdHandler->parent = prntClass;
 				cdHandler->CondHandlerRunner( tokens, currentPtr );
 			}
 			catch( const InvalidSyntaxError& err ){
-				// function keywords;
+				continue;
 			}
 		}
 		else if( tokens[ currentPtr ] == "}" ){
-			if( this->parent == nullptr )
+			if( prntClass->parent == nullptr )
 				throw InvalidSyntaxError( "unknown token }" );
 			return nullopt;
 		}
 		else if( tokens[ currentPtr ] == "para" ){
-			this->IOHandlerRunner( tokens, currentPtr );
+			prntClass->IOHandlerRunner( tokens, currentPtr );
 		}
-		else if( tokens[ currentPtr ] == "poda" ){
-			return this->getReturnedData( tokens, currentPtr );
-		}
-		else if( tokens[ currentPtr ] == "pindi" ){
-			this->functionDefHandlerRunner( tokens, currentPtr );
+		else if( tokens[ currentPtr ] == "thenga" ){
+			prntClass->functionDefHandlerRunner( tokens, currentPtr );
 			currentPtr--;
 		}
 		else if( tokens[ currentPtr ] == "ittuthiri" ){
-			unique_ptr<LoopRunner> newLpHander = make_unique<LoopRunner>();
-			newLpHander->parent = this;
-			newLpHander->LoopHandlerRunner( tokens, currentPtr );
-			currentPtr--;
+			try{
+				unique_ptr<LoopRunner> newLpHander = make_unique<LoopRunner>();
+				newLpHander->parent = prntClass;
+				newLpHander->LoopHandlerRunner( tokens, currentPtr );
+				currentPtr--;
+			}catch( const InvalidSyntaxError& err ){
+				continue;
+			}
 		}
 		else{
-			MapItem* func = this->getFromVmap( tokens[ currentPtr ] );
-			if( func && func->mapType == MAPTYPE::FUNCTION ){
-				this->handleFunctionCall( func, tokens, currentPtr );
+			switch( C_CLASS ){
+				case CALLER::FUNCTION: {
+					if( tokens[ currentPtr ] == "poda" )
+						return prntClass->getReturnedData( tokens, currentPtr );
+					}
+				default: break;
 			}
-			else this->InstructionHandlerRunner( tokens, currentPtr );
+
+			MapItem* func = prntClass->getFromVmap( tokens[ currentPtr ] );
+			if( func && func->mapType == MAPTYPE::FUNCTION ){
+				prntClass->handleFunctionCall( func, tokens, currentPtr );
+			}
+			else{
+				try{
+					backUpPtr = currentPtr;
+					prntClass->InstructionHandlerRunner( tokens, currentPtr );
+				}
+				catch(...){
+					currentPtr = backUpPtr;
+					throw InvalidSyntaxError("Encounter error in function");
+				}
+			}
 			
 		}
 		currentPtr++;
@@ -667,9 +641,9 @@ FunctionRunner::handleBody(
 	return nullopt;
 }
 
-int main(  ){
+int main( int argc, char *argv[] ){
 	try{
-		string filename = "test.mb";
+		string filename = argv[1];
 		fullTokens = parseTheCodeToTokens( filename );
 
 		size_t start = 0;
@@ -677,7 +651,8 @@ int main(  ){
 		shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
 
 		unique_ptr<FunctionRunner> func = make_unique<FunctionRunner>( );
-		auto dd = move(func->handleBody( fullTokens, pointer ));
+		func->functionName = "MAIN";
+		auto dd = move(ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, func.get() ));
 	}
 	catch( InvalidSyntaxError& err ){
 		cout << err.what() << endl;
