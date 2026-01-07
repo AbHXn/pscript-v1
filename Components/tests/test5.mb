@@ -1,0 +1,90 @@
+thenga alphaHelper(pidi n){
+    pidi p = 0;
+    pidi sum = 0;
+
+    ittuthiri p < n {
+        nok p % 2 == 0 {
+            sum = sum + p;
+        } :umbi {
+            sum = sum - 1;
+        };
+        nok sum > 15 {
+            poda sum + n;
+        };
+        p = p + 1;
+    }
+    poda sum;
+}
+
+thenga betaHelper(pidi n){
+    pidi p = 1;
+    pidi prod = 1;
+
+    ittuthiri p <= n {
+        prod = prod * p;
+        nok prod > 50 {
+            poda prod;
+        };
+        p = p + 1;
+    }
+    poda prod;
+}
+
+thenga omegaTest(pidi n){
+    pidi i = 0;
+    pidi j = 0;
+    pidi k = 0;
+    pidi inner = 0;
+    pidi mid = 0;
+    pidi total = 0;
+    pidi temp = 0;
+    pidi stop = 0;
+
+    ittuthiri i < n {
+        j = 0;
+        mid = 0;
+        ittuthiri j < n {
+            k = 0;
+            inner = 0;
+            ittuthiri k <= j {
+                nok (i + j + k) % 3 == 0 {
+                    inner = inner + k;
+                } :umbi {
+                    inner = inner - 1;
+                };
+                nok inner < -5 {
+                    k = k + 1;
+                    pinnava;
+                };
+                nok inner > 20 {
+                    stop = 1;
+                    theku;
+                };
+                k = k + 1;
+            }
+            mid = mid + inner;
+            nok stop == 1 {
+                theku;
+            };
+            j = j + 1;
+        }
+        total = total + mid;
+        nok total > 60 {
+            theku;
+        };
+        i = i + 1;
+    }
+    nok n <= 1 {
+        poda total;
+    };
+    temp = alphaHelper(n) + betaHelper(n % 5) + omegaTest(n - 2);
+    poda total + temp;
+}
+
+pidi a = omegaTest(5);
+pidi b = omegaTest(6);
+pidi c = omegaTest(7);
+
+para a koode "\n";
+para b koode "\n";
+para c koode "\n";

@@ -70,19 +70,20 @@ struct AST_NODE{
 };
 
 AST_TOKENS getExprToken( const string& curTokens ) {
+	// mathematical 
 	if 	   ( curTokens == "+" ) return AST_TOKENS::ADD;
 	else if( curTokens == "-" ) return AST_TOKENS::SUB;
 	else if( curTokens == "*" ) return AST_TOKENS::MUL;
 	else if( curTokens == "/" ) return AST_TOKENS::DIV;
 	else if( curTokens == "%" ) return AST_TOKENS::MOD;
-
+	// relational
 	else if( curTokens == "==" ) return AST_TOKENS::D_EQUAL_TO;
 	else if( curTokens == ">" )  return AST_TOKENS::GT_THAN;
 	else if( curTokens == "<" )  return AST_TOKENS::LS_THAN;
 	else if( curTokens == ">=" ) return AST_TOKENS::GT_THAN_EQ;
 	else if( curTokens == "<=" ) return AST_TOKENS::LS_THAN_EQ;
 	else if( curTokens == "!=" ) return AST_TOKENS::NOT_EQUAL_TO;
-
+	// and .. or.. 
 	else if( curTokens == "um" )  return AST_TOKENS::AND;	
 	else if( curTokens == "yo" )  return AST_TOKENS::OR;
 
@@ -97,36 +98,27 @@ bool isRegisteredASTExprTokens( const string& tok ){
 	return EXPR_CONSTANTS.find( tok ) != EXPR_CONSTANTS.end();
 }
 
-pair< 
-	vector<variant<CODE_TOKENS, AST_TOKENS>>,
-	vector<string>
->
-stringToASTTokens( vector<string>& tokens ){
-
+vector<variant<CODE_TOKENS, AST_TOKENS>>
+stringToASTTokens( const vector<string>& tokens ){
 	vector<variant<CODE_TOKENS, AST_TOKENS>> resultTokens;
-	vector<string> checkVMAPdata;
 
 	for( int startIndex = 0; startIndex < tokens.size(); startIndex++ ){
-		string curTokens = tokens[ startIndex ];
+		const string& curToken = tokens[ startIndex ];
 
-		if( EXPR_CONSTANTS.find( curTokens ) != EXPR_CONSTANTS.end() ){
-			AST_TOKENS getToken = getExprToken( curTokens );
+		if( EXPR_CONSTANTS.find( curToken ) != EXPR_CONSTANTS.end() ){
+			AST_TOKENS getToken = getExprToken( curToken );
 			resultTokens.push_back( getToken );
 		}
-		else if( curTokens == "(" ){
+		else if( curToken == "(" ){
 			resultTokens.push_back( CODE_TOKENS::OPEN );
 		}
-		else if( curTokens == ")" ){
+		else if( curToken == ")" ){
 			resultTokens.push_back( CODE_TOKENS::CLOSE );
 		}
-		else{
-			checkVMAPdata.push_back( curTokens );
-			resultTokens.push_back( CODE_TOKENS::VALUE );
-		}
+		else resultTokens.push_back( CODE_TOKENS::VALUE );
 	}
-	return { resultTokens, checkVMAPdata };
+	return resultTokens;
 } 
-
 
 template <typename AST_NODE_TYPE>
 optional<unique_ptr<AST_NODE<AST_NODE_TYPE>>> 
@@ -134,135 +126,91 @@ finishTheASTTree( vector<unique_ptr<AST_NODE<AST_NODE_TYPE>>>&nodes, vector<uniq
 	while( !optrs.empty() ){
 		unique_ptr<AST_NODE<AST_NODE_TYPE>> topOptr = move( optrs.back() );
 		optrs.pop_back();
-		
-		if( nodes.size() < 2 )
-			return nullopt;
-
-		assert( nodes.empty() == false );
+	
+		if( nodes.size() < 2 ) return nullopt;
 
 		unique_ptr<AST_NODE<AST_NODE_TYPE>> right = move( nodes.back() );
 		nodes.pop_back();
-
 		unique_ptr<AST_NODE<AST_NODE_TYPE>> left = move( nodes.back() );
 		nodes.pop_back();
 
 		topOptr->left 	= move( left );
 		topOptr->right  = move( right);
-		
 		nodes.push_back( move( topOptr ) );
 	}
-	if( !nodes.size() )
-		return nullopt;
-
+	if( !nodes.size() ) return nullopt;
 	return move( nodes.back() );
 }
 
-template <typename VALUE_DATA, typename AST_NODE_DATA>
+// AST_TREE BUILDER
+template <typename VAR_HOLD_DATA, typename AST_NODE_DATA>
 optional<unique_ptr<AST_NODE<AST_NODE_DATA>>>
-BUILD_AST( 
-	vector<variant<CODE_TOKENS, AST_TOKENS>>& codeTokens,
-	queue<VALUE_DATA>& valueQueue,
-	size_t& start
-){	
-	vector<
-		unique_ptr<
-			AST_NODE<AST_NODE_DATA>
-		>
-	> nodeStack, optrStack;
+BUILD_AST( vector<variant<CODE_TOKENS, AST_TOKENS>>& codeTokens, queue<VAR_HOLD_DATA>& valueQueue, size_t& start ){	
+	vector<unique_ptr<AST_NODE<AST_NODE_DATA>>> nodeStack, optrStack;
 
 	for(; start < codeTokens.size(); start++){
 		auto currentVariantToken = codeTokens[ start ];
-
+		
 		if( holds_alternative<CODE_TOKENS>( currentVariantToken ) ){
 			CODE_TOKENS currentToken = get<CODE_TOKENS>( currentVariantToken );
-			
+
 			switch( currentToken ){
 				case CODE_TOKENS::VALUE: {
-					if( valueQueue.empty() ){
+					if( valueQueue.empty() )
 						return nullopt;
-					}
-
+					
 					auto topQueueValue = move( valueQueue.front() );
 					valueQueue.pop();
-
-					unique_ptr<
-						AST_NODE<AST_NODE_DATA>
-					> newNode = make_unique<AST_NODE<AST_NODE_DATA>>();
-
+					unique_ptr<AST_NODE<AST_NODE_DATA>> newNode = make_unique<AST_NODE<AST_NODE_DATA>>();
 					newNode->isASTTokens = false;
 					newNode->AST_DATA = move( topQueueValue );
-
 					nodeStack.push_back( move( newNode ) );
-
 					break;
 				}
-
 				case CODE_TOKENS::OPEN: {
 					++start;
-					auto optCompleteNode = BUILD_AST<VALUE_DATA, AST_NODE_DATA>( codeTokens, valueQueue, start);
-
+					auto optCompleteNode = BUILD_AST<VAR_HOLD_DATA, AST_NODE_DATA>( codeTokens, valueQueue, start);
 					if( !optCompleteNode.has_value() )
 						return nullopt;
-
-					unique_ptr<
-						AST_NODE<AST_NODE_DATA>
-					> completeNode = move(optCompleteNode.value());
+					unique_ptr<AST_NODE<AST_NODE_DATA>> completeNode = move(optCompleteNode.value());
 					nodeStack.push_back( move(completeNode) );
 					break;
 				}
-
 				case CODE_TOKENS::CLOSE:
 					goto FINAL_STAGE;
-
 				default:
 					break;
-
 			} // switch end
 		}
 		else{
 			AST_TOKENS curOptr = get<AST_TOKENS>( currentVariantToken );
-			
-			unique_ptr<
-				AST_NODE<AST_NODE_DATA>
-			> newNode = make_unique<AST_NODE<AST_NODE_DATA>>( );
-			
+			unique_ptr< AST_NODE<AST_NODE_DATA>> newNode = make_unique<AST_NODE<AST_NODE_DATA>>( );
 			newNode->isASTTokens = true;
 			newNode->AST_DATA = curOptr;
 
 			if( !optrStack.empty() ){
 				AST_TOKENS optrFromStack = get<AST_TOKENS>( optrStack.back()->AST_DATA );
-
 				while( PRIORITY[ optrFromStack ] >= PRIORITY[ curOptr ] ){
 					unique_ptr<AST_NODE<AST_NODE_DATA>> topOptr = move( optrStack.back() );
 					optrStack.pop_back();
-					
-					if( nodeStack.size() < 2 ){
-						// ----> raise error
-						return nullopt;
-					}
+					if( nodeStack.size() < 2 ) return nullopt;
 					
 					unique_ptr<AST_NODE<AST_NODE_DATA>> right = move( nodeStack.back() );
 					nodeStack.pop_back();
-					
 					unique_ptr<AST_NODE<AST_NODE_DATA>> left = move( nodeStack.back() );
 					nodeStack.pop_back();
-					
 					topOptr->left  = move(left);
 					topOptr->right = move(right);
-
 					nodeStack.push_back( move( topOptr ) );
-					
-					if( optrStack.empty() )
-						break;
+
+					if( optrStack.empty() ) break;
 					
 					optrFromStack = get<AST_TOKENS>( optrStack.back()->AST_DATA );
 				}
-				optrStack.push_back( move( newNode ) );
 			}
-			else optrStack.push_back( move( newNode ) );
+			optrStack.push_back( move( newNode ) );
 		}
 	}
-
 	FINAL_STAGE:
 		return finishTheASTTree( nodeStack, optrStack );
 }
