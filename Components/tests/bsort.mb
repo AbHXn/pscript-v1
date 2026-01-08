@@ -1,7 +1,7 @@
 pidi test kootam = {4, 2, 1, 6, 3, 7};
 pidi x, size = 0, test:valupam;
-
-ittuthiri x < size - 1 {
+i
+ttuthiri x < size - 1 {
 	pidi y = x + 1;
 	ittuthiri y < size {
 		nok test[x] > test[y] {

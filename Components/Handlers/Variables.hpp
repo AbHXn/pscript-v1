@@ -75,9 +75,9 @@ class ArrayList{
 				unique_ptr<ArrayList>
 				>
 			> arrayList;
-		
+	
 		std::vector<size_t> dimensions;	
-		size_t totalElementsAllocated;
+		size_t totalElementsAllocated = 0;
 		
 		static unique_ptr<ArrayList>
 		_arrayListBuilder( 
@@ -114,11 +114,15 @@ class ArrayList{
 			return arrayResult;
 		}
 		void push_SingleElement( VarDtype singleElement ){
+			this->totalElementsAllocated++;
 			this->arrayList.push_back( singleElement );
 		}
 		
 		variant<ArrayList*, VarDtype>
 		getElementAtIndex(vector<long int>& dimensions, size_t index = 0){
+			if( dimensions.empty() )
+				return this;
+
 			auto curIndex = dimensions[ index ];
 			if( curIndex >= 0 && curIndex < this->arrayList.size() ){
 				auto& test = this->arrayList[ curIndex ];
@@ -140,6 +144,7 @@ class ArrayList{
 		}
 
 		void push_ArrayList( unique_ptr<ArrayList> arrayListElement ){
+			this->totalElementsAllocated++;
 			this->arrayList.push_back( move( arrayListElement ) );	
 		}
 };
@@ -408,18 +413,38 @@ isValidValueSyntax(
 }
 
 enum class ARRAY_ACCESS{
-	NOTHING 		,
-	VAR_NAME 		,
-	BRACK_OPEN 		,
-	INDEX_VECTOR 	,
-	BRACK_CLOSE	 	,
-	END
+	NOTHING 		,  // 0
+	VAR_NAME 		,  // 1
+	BRACK_OPEN 		,  // 2
+	INDEX_VECTOR 	,  // 3
+	BRACK_CLOSE	 	,  // 4
+	PROPERTY_ACCESS ,  // 5
+	PROPERTY_VECTORS,  // 6
+	PROPERTY_NAME	,  // 7
+	END 			   // 8
+};
+
+struct ArrayPropertyAccess{
+	string propertyType;
+	vector<vector<Token>> propertyValueVector;
+
+	ArrayPropertyAccess() = default;
+
+	ArrayPropertyAccess(
+		string propertyType,
+		vector<vector<Token>> propertyValueVector
+	){
+		this->propertyType = propertyType;
+		this->propertyValueVector = propertyValueVector;
+	}
 };
 
 struct ArrayAccessTokens{
 	vector<ARRAY_ACCESS> tokens;
 	string arrayName;
 	vector<vector<Token>> indexVector;
+	bool isTouchedArrayProperty = false;
+	ArrayPropertyAccess arrProperty;
 
 	ArrayAccessTokens( 
 		vector<ARRAY_ACCESS> tokens,
@@ -430,7 +455,43 @@ struct ArrayAccessTokens{
 		this->arrayName   = arrayName;
 		this->indexVector = indexVector;
 	}
+
+	void setArrayProperty( ArrayPropertyAccess arrProp ){
+		this->isTouchedArrayProperty = true;
+		this->arrProperty = arrProp;
+	}
+
 };
+
+void fill_property_vector( const vector<Token>& tokens, 
+		vector<vector<Token>>&vec, size_t& currentPtr ){
+
+	vector<Token> curVector;
+	currentPtr++;
+		
+	int openCnts = 1;
+	while( currentPtr < tokens.size() ){
+		const Token& curToken = tokens[ currentPtr ];
+		currentPtr++;
+
+		if( curToken.token == "(" )
+			openCnts++;
+		else if( curToken.token == ")" )
+			openCnts--;
+
+		if( curToken.token == "," && openCnts == 1 ){
+			vec.push_back( curVector );
+			curVector.clear();
+			continue;
+		}
+		if( !openCnts ){
+			if( !curVector.empty() ){
+				vec.push_back( curVector );
+			}
+		}
+		curVector.push_back( curToken );
+	}
+}
 
 ArrayAccessTokens
 stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
@@ -438,6 +499,10 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 	vector<ARRAY_ACCESS>  arrAccessTokens;
 	string 				  arrName;
 	ARRAY_ACCESS prev = ARRAY_ACCESS::NOTHING;
+
+	string propertyName;
+	vector<vector<Token>> propertyArgs;
+	bool isTouchedArrayProperty = false;
 
 	while( currentPtr < tokens.size() ){
 		const Token& tok = tokens[ currentPtr ];
@@ -448,6 +513,16 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 
 		else if( curToken == "]" )
 			arrAccessTokens.push_back( ARRAY_ACCESS::BRACK_CLOSE );
+
+		else if( curToken == ":" ){
+			isTouchedArrayProperty = true;
+			arrAccessTokens.push_back( ARRAY_ACCESS::PROPERTY_ACCESS);
+		}
+		
+		else if( curToken == "(" ){
+			currentPtr++;
+			fill_property_vector( tokens, propertyArgs, currentPtr );
+		}
 
 		else {
 			if( prev == ARRAY_ACCESS::NOTHING ){
@@ -465,6 +540,7 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 					if( tok.token == "[" ){
 						openCnts++;
 						currentPtr++;
+						curIndexVec.push_back( tok );
 						continue;
 					}
 					if( tok.token == "]" ){
@@ -473,6 +549,7 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 							currentPtr--;
 							break;
 						}
+						curIndexVec.push_back( tok );
 						currentPtr++;
 						continue;
 					}
@@ -482,24 +559,49 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 				}
 				indexVector.push_back( curIndexVec );
 			}
+			else if( prev == ARRAY_ACCESS::PROPERTY_ACCESS ){
+				propertyName = curToken;
+				arrAccessTokens.push_back( ARRAY_ACCESS::PROPERTY_NAME );
+			}
 			else {
 				arrAccessTokens.push_back( ARRAY_ACCESS::END );
-				return ArrayAccessTokens( arrAccessTokens, arrName, indexVector );
+				ArrayAccessTokens newArrToken( arrAccessTokens, arrName, indexVector );
+				newArrToken.isTouchedArrayProperty = isTouchedArrayProperty;
+				if( isTouchedArrayProperty )
+					newArrToken.setArrayProperty( ArrayPropertyAccess( propertyName, propertyArgs ) );
+				return newArrToken;
 			}
 		}
 		currentPtr++;
 		prev = arrAccessTokens.empty() ? prev : arrAccessTokens.back();
 	}
 	arrAccessTokens.push_back( ARRAY_ACCESS::END );
-	return ArrayAccessTokens( arrAccessTokens, arrName, indexVector );
+	ArrayAccessTokens newArrToken( arrAccessTokens, arrName, indexVector );
+	newArrToken.isTouchedArrayProperty = isTouchedArrayProperty;
+
+	if( isTouchedArrayProperty )
+		newArrToken.setArrayProperty( ArrayPropertyAccess( propertyName, propertyArgs ) );
+
+	return newArrToken;
 }
 
 unordered_map<ARRAY_ACCESS, vector<ARRAY_ACCESS>> ARRAY_ACCESS_GRAPH = {
-	{ ARRAY_ACCESS::VAR_NAME, 		{ ARRAY_ACCESS::BRACK_OPEN, 
-									  ARRAY_ACCESS::END } 			},
-	{ ARRAY_ACCESS::BRACK_OPEN, 	{ ARRAY_ACCESS::INDEX_VECTOR }  },
-	{ ARRAY_ACCESS::INDEX_VECTOR, 	{ ARRAY_ACCESS::BRACK_CLOSE } 	},
-	{ ARRAY_ACCESS::BRACK_CLOSE, 	{ ARRAY_ACCESS::END } 			}
+	{ ARRAY_ACCESS::VAR_NAME, 		  { ARRAY_ACCESS::BRACK_OPEN, 
+									    ARRAY_ACCESS::END } 			},
+	
+	{ ARRAY_ACCESS::BRACK_OPEN, 	  { ARRAY_ACCESS::INDEX_VECTOR }  	},
+	
+	{ ARRAY_ACCESS::INDEX_VECTOR, 	  { ARRAY_ACCESS::BRACK_CLOSE } 	},
+	
+	{ ARRAY_ACCESS::BRACK_CLOSE, 	  { ARRAY_ACCESS::END, 
+										ARRAY_ACCESS::PROPERTY_ACCESS } },
+
+	{ ARRAY_ACCESS::PROPERTY_ACCESS,  { ARRAY_ACCESS::PROPERTY_NAME }   },
+	
+	{ ARRAY_ACCESS::PROPERTY_NAME,    { ARRAY_ACCESS::PROPERTY_VECTORS, 
+										ARRAY_ACCESS::END } 			},
+	
+	{ ARRAY_ACCESS::PROPERTY_VECTORS, { ARRAY_ACCESS::END } 			}
 };
 
 bool 

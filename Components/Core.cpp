@@ -126,6 +126,14 @@ class FunctionHandler: public VAR_VMAP {
 			throw InvalidDTypeError("Failed to resolve the vector\n");
 		}
 
+		optional<size_t>
+		handleArrayProperties( ArrayList* array, ArrayAccessTokens& arrToken){
+			if( arrToken.arrProperty.propertyType == "valupam" ){
+				return array->totalElementsAllocated;
+			}
+			return nullopt;
+		}
+
 		pair<queue<DEEP_VALUE_DATA>, vector<string>>
 		vectorResolver( const vector<Token>& tokens ){
 			queue<DEEP_VALUE_DATA> resolvedVector;       
@@ -162,7 +170,7 @@ class FunctionHandler: public VAR_VMAP {
 								auto& arrayData = get<unique_ptr<ArrayList>>( varHolder->value );
 								ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 								x--;
-								
+
 								if( arrToken.indexVector.size() ){
 									vector<long int> resolvedIndexVector;
 
@@ -171,7 +179,6 @@ class FunctionHandler: public VAR_VMAP {
 										if( !holds_alternative<VarDtype>( val ) )
 											throw InvalidSyntaxError("Array Index Expects numbesdfr");
 										
-
 										VarDtype vDtypeIndex = get<VarDtype>( val );
 										if( !holds_alternative<long int> ( vDtypeIndex ) &&
 														 !holds_alternative<double> ( vDtypeIndex ))
@@ -180,25 +187,44 @@ class FunctionHandler: public VAR_VMAP {
 										long int index;
 										if( holds_alternative<long int>(vDtypeIndex) )
 											index = get<long int>(vDtypeIndex);
-
 										else index = (long int) get<double>( vDtypeIndex );
 										
 										resolvedIndexVector.push_back( index );
 									}
 
 									variant<ArrayList*, VarDtype> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
+									
 									if( holds_alternative<VarDtype> ( returnIndex ) ){
 										resolvedVector.push( get<VarDtype>( returnIndex ) );
 										simpleVector.push_back("VAR");
 									}
 									else{
-										resolvedVector.push( get<ArrayList*>( returnIndex ) );
-										simpleVector.push_back("VAR");
+										ArrayList* arrList = get<ArrayList*>( returnIndex );
+										if( arrToken.isTouchedArrayProperty ){
+											auto data = handleArrayProperties( arrList, arrToken );
+											if( data.has_value() ) {
+												resolvedVector.push( (long int) data.value() );
+												simpleVector.push_back("VAR");
+											}
+										}
+										else{
+											resolvedVector.push( arrList );
+											simpleVector.push_back("VAR");
+										}
 									}
 								}
 								else {
-									resolvedVector.push( arrayData.get() );
-									simpleVector.push_back("VAR");
+									if( arrToken.isTouchedArrayProperty ){
+										auto data = handleArrayProperties( arrayData.get(), arrToken );
+										if( data.has_value() ) {
+											resolvedVector.push( (long int) data.value() );
+											simpleVector.push_back("VAR");
+										}
+									}
+									else{
+										resolvedVector.push( arrayData.get() );
+										simpleVector.push_back("VAR");
+									}
 								}
 							}
 						}
@@ -438,42 +464,101 @@ class FunctionHandler: public VAR_VMAP {
 				}
 			}
 
-		void InstructionHandlerRunner( const vector<Token>& tokens, size_t& currentPtr ){
-			
-			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
+		void arrayUpdation( const vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList* arr ){
+			ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
+			curPtr--;
 
-			if( InsTokensAndData.rightVector.size() != InsTokensAndData.leftVector.size() )
-				throw InvalidSyntaxError( "Invalid Instruction" );
+			if( arrToken.isTouchedArrayProperty )
+				throw InvalidSyntaxError("Using array property in updatation is not allowed");
+
+			if( arrToken.indexVector.size() ){
+				vector<long int> resolvedIndexVector;
+
+				for( auto& vec: arrToken.indexVector ){
+					DEEP_VALUE_DATA val = getTheResult( vec );
+
+					if( !holds_alternative<VarDtype>( val ) )
+						throw InvalidSyntaxError("Array Index Expects Type Integer");
+					
+					VarDtype vDtypeIndex = get<VarDtype>( val );
+					
+					if( !holds_alternative<long int> ( vDtypeIndex ) && !holds_alternative<double> ( vDtypeIndex ))
+						throw InvalidSyntaxError("Array Index Expects Integer");
+
+					long int index;
+					
+					if( holds_alternative<long int>(vDtypeIndex) )
+						index = get<long int>(vDtypeIndex);
+					else index = (long int) get<double>( vDtypeIndex );
+				
+					resolvedIndexVector.push_back( index );
+				}
+
+				long int updationIndex = resolvedIndexVector.back();
+				resolvedIndexVector.pop_back();
+
+				if( updationIndex < 0 )
+					throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
+
+				variant<ArrayList*, VarDtype> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
+
+				if( holds_alternative<VarDtype> ( returnIndex ) )
+					throw InvalidSyntaxError("Failed to index an non array type");
+
+				ArrayList* arrList = get<ArrayList*>( returnIndex );
+
+
+				if( arrList->totalElementsAllocated <= updationIndex )
+					throw ArrayOutOfBound( to_string( updationIndex ) );
+
+				auto& elementAtIndex = arrList->arrayList[ updationIndex ];
+				if( holds_alternative<VarDtype>( elementAtIndex ) && holds_alternative<VarDtype>( upvalue ) ){
+					arrList->arrayList[ updationIndex ] = get<VarDtype>( upvalue );
+				}
+				else throw InvalidDTypeError("Dtype mismatch in array updation");
+
+			}
+		}
+
+		void InstructionHandlerRunner( const vector<Token>& tokens, size_t& currentPtr ){
+			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
 			if( !isValidInstructionSet( InsTokensAndData.insToken) )
 				throw InvalidSyntaxError( "Invalid Instruction set" );
 
-			queue<VarDtype> finalValueQueue;
-			vector<string>& varsAndVals = InsTokensAndData.leftVector;
+			queue<DEEP_VALUE_DATA> finalValueQueue;
 
-			queue<MapItem*> mapVariables;
-			for( string& var: varsAndVals ){
-				MapItem* mapVar = this->getFromVmap( var );
-				if( mapVar == nullptr )
-					throw InvalidSyntaxError( "No variable named " + var );
-				mapVariables.push( mapVar );
-			}
+			vector<Token>& varsAndVals = InsTokensAndData.leftVector;
+
 			for( vector<Token>& astStrToks: InsTokensAndData.rightVector ){
 				DEEP_VALUE_DATA data = getTheResult( astStrToks );
-				if( holds_alternative<VarDtype> ( data ) )
-					finalValueQueue.push( move( get<VarDtype>(data) ) );
+				finalValueQueue.push( data  );
 			}
-			while( !mapVariables.empty() ){
-				MapItem* var = mapVariables.front();
-				VarDtype value = finalValueQueue.front();
 
-				mapVariables.pop();
-				finalValueQueue.pop();
+			for( size_t x = 0; x < varsAndVals.size(); x++ ){
+				MapItem* mapData = getFromVmap( varsAndVals[ x ].token );
 				
-				/* 
-					// IMPLEMENT +=, -= short keys here
-				*/
-				var->updateSingleVariable( value );
+				if( mapData == nullptr )
+					throw InvalidSyntaxError(
+							"Unknown token: " + varsAndVals[x].token + " at line: " + to_string( varsAndVals[x].row ) 
+						);
+
+				if( mapData->mapType != MAPTYPE::VARIABLE )
+					throw InvalidSyntaxError(
+						"Only variables are allowed for updation\n Error at line: " + to_string( varsAndVals[x].row )
+					);
+
+				auto& vmapvariable = get<unique_ptr<VARIABLE_HOLDER>>( mapData->var );
+				
+				DEEP_VALUE_DATA topValue = finalValueQueue.front();
+				finalValueQueue.pop();
+
+				if( vmapvariable->isTypeArray ){
+					auto& arr = get<unique_ptr<ArrayList>>( vmapvariable->value );
+					arrayUpdation( varsAndVals, x, topValue, arr.get());
+				}
+				else if( holds_alternative<VarDtype>( topValue ) )
+					mapData->updateSingleVariable( get<VarDtype>( topValue ) );
 			}
 		}
 

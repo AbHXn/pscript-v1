@@ -31,8 +31,8 @@ enum class INS_TOKEN{
 };
 
 unordered_map<INS_TOKEN, vector<INS_TOKEN>> INS_GRAPH = {
-	{ INS_TOKEN::LHS_VALUE, { INS_TOKEN::COMMA, 
-							  INS_TOKEN::INS_END, 
+	{ INS_TOKEN::LHS_VALUE, { INS_TOKEN::LHS_VALUE,
+							  INS_TOKEN::COMMA,
 							  INS_TOKEN::ADD_REPLACE, 
 							  INS_TOKEN::SUB_REPLACE,
 							  INS_TOKEN::MUL_REPLACE, 
@@ -83,13 +83,13 @@ struct InstructionTokens{
 	vector<INS_TOKEN> insToken;
 	INS_TOKEN optr;
 	vector<vector<Token>> rightVector;
-	vector<string> leftVector;
+	vector<Token> leftVector;
 
 	InstructionTokens(
 		vector<INS_TOKEN> insToken,
 		INS_TOKEN optr,
 		vector<vector<Token>> rightVector,
-		vector<string> leftVector
+		vector<Token> leftVector
 	){
 		this->insToken 	  = insToken;
 		this->optr 		  = optr;
@@ -105,7 +105,7 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 	bool isLhs = true;
 	
 	vector<vector<Token>> rightVector;
-	vector<string> 		   leftValue;
+	vector<Token> 		   leftValue;
 	vector<INS_TOKEN> 	   insTokens;
 
 	while( startIndex < tokens.size() ){
@@ -125,14 +125,8 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 		}
 		else{
 			if( isLhs ){
-				if( tok.type == TOKEN_TYPE::IDENTIFIER ){
-					leftValue.push_back( curToken );
-					insTokens.push_back( INS_TOKEN::LHS_VALUE );
-				}
-				else throw InvalidSyntaxError(
-					"Invalid token at line: " + to_string( tok.row ) + 
-					" Column: " + to_string( tok.col )
-				);
+				leftValue.push_back( tok );
+				insTokens.push_back( INS_TOKEN::LHS_VALUE );
 			}
 			else{
 				vector<Token> valueVector;
