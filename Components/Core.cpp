@@ -120,8 +120,7 @@ class FunctionHandler: public VAR_VMAP {
 						holds_alternative<DEEP_VALUE_DATA> ( AST_NODE->AST_DATA)){
 						return get<DEEP_VALUE_DATA>( AST_NODE->AST_DATA );
 				}
-				VarDtype finalValue = ValueHelper::evaluate_AST_NODE( AST_NODE );
-				return finalValue;
+				return ValueHelper::evaluate_AST_NODE( AST_NODE );
 			}
 			throw InvalidDTypeError("Failed to resolve the vector\n");
 		}
@@ -327,9 +326,12 @@ class FunctionHandler: public VAR_VMAP {
 					if( !newAstNode.has_value( ) )
 						return nullopt;
 
-					VarDtype evaluationResult = ValueHelper::evaluate_AST_NODE( newAstNode.value( ) );
+					DEEP_VALUE_DATA evaluationResult = ValueHelper::evaluate_AST_NODE( newAstNode.value( ) );
 
-					finalValueQueue.push( evaluationResult );
+					if( !holds_alternative<VarDtype>( evaluationResult ) )
+						throw ; /////////// HANDLER LATER;
+
+					finalValueQueue.push( get<VarDtype>( evaluationResult ) );
 					lhsTokens.push_back( Token( TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
 					if( total_comma )
 						lhsTokens.push_back( Token( TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
@@ -399,8 +401,12 @@ class FunctionHandler: public VAR_VMAP {
 													);
 					if( !newAstNode.has_value() )
 						return;
-					VarDtype evaluationResult = ValueHelper::evaluate_AST_NODE( newAstNode.value() );
-					finalValueQueue.push( evaluationResult );
+					DEEP_VALUE_DATA evaluationResult = ValueHelper::evaluate_AST_NODE( newAstNode.value() );
+					
+					if( !holds_alternative<VarDtype>(evaluationResult) )
+						throw ; // later 
+
+					finalValueQueue.push( get<VarDtype>(evaluationResult) );
 				}
 				bool isValValue = isValidValueSyntax( toks.second, vars, finalValueQueue );
 				if( isValValue ){

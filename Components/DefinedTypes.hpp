@@ -162,24 +162,23 @@ class ValueHelper{
 		else throw runtime_error("Didn't create display method for given type");
 	}
 
-	static VarDtype 
+	static DEEP_VALUE_DATA 
 	evaluate_AST_NODE( unique_ptr<AST_NODE<AST_NODE_DATA>>& astNode ){
 		auto& astNodeData = astNode->AST_DATA;
 
 		if( holds_alternative<DEEP_VALUE_DATA>( astNodeData ) ){
-			auto& valueData = get<DEEP_VALUE_DATA>( astNodeData );
-			if( holds_alternative<VarDtype>( valueData ) ){
-				VarDtype varDtypeData = get<VarDtype>( valueData );
-				return varDtypeData;
-			}
-			throw InvalidSyntaxError("Invalid dtype for operation");
+			auto valueData = get<DEEP_VALUE_DATA>( astNodeData );
+			return valueData;
 		}
 		else{
 			if( !astNode->left || !astNode->right )
 				throw InvalidSyntaxError("Invalid Expression");
 
-			VarDtype leftData  = ValueHelper::evaluate_AST_NODE( astNode->left );
-			VarDtype rightData = ValueHelper::evaluate_AST_NODE( astNode->right );
+			DEEP_VALUE_DATA leftData  = ValueHelper::evaluate_AST_NODE( astNode->left );
+			DEEP_VALUE_DATA rightData = ValueHelper::evaluate_AST_NODE( astNode->right );
+
+			if( !holds_alternative<VarDtype>( leftData ) || !holds_alternative<VarDtype>( rightData ) )
+				throw InvalidSyntaxError("Invalid operation between VarDtype types");
 
 			return std::visit(
 				[&](const auto& x, const auto& y) -> VarDtype {
@@ -222,7 +221,7 @@ class ValueHelper{
 					} 
 					else throw InvalidSyntaxError("Invalid operation between VarDtype types");
 					
-				}, leftData, rightData
+				}, get<VarDtype>( leftData ), get<VarDtype>(rightData)
 			);
 		}
 	}
