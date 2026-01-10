@@ -1,5 +1,37 @@
-pidi test kootam = {4, 2, 1, 6, 3, 7};
+thenga matmul(pidi M1, pidi M2 kootam){
+	pidi x = 0;
+	pidi DIM = 3;
+	pidi res = {
+			{0, 0, 0},
+			{0, 0, 0},
+			{0, 0, 0}		
+		};
+	ittuthiri x < DIM {
+		pidi y = 0;
+		ittuthiri y < DIM {
+			pidi k = 0;
+			ittuthiri k < DIM {
+				res[x][y] = res[x][y] + M1[x][k] * M2[k][y]; 
+				k = k + 1;			
+			}			
+			y = y + 1;		
+		}
+		x = x + 1;	
+	}
+	poda res;
+}
 
-pidi s kootam = test;
+pidi mat1 kootam = {
+	{1, 2, 3},
+	{4, 5, 6},
+	{7, 8, 9}
+};
 
-para s;
+pidi mat2 kootam = {
+	{1, 2, 3},
+	{4, 5, 6},
+	{7, 8, 9}
+};
+
+pidi ras kootam = matmul(mat1, mat2);
+para ras koode "\n";

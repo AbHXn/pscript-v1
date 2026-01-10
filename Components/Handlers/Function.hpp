@@ -43,6 +43,10 @@ struct FUNCTION_MAP_DATA{
 	vector<unique_ptr<ARG_VAR_INFO>> argsInfo;
 	size_t bodyStartPtr;
 	size_t bodyEndPtr;
+
+	FUNCTION_MAP_DATA() = default;
+
+	
 };
 
 struct FunctionTokenReturn {

@@ -60,32 +60,36 @@ unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 	{ VALUE_TOKENS::ARRAY_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::ARRAY_CLOSE } 	   	},
 	{ VALUE_TOKENS::COMMA, 	  	 { VALUE_TOKENS::ARRAY_VALUE, VALUE_TOKENS::ARRAY_OPEN, 
 								   VALUE_TOKENS::NORMAL_VALUE } 							},
-	{ VALUE_TOKENS::ARRAY_CLOSE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END }		   	}
+	{ VALUE_TOKENS::ARRAY_CLOSE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END, 
+								   VALUE_TOKENS::ARRAY_CLOSE }		   						}
 };
 
 bool isRegisteredVariableToken( const string& token ){
 	return REGISTERED_TOKENS.find( token ) != REGISTERED_TOKENS.end();
 }
 
+template <typename ARRAY_SUPPORT_TYPES>
 class ArrayList{
 	public:
 		std::vector< 
 			std::variant< 
-				VarDtype,
-				unique_ptr<ArrayList>
+				ARRAY_SUPPORT_TYPES,
+				ArrayList<ARRAY_SUPPORT_TYPES>*,
+				unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 				>
 			> arrayList;
 	
 		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated = 0;
 		
-		static unique_ptr<ArrayList>
+		template <typename DEEP_VALUE>
+		static unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 		_arrayListBuilder( 
 						std::vector<VALUE_TOKENS>& arrayTokenList, 
 						size_t& curIndex, 
-						std::queue<VarDtype>& valueQueue
+						std::queue<DEEP_VALUE>& valueQueue
 					){
-			auto newArrayList = make_unique< ArrayList >();
+			auto newArrayList = make_unique< ArrayList<ARRAY_SUPPORT_TYPES> >();
 			while( curIndex < arrayTokenList.size() ){
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
 					curIndex++;
@@ -93,11 +97,11 @@ class ArrayList{
 				}
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
 					curIndex++ 	  ; 
-					unique_ptr<ArrayList> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
+					unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
 					newArrayList->push_ArrayList( move( array ) );
 				}
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_VALUE ){
-					VarDtype value = move ( valueQueue.front() );
+					DEEP_VALUE value = valueQueue.front();
 					valueQueue.pop( );
 					newArrayList->push_SingleElement( value );
 				}
@@ -108,17 +112,23 @@ class ArrayList{
 			throw InvalidSyntaxError("encounter invalid syntax in array creation");
 		}
 
-		static unique_ptr<ArrayList>
-		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, std::queue<VarDtype>& ValueQueue ){
-			unique_ptr<ArrayList> arrayResult = ArrayList::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
+		template <typename DEEP_VALUE>
+		static unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
+		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, std::queue<DEEP_VALUE>& ValueQueue ){
+			unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = \
+					 ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
 			return arrayResult;
 		}
-		void push_SingleElement( VarDtype singleElement ){
+
+		template <typename DEEP_VALUE>
+		void push_SingleElement( DEEP_VALUE singleElement ){
 			this->totalElementsAllocated++;
-			this->arrayList.push_back( singleElement );
+			visit( [&]( auto&& data ){
+				this->arrayList.push_back( data );
+			}, singleElement );
 		}
 		
-		variant<ArrayList*, VarDtype>
+		variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES>
 		getElementAtIndex(vector<long int>& dimensions, size_t index = 0){
 			if( dimensions.empty() )
 				return this;
@@ -128,35 +138,51 @@ class ArrayList{
 				auto& test = this->arrayList[ curIndex ];
 
 				if( index == dimensions.size() - 1 ){
-					if ( holds_alternative<VarDtype>( test ) )
-						return get<VarDtype>(test);
+					if ( holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
+						return get<ARRAY_SUPPORT_TYPES>(test);
+
+					else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(test) )
+						return get<ArrayList<ARRAY_SUPPORT_TYPES>*>( test );
+					
 					auto& finalData = get<unique_ptr<ArrayList>>(test);
 					return finalData.get();
 				}
 
-				if ( holds_alternative<VarDtype>( test ) )
+				if ( holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
 					throw InvalidSyntaxError("Only Array Can Access Using Index");
 
-				auto& finalData = get<unique_ptr<ArrayList>>(test);
-				return finalData->getElementAtIndex( dimensions, index+1 );
+				if( holds_alternative<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test) ){
+					auto& finalData = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
+					return finalData->getElementAtIndex( dimensions, index+1 );
+				}
+				else{
+					auto finalData = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(test);
+					return finalData->getElementAtIndex( dimensions, index+1 );
+				}
+				
 			} 
 			else throw ArrayOutOfBound(to_string(curIndex));
 		}
 
-		void push_ArrayList( unique_ptr<ArrayList> arrayListElement ){
+		void push_ArrayList( unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
 			this->totalElementsAllocated++;
 			this->arrayList.push_back( move( arrayListElement ) );	
 		}
 };
 
+struct VAR_INFO{
+	string varName;
+	bool isTypeArray;
+};
+
+template <typename ARRAY_SUPPORT_TYPES>
 struct VARIABLE_HOLDER{
 	std::string key;
 	bool isTypeArray;
-	bool isValueAssigned;
 
 	std::variant<
 		VarDtype,
-		unique_ptr<ArrayList>
+		unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 	> value;
 };
 
@@ -179,6 +205,7 @@ struct VariableTokens{
 		this->VarQueue 	  = VarQueue;
 	}
 };
+
 
 VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& startCurPtr ){
 	vector<VARIABLE_TOKENS> varTokens;
@@ -256,9 +283,7 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 bool 
 isValidVariableSyntax( 
 					vector<VARIABLE_TOKENS>& varTokens, 
-					vector<
-						unique_ptr<VARIABLE_HOLDER>
-					>& variableStack ,
+					vector<VAR_INFO>& variableStack ,
 					queue<Token>& VarQueue
 	){
 	if( !varTokens.size() ) return false;
@@ -275,21 +300,24 @@ isValidVariableSyntax(
 						return false;
 					else{
 						Token variableName = VarQueue.front();
+						VarQueue.pop( );
+						
 						if( variableName.type != TOKEN_TYPE::IDENTIFIER )
 							throw InvalidSyntaxError(
 								"Invalid Variable Name at line:  " + to_string(variableName.row) );
-						unique_ptr<VARIABLE_HOLDER> newVariable = make_unique<VARIABLE_HOLDER>();
-						newVariable->key = variableName.token;
-						newVariable->isValueAssigned = false;
-						VarQueue.pop( );
-						variableStack.push_back( move( newVariable ));
+						
+						VAR_INFO newVariable;
+						
+						newVariable.varName = variableName.token;
+						newVariable.isTypeArray = false;
+						variableStack.push_back( newVariable );
 					}
 					break;
 				}
 				case VARIABLE_TOKENS::ARRAY: {
 					if( variableStack.empty() )
 						return false;
-					else variableStack.back()->isTypeArray = true;
+					else variableStack.back().isTypeArray = true;
 					break;
 				}
 				default: break;
@@ -324,13 +352,7 @@ isValidVariableSyntax(
 	}
 }
 
-template <typename VAR_DTYPE> bool 
-isValidValueSyntax( 
-			vector<VALUE_TOKENS>& valueTokens, 
-			vector<unique_ptr<VARIABLE_HOLDER>>& variable,
-			queue<VAR_DTYPE>& ValueQueue
-
-){
+bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens ){
 	if( !valueTokens.size() )
 		return false;
 
@@ -338,78 +360,34 @@ isValidValueSyntax(
 	size_t currentPointer 	  = 0;
 	size_t updatedVariable 	  = 0;
 	
-	try {
-		if( valueTokens[ currentPointer ] == VALUE_TOKENS::ARRAY_OPEN )
-			currentStage = VALUE_TOKENS::ARRAY_OPEN;
-		
-		while( valueTokens[ currentPointer ] == currentStage ){
-			if( currentStage == VALUE_TOKENS::VALUE_END )
-				break;
+	if( valueTokens[ currentPointer ] == VALUE_TOKENS::ARRAY_OPEN )
+		currentStage = VALUE_TOKENS::ARRAY_OPEN;
+	
+	while( valueTokens[ currentPointer ] == currentStage ){
+		if( currentStage == VALUE_TOKENS::VALUE_END )
+			break;
 
-			if( updatedVariable >= variable.size() )
-				throw VariableDeclarationMissing( );
-			
-			switch( valueTokens[ currentPointer ] ){
-				case VALUE_TOKENS::ARRAY_OPEN: {		
-					auto& topVariable = variable[ updatedVariable ];
-					if( topVariable->isTypeArray == false )
-						throw InvalidDTypeError( "Variable expected is not kootam" );
-					currentPointer++;
-					auto newArray = ArrayList::createArray( 
-						valueTokens, 
-						currentPointer,
-						ValueQueue 
-					);
-					topVariable->value = move( newArray );	
-					updatedVariable++;
-					break;
-				}
-				case VALUE_TOKENS::NORMAL_VALUE:{
-					auto& topVariable = variable[updatedVariable];
-					if( topVariable->isTypeArray )
-						throw InvalidDTypeError( "Variable expected is kootam" );	
-					if( ValueQueue.empty() )
-						return false;
-					auto value = ValueQueue.front();
-					ValueQueue.pop();
-					topVariable->value = value;
-					updatedVariable++;
-					break;
-				}
-				default:
-					break;
-			}
-			if( currentPointer + 1 >= valueTokens.size() )
-				break;
+		if( currentPointer + 1 >= valueTokens.size() )
+			break;
 
-			currentPointer++;
-			bool continueChecking = false;
-			vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer - 1 ] ];
-			for(int x = 0; x < graph.size(); x++ ){
-				if( valueTokens[ currentPointer ] == graph[ x ] ){
-					currentStage = valueTokens[ currentPointer ];
-					continueChecking = true;
-				}
+		currentPointer++;
+		bool continueChecking = false;
+		vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer - 1 ] ];
+
+		for(int x = 0; x < graph.size(); x++ ){
+			if( valueTokens[ currentPointer ] == graph[ x ] ){
+				currentStage = valueTokens[ currentPointer ];
+				continueChecking = true;
 			}
-			if( !continueChecking )
-				break;
 		}
-		if( currentStage != VALUE_TOKENS::VALUE_END)
-			throw InvalidSyntaxError("Occures Syntax error in Variable initialization");
-		return true;
+		if( !continueChecking ){
+			break;
+		}
 	}
-	catch ( const VariableDeclarationMissing& err ){
-		cout << err.what() << endl;
-		return false;
-	}
-	catch( const InvalidDTypeError& err ){
-		cout << err.what() << endl;
-		return false;
-	}
-	catch( const InvalidSyntaxError& err ){
-		cout << err.what() << endl;
-		return false;
-	}
+	if( currentStage != VALUE_TOKENS::VALUE_END)
+		throw InvalidSyntaxError("Occures Syntax error in Variable initialization");
+	return true;
+	
 }
 
 enum class ARRAY_ACCESS{

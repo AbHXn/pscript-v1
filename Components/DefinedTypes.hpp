@@ -29,21 +29,22 @@ enum class MAPTYPE{ VARIABLE, FUNCTION, ARRAY_PTR };
 template<typename T>
 inline constexpr bool is_number_v = std::is_same_v<T, long int> || std::is_same_v<T, double> || std::is_same_v<T, bool>;
 
-using DEEP_VALUE_DATA  		= variant<VarDtype, ArrayList*, FUNCTION_MAP_DATA*>;
+using ARRAY_SUPPORT_TYPES	= variant<VarDtype, FUNCTION_MAP_DATA*>;
+using DEEP_VALUE_DATA  		= variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
 using AST_NODE_DATA 		= variant<AST_TOKENS, DEEP_VALUE_DATA>;
 
 
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;
 	variant<
-		unique_ptr<VARIABLE_HOLDER>,
+		unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,
 		unique_ptr<FUNCTION_MAP_DATA>,
-		ArrayList*
+		ArrayList<ARRAY_SUPPORT_TYPES>*
 	> var;
 
 	void updateSingleVariable( VarDtype newValue ){
 		if( this->mapType == MAPTYPE::VARIABLE ){
-			auto& varHolderData = get<unique_ptr<VARIABLE_HOLDER>>( this->var );
+			auto& varHolderData = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			if( varHolderData->isTypeArray )
 				throw runtime_error("var is an array");
 			varHolderData->value = newValue;
@@ -100,7 +101,7 @@ class ValueHelper{
 	    }, value);
 	}
 
-	 static void printArrayList(const ArrayList* array) {
+	 static void printArrayList(const ArrayList<ARRAY_SUPPORT_TYPES>* array) {
         if (!array) {
             std::cout << "null";
             return;
@@ -109,16 +110,24 @@ class ValueHelper{
         std::cout << "[";
         for (size_t i = 0; i < array->arrayList.size(); ++i) {
             const auto& elem = array->arrayList[i];
-            std::visit([&](auto&& v) {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, VarDtype>) {
-                    printVarDtype(v);
-                }
-                else if constexpr (std::is_same_v<T, unique_ptr<ArrayList>>){
-                	printArrayList( v.get() );
-                }
-            }, elem);
-
+            if( holds_alternative<ARRAY_SUPPORT_TYPES>( elem ) ){
+            	auto arrSpType = get<ARRAY_SUPPORT_TYPES>( elem );
+            	if( holds_alternative<VarDtype>(arrSpType) ){
+            		ValueHelper::printVarDtype( get<VarDtype>( arrSpType ) );
+            	}
+            	else if( holds_alternative<FUNCTION_MAP_DATA*>(arrSpType) ){
+            		cout << "FUNC";
+            	}
+            	else cout << "Unknown";
+            }
+            else if (holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem )){
+            	auto arrptr = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem );
+            	ValueHelper::printArrayList( arrptr );
+            }
+            else if( holds_alternative<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem ) ){
+            	auto& arrptr =get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem );
+            	ValueHelper::printArrayList( arrptr.get() );
+            }
             if (i + 1 < array->arrayList.size()) std::cout << ", ";
         }
         std::cout << "]";
@@ -127,7 +136,7 @@ class ValueHelper{
 	static DEEP_VALUE_DATA
 	getFinalValueFromMap( MapItem* mapData ){
 		if( mapData->mapType == MAPTYPE::VARIABLE ){
-			auto& VariableData = get<unique_ptr<VARIABLE_HOLDER>>( mapData->var );
+			auto& VariableData = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 			auto varData = ValueHelper::getDataFromVariableHolder( VariableData.get() );
 			return varData;
 		}
@@ -139,12 +148,12 @@ class ValueHelper{
 	}
 
 	static DEEP_VALUE_DATA
-	getDataFromVariableHolder( VARIABLE_HOLDER* varData ){
+	getDataFromVariableHolder( VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>* varData ){
 		if( holds_alternative<VarDtype> ( varData->value ) ){
 			return get<VarDtype>( varData->value );
 		}
-		else if( holds_alternative<unique_ptr<ArrayList>>( varData->value ) ){
-			auto& arrList = get<unique_ptr<ArrayList>>( varData->value );
+		else if( holds_alternative<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value ) ){
+			auto& arrList = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value );
 			return arrList.get();
 		}
 		throw runtime_error("DTYPE not defined in MAP");
@@ -155,30 +164,31 @@ class ValueHelper{
 		if( holds_alternative<VarDtype>( data ) ){
 			printVarDtype( get<VarDtype>( data ) );
 		}
-		else if( holds_alternative<ArrayList*>(data) ){
-			auto& test = get<ArrayList*>(data);
+		else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(data) ){
+			auto& test = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(data);
 			printArrayList( test );
 		}
 		else throw runtime_error("Didn't create display method for given type");
 	}
 
-	static DEEP_VALUE_DATA 
+	static VarDtype 
 	evaluate_AST_NODE( unique_ptr<AST_NODE<AST_NODE_DATA>>& astNode ){
 		auto& astNodeData = astNode->AST_DATA;
 
 		if( holds_alternative<DEEP_VALUE_DATA>( astNodeData ) ){
-			auto valueData = get<DEEP_VALUE_DATA>( astNodeData );
-			return valueData;
+			auto& valueData = get<DEEP_VALUE_DATA>( astNodeData );
+			if( holds_alternative<VarDtype>( valueData ) ){
+				VarDtype varDtypeData = get<VarDtype>( valueData );
+				return varDtypeData;
+			}
+			throw InvalidSyntaxError("Invalid dtype for operation");
 		}
 		else{
 			if( !astNode->left || !astNode->right )
 				throw InvalidSyntaxError("Invalid Expression");
 
-			DEEP_VALUE_DATA leftData  = ValueHelper::evaluate_AST_NODE( astNode->left );
-			DEEP_VALUE_DATA rightData = ValueHelper::evaluate_AST_NODE( astNode->right );
-
-			if( !holds_alternative<VarDtype>( leftData ) || !holds_alternative<VarDtype>( rightData ) )
-				throw InvalidSyntaxError("Invalid operation between VarDtype types");
+			VarDtype leftData  = ValueHelper::evaluate_AST_NODE( astNode->left );
+			VarDtype rightData = ValueHelper::evaluate_AST_NODE( astNode->right );
 
 			return std::visit(
 				[&](const auto& x, const auto& y) -> VarDtype {
@@ -221,7 +231,7 @@ class ValueHelper{
 					} 
 					else throw InvalidSyntaxError("Invalid operation between VarDtype types");
 					
-				}, get<VarDtype>( leftData ), get<VarDtype>(rightData)
+				}, leftData, rightData
 			);
 		}
 	}
