@@ -202,10 +202,15 @@ unordered_map<FUNC_CALL_TOKEN, vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
 	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_CLOSE } }
 };
 
+bool isFuncPtr( vector<FUNC_CALL_TOKEN>& callTokens ){
+	return callTokens.size() == 1 && callTokens.back() == FUNC_CALL_TOKEN::FUNC_NAME;
+}
+
 bool
 isValidFuncCall( vector<FUNC_CALL_TOKEN>& callTokens ){
 	if( callTokens.empty() )
 		return false;
+
 	FUNC_CALL_TOKEN currentStage = FUNC_CALL_TOKEN::FUNC_NAME;
 	size_t startIndex = 0;
 
@@ -299,7 +304,7 @@ FunctionCallReturns stringToFunctionCallTokens( const vector<Token>& tokens, siz
 		}
 		prev = ctokens.back();
 	}
-	throw InvalidSyntaxError("Invalid Syntax In Function Call statement");
+	return FunctionCallReturns( ctokens, argsTokens, funcCallName );
 }
 
 #endif

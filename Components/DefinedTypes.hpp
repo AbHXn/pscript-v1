@@ -24,7 +24,7 @@
 
 using namespace std;
 
-enum class MAPTYPE{ VARIABLE, FUNCTION, ARRAY_PTR };
+enum class MAPTYPE{ VARIABLE, FUNCTION, ARRAY_PTR, NULL_PTR, FUNC_PTR };
 
 template<typename T>
 inline constexpr bool is_number_v = std::is_same_v<T, long int> || std::is_same_v<T, double> || std::is_same_v<T, bool>;
@@ -39,7 +39,8 @@ struct MapItem{
 	variant<
 		unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,
 		unique_ptr<FUNCTION_MAP_DATA>,
-		ArrayList<ARRAY_SUPPORT_TYPES>*
+		ArrayList<ARRAY_SUPPORT_TYPES>*,
+		FUNCTION_MAP_DATA*
 	> var;
 
 	void updateSingleVariable( VarDtype newValue ){

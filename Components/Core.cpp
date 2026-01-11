@@ -108,6 +108,7 @@ class FunctionHandler: public VAR_VMAP {
 		DEEP_VALUE_DATA 
 		getTheResult( vector<Token>& vtr ){
 			auto [resolvedQeueu, strVector] = vectorResolver( vtr );
+
 			auto astTokenAndData = stringToASTTokens( strVector );
 			size_t startAST = 0;
 			auto newAstNode = BUILD_AST<DEEP_VALUE_DATA, 
@@ -205,7 +206,7 @@ class FunctionHandler: public VAR_VMAP {
 				const Token& tok = tokens[ x ];
 				const string& curToken = tokens[ x ].token;
 
-				if( isRegisteredASTExprTokens( curToken ) || curToken == ")" ||  curToken == "(" ){
+				if( !isValueType(tok.type) && isRegisteredASTExprTokens( curToken ) || curToken == ")" ||  curToken == "(" ){
 					simpleVector.push_back( curToken );
 					continue;
 				}
@@ -236,24 +237,33 @@ class FunctionHandler: public VAR_VMAP {
 							}
 						}
 						// if it is a function then call it and get the value
-						else if( VMAPData->mapType == MAPTYPE::FUNCTION ){
+						else if( VMAPData->mapType == MAPTYPE::FUNCTION || VMAPData->mapType == MAPTYPE::FUNC_PTR ){
 							try{
+								auto varHolder = (VMAPData->mapType == MAPTYPE::FUNCTION) ? \
+												get<unique_ptr<FUNCTION_MAP_DATA>>( VMAPData->var ).get() : get<FUNCTION_MAP_DATA*>( VMAPData->var );
+								
 								FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
-								auto data = this->handleFunctionCall( VMAPData, fullTokens, x, pt);
-								if( data.has_value() ){	
-									if( holds_alternative<VarDtype>( data.value() ) ){
-										VarDtype returnedData = get<VarDtype>( data.value() );
-										simpleVector.push_back("VAR");
-										resolvedVector.push( returnedData );
+								if( isFuncPtr( pt.callTokens ) ){
+									simpleVector.push_back("FUNC_PTR");
+									resolvedVector.push( varHolder );
+								}
+								else{
+									auto data = this->handleFunctionCall( VMAPData, fullTokens, x, pt);
+									if( data.has_value() ){	
+										if( holds_alternative<VarDtype>( data.value() ) ){
+											VarDtype returnedData = get<VarDtype>( data.value() );
+											simpleVector.push_back("VAR");
+											resolvedVector.push( returnedData );
+										}
+										else if( holds_alternative<unique_ptr<MapItem>>( data.value() ) ){
+											auto returnedData = move( get<unique_ptr<MapItem>>( data.value() ) );
+											DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
+											resolvedVector.push( final );
+											this->pushCache( move( returnedData ) );
+											simpleVector.push_back("CACHE");
+										}
+										else throw runtime_error("unknown typed pushed to queue");
 									}
-									else if( holds_alternative<unique_ptr<MapItem>>( data.value() ) ){
-										auto returnedData = move( get<unique_ptr<MapItem>>( data.value() ) );
-										DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
-										resolvedVector.push( final );
-										this->pushCache( move( returnedData ) );
-										simpleVector.push_back("CACHE");
-									}
-									else throw runtime_error("unknown typed pushed to queue");
 								}
 								x--; // stringfuncalltokens it hits then unknown token get that token back
 							}
@@ -279,7 +289,8 @@ class FunctionHandler: public VAR_VMAP {
 
 		optional<variant<VarDtype, unique_ptr<MapItem>>>	
 		zeroArgFunction( MapItem* func, const vector<Token>& tokens, string funcName ){
-			auto& funcFromMap = get<unique_ptr<FUNCTION_MAP_DATA>>( func->var );
+			auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
+								: get<FUNCTION_MAP_DATA*>( func->var );
 
 			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 			size_t funcEndStartPtr = funcFromMap->bodyEndPtr;
@@ -315,7 +326,10 @@ class FunctionHandler: public VAR_VMAP {
 				else newFuncRunner->parent = this;
 
 				queue<DEEP_VALUE_DATA> resolvedArgs;
-				auto& funcFromMap = get<unique_ptr<FUNCTION_MAP_DATA>>( func->var );
+				
+				auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
+								: get<FUNCTION_MAP_DATA*>( func->var );
+
 				int total_comma = Data.argsVector.size() - 1;
 
 				vector<Token> lhsTokens;
@@ -384,7 +398,6 @@ class FunctionHandler: public VAR_VMAP {
 			auto toks 	 = make_pair(tokens.varTokens, tokens.valueTokens);  // variable tokens and value tokens
 			auto names 	 = make_pair(tokens.VarQueue,  tokens.valueVector);  // values
 
-
 			queue<DEEP_VALUE_DATA> resolvedValueVector;
 			size_t curIndex = 0;
 
@@ -399,6 +412,7 @@ class FunctionHandler: public VAR_VMAP {
 			}
 
 			vector<VAR_INFO> varInfos;
+
 			if( isValidVariableSyntax( toks.first, varInfos, names.first ) ){
 				for( auto& varVerification: varInfos ){
 					auto data = this->getFromVmap( varVerification.varName );	
@@ -453,6 +467,13 @@ class FunctionHandler: public VAR_VMAP {
 							auto newMapVar = make_unique<MapItem>( );
 							newMapVar->mapType = MAPTYPE::ARRAY_PTR;
 							newMapVar->var = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(curValue) ;
+							this->addToMap( key, move( newMapVar ) );
+						}
+						else if( holds_alternative<FUNCTION_MAP_DATA*>( curValue ) ){
+							string& key    = curVarInfo.varName;
+							auto newMapVar = make_unique<MapItem>( );
+							newMapVar->mapType = MAPTYPE::FUNC_PTR;
+							newMapVar->var = get<FUNCTION_MAP_DATA*>( curValue );
 							this->addToMap( key, move( newMapVar ) );
 						}
 
@@ -783,6 +804,7 @@ ProgramExecutor( const vector<Token>& tokens,
 		backUpPtr = currentPtr;
 
 		const string& curToken = tokens[currentPtr].token;
+
 		if( endPtr && currentPtr >= endPtr - 1 )
 			return nullopt;
 
@@ -839,9 +861,8 @@ ProgramExecutor( const vector<Token>& tokens,
 				}
 				default: break;
 			}
-
 			MapItem* func = prntClass->getFromVmap( tokens[ currentPtr ].token );
-			if( func && func->mapType == MAPTYPE::FUNCTION ){
+			if( func && ( func->mapType == MAPTYPE::FUNCTION || func->mapType == MAPTYPE::FUNC_PTR) ){
 				prntClass->handleFunctionCall( func, tokens, currentPtr );
 			}
 			else{

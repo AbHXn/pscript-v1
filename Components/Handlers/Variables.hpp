@@ -56,7 +56,8 @@ unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH 
 
 unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 	{ VALUE_TOKENS::NORMAL_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END } 			},
-	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE } 	},
+	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE,
+								   VALUE_TOKENS::ARRAY_CLOSE } 								},
 	{ VALUE_TOKENS::ARRAY_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::ARRAY_CLOSE } 	   	},
 	{ VALUE_TOKENS::COMMA, 	  	 { VALUE_TOKENS::ARRAY_VALUE, VALUE_TOKENS::ARRAY_OPEN, 
 								   VALUE_TOKENS::NORMAL_VALUE } 							},
@@ -220,29 +221,29 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 		const Token& tok = tokens[ startCurPtr ];
 		const string& curToken = tok.token;
 
-		if( curToken == "pidi" ){
+		if( curToken == "pidi"  && tok.type == TOKEN_TYPE::RESERVED ){
 			varTokens.push_back( VARIABLE_TOKENS::VAR_START );
 		}
-		else if( curToken == ","){
+		else if( curToken == "," && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 			( isVariableTurn ) ?  varTokens.push_back( VARIABLE_TOKENS::COMMA )
 							   : valueToken.push_back( VALUE_TOKENS::COMMA );
 		}
 		else if( curToken == "kootam" )
 			varTokens.push_back( VARIABLE_TOKENS::ARRAY );
 
-		else if ( curToken == "{" ){
+		else if ( curToken == "{"  && tok.type == TOKEN_TYPE::SPEC_CHAR){
 			arrayOpenedCount++;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_OPEN );
 		}
-		else if( curToken == "="){
+		else if( curToken == "=" && tok.type == TOKEN_TYPE::OPERATOR ){
 			varTokens.push_back( VARIABLE_TOKENS::VALUE_ASSIGN );
 			isVariableTurn = false;
 		}
-		else if(curToken == "}"){
+		else if(curToken == "}" && tok.type == TOKEN_TYPE::SPEC_CHAR){
 			arrayOpenedCount--;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_CLOSE );
 		}
-		else if(curToken == ";"){
+		else if(curToken == ";" && tok.type == TOKEN_TYPE::SPEC_CHAR){
 			( isVariableTurn ) ? varTokens.push_back( VARIABLE_TOKENS::VAR_ENDS )
 				 			   : valueToken.push_back( VALUE_TOKENS::VALUE_END );
 			return VariableTokens( varTokens, valueToken, valueVector, VarQueue );
@@ -261,10 +262,10 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 						openBrack++;
 					else if( tokens[startCurPtr].token == ")")
 						openBrack--;
-					if( isRegisteredVariableToken( tokens[ startCurPtr ].token )  && openBrack == 0 ){
+					if( !isValueType(tokens[startCurPtr].type) && isRegisteredVariableToken( tokens[ startCurPtr ].token )  && openBrack == 0 ){
 						startCurPtr--;
 						break;
-					}
+					}					 
 					curValueVector.push_back( tokens[ startCurPtr++ ] );
 				}
 				if( curValueVector.size() > 1 )

@@ -1,37 +1,33 @@
-thenga matmul(pidi M1, pidi M2 kootam){
-	pidi x = 0;
-	pidi DIM = 3;
-	pidi res = {
-			{0, 0, 0},
-			{0, 0, 0},
-			{0, 0, 0}		
-		};
-	ittuthiri x < DIM {
-		pidi y = 0;
-		ittuthiri y < DIM {
-			pidi k = 0;
-			ittuthiri k < DIM {
-				res[x][y] = res[x][y] + M1[x][k] * M2[k][y]; 
-				k = k + 1;			
-			}			
-			y = y + 1;		
+thenga test(pidi optr){
+	thenga sum(pidi arr kootam){
+		pidi index, total = 0, arr:valupam;
+		pidi sum = 0;		
+		ittuthiri index < total {
+			sum = sum + arr[index];
+			index = index + 1;		
 		}
-		x = x + 1;	
+		poda sum;
 	}
-	poda res;
+	thenga sub(pidi arr kootam){
+		pidi index, total = 0, arr:valupam;
+		pidi sum = 0;
+		ittuthiri index < total {
+			sum = sum - arr[index];
+			index = index + 1;		
+		}
+		poda sum;
+	}
+	nok optr == "+" {
+		poda sum;	
+	}: nok optr == "-" {
+		poda sub;		
+	}: umbi {
+		poda "not defined";
+	};
 }
 
-pidi mat1 kootam = {
-	{1, 2, 3},
-	{4, 5, 6},
-	{7, 8, 9}
-};
-
-pidi mat2 kootam = {
-	{1, 2, 3},
-	{4, 5, 6},
-	{7, 8, 9}
-};
-
-pidi ras kootam = matmul(mat1, mat2);
-para ras koode "\n";
+pidi x = "-";
+pidi func_returned = test(x);
+pidi arr kootam = {1, 20, 23, 4};
+pidi res = func_returned(arr);
+para res koode "\n";
