@@ -14,16 +14,16 @@ class VAR_VMAP{
 		VAR_VMAP* parent = nullptr;
 		unordered_map<string, unique_ptr<MapItem>> VMAP;
 
-		MapItem*
-		getFromVmap(const std::string& key) const{
-		    const VAR_VMAP* currentEnv = this;
+		pair<MapItem*, VAR_VMAP*>
+		getFromVmap(const std::string& key) {
+		    VAR_VMAP* currentEnv = this;
 		    while (currentEnv != nullptr) {
 		        auto it = currentEnv->VMAP.find(key);
 		        if (it != currentEnv->VMAP.end())
-		            return it->second.get();
+		            return make_pair( it->second.get(), currentEnv );
 		        currentEnv = currentEnv->parent;
 		    }
-		    return nullptr;
+		    return make_pair(nullptr, nullptr);
 		}
 
 		VAR_VMAP* getPrevParent(){
@@ -218,7 +218,7 @@ class FunctionHandler: public VAR_VMAP {
 				}
 				
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
-					auto VMAPData = this->getFromVmap( curToken );
+					auto [VMAPData, rPT] = this->getFromVmap( curToken );
 
 					if( VMAPData != nullptr ){
 						// if it is variable then get its value
@@ -248,7 +248,7 @@ class FunctionHandler: public VAR_VMAP {
 									resolvedVector.push( varHolder );
 								}
 								else{
-									auto data = this->handleFunctionCall( VMAPData, fullTokens, x, pt);
+									auto data = this->handleFunctionCall( VMAPData, fullTokens, x, rPT, pt);
 									if( data.has_value() ){	
 										if( holds_alternative<VarDtype>( data.value() ) ){
 											VarDtype returnedData = get<VarDtype>( data.value() );
@@ -288,7 +288,7 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		optional<variant<VarDtype, unique_ptr<MapItem>>>	
-		zeroArgFunction( MapItem* func, const vector<Token>& tokens, string funcName ){
+		zeroArgFunction( MapItem* func, const vector<Token>& tokens, string funcName, VAR_VMAP* rPT ){
 			auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
 								: get<FUNCTION_MAP_DATA*>( func->var );
 
@@ -298,9 +298,7 @@ class FunctionHandler: public VAR_VMAP {
 			unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 			newFuncRunner->runnerBody = funcName;
 			
-			if( funcName == this->runnerBody )
-				newFuncRunner->parent = getPrevParent();
-			else newFuncRunner->parent = this;
+			newFuncRunner->parent = rPT;
 
 			return ProgramExecutor( 
 					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
@@ -308,7 +306,7 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		optional<variant<VarDtype, unique_ptr<MapItem>>>
-		handleFunctionCall( MapItem* func, const vector<Token>& tokens, size_t& currentPtr, optional<FunctionCallReturns> data = nullopt ){
+		handleFunctionCall( MapItem* func, const vector<Token>& tokens, size_t& currentPtr, VAR_VMAP* rPT, optional<FunctionCallReturns> data = nullopt ){
 			FunctionCallReturns Data;
 			if( data.has_value() )
 				Data = data.value();
@@ -316,14 +314,12 @@ class FunctionHandler: public VAR_VMAP {
 
 			if( isValidFuncCall( Data.callTokens ) ){
 				if( Data.argsVector.size() == 0 )
-					return zeroArgFunction( func, tokens, Data.funcName );
+					return zeroArgFunction( func, tokens, Data.funcName, rPT );
 
 				unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 				newFuncRunner->runnerBody = Data.funcName;
 
-				if( Data.funcName == this->runnerBody )
-					newFuncRunner->parent = getPrevParent();
-				else newFuncRunner->parent = this;
+				newFuncRunner->parent = rPT;
 
 				queue<DEEP_VALUE_DATA> resolvedArgs;
 				
@@ -415,7 +411,7 @@ class FunctionHandler: public VAR_VMAP {
 
 			if( isValidVariableSyntax( toks.first, varInfos, names.first ) ){
 				for( auto& varVerification: varInfos ){
-					auto data = this->getFromVmap( varVerification.varName );	
+					auto [data, rPT] = this->getFromVmap( varVerification.varName );	
 					if( data ) throw VariableAlreayExists( varVerification.varName );
 				}
 
@@ -480,9 +476,6 @@ class FunctionHandler: public VAR_VMAP {
 					}
 					else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 						x++;
-						
-						// if( !curVarInfo.isTypeArray )
-						// 	throw InvalidSyntaxError("Args Expects kootam\n");
 
 						auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>( 
 											toks.second,  x, resolvedValueVector );
@@ -626,7 +619,7 @@ class FunctionHandler: public VAR_VMAP {
 			}
 
 			for( size_t x = 0; x < varsAndVals.size(); x++ ){
-				MapItem* mapData = getFromVmap( varsAndVals[ x ].token );
+				auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
 				
 				if( mapData == nullptr )
 					throw InvalidSyntaxError(
@@ -664,7 +657,7 @@ class FunctionHandler: public VAR_VMAP {
 			FunctionTokenReturn funcTokens = stringToFuncTokens( token, start );
 
 			if( isValidFunction( funcTokens.tokens ) ){ 
-				if( this->getFromVmap( funcTokens.funcName ) != nullptr )
+				if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
 					throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
 				
 				unique_ptr<FUNCTION_MAP_DATA> funcMapData = make_unique<FUNCTION_MAP_DATA>();
@@ -861,9 +854,9 @@ ProgramExecutor( const vector<Token>& tokens,
 				}
 				default: break;
 			}
-			MapItem* func = prntClass->getFromVmap( tokens[ currentPtr ].token );
+			auto [func, rPT] = prntClass->getFromVmap( tokens[ currentPtr ].token );
 			if( func && ( func->mapType == MAPTYPE::FUNCTION || func->mapType == MAPTYPE::FUNC_PTR) ){
-				prntClass->handleFunctionCall( func, tokens, currentPtr );
+				prntClass->handleFunctionCall( func, tokens, currentPtr, rPT );
 			}
 			else{
 				try{
