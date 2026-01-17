@@ -1,7 +1,9 @@
-thenga test(pidi x){
-	thenga admin(pidi y){
-		para x + y;	
+thenga test(){
+	thenga new(){
+		para "hell";	
 	}
-	admin(5);
+	pidi x = new;
+	poda x;
 }
-test(4);
+pidi n = test();
+n();

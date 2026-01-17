@@ -4,6 +4,7 @@ using namespace std;
 
 class LoopHandler;
 
+vector<unique_ptr<MapItem>> propHolderTemp;
 
 class VAR_VMAP{
 	private:
@@ -47,6 +48,20 @@ class VAR_VMAP{
 			return copyData;
 		}
 
+		unordered_map<string, MapItem*>
+		getDeepCopyOfVMAP( void ){
+			unordered_map<string, MapItem*> copyData;
+			VAR_VMAP* currentDir = this;
+			while( currentDir ){
+				for( auto& value: currentDir->VMAP )
+					copyData[value.first] = value.second.get();
+				for( auto value: currentDir->VMAP_COPY )
+					copyData[value.first] = value.second;
+				currentDir = currentDir->parent;
+			}
+			return copyData;
+		}
+
 		pair<MapItem*, VAR_VMAP*>
 		getFromVmapCopy(const std::string& key) {
 		    VAR_VMAP* currentEnv = this;
@@ -74,10 +89,19 @@ class VAR_VMAP{
 		optional<unique_ptr<MapItem>>
 		moveFromVmap(const std::string& key){
 		    auto it = VMAP.find(key);
+
 		    if (it == VMAP.end())
 		        return std::nullopt;
+
 		    auto result = std::move(it->second);
 		    VMAP.erase(it);
+
+		    if( result->mapType == MAPTYPE::FUNCTION ){
+		    	for( auto& test: this->VMAP ){
+		    		propHolderTemp.push_back( move(test.second) );
+		    	}
+		    }
+
 		    return result;
 		}
 
@@ -154,6 +178,7 @@ class FunctionHandler: public VAR_VMAP {
 								AST_NODE_DATA>( 
 									astTokenAndData, resolvedQeueu, startAST 
 								);
+
 			if( newAstNode.has_value() ){
 				auto AST_NODE = move( newAstNode.value() );
 				if( !AST_NODE->left && !AST_NODE->right && 
@@ -255,7 +280,7 @@ class FunctionHandler: public VAR_VMAP {
 					simpleVector.push_back("NUM");
 					resolvedVector.push( value );
 				}
-				
+
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
 					auto [VMAPData, rPT] = this->getFromVmap( curToken );
 
@@ -336,9 +361,9 @@ class FunctionHandler: public VAR_VMAP {
 
 			unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 			newFuncRunner->runnerBody = funcName;
-			auto funcMetaData = getFromFunctionMapsCache( funcName );
-			newFuncRunner->VMAP_COPY = funcMetaData.first;
-			newFuncRunner->parent = funcMetaData.second;
+			newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
+			newFuncRunner->parent = funcFromMap->varMapCopy.second;
+
 
 			return ProgramExecutor( 
 					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
@@ -358,14 +383,14 @@ class FunctionHandler: public VAR_VMAP {
 
 				unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 				newFuncRunner->runnerBody = Data.funcName;
-				auto funcMetaData = getFromFunctionMapsCache(  Data.funcName );
-				newFuncRunner->VMAP_COPY = funcMetaData.first;
-				newFuncRunner->parent = funcMetaData.second;
-
+				
 				queue<DEEP_VALUE_DATA> resolvedArgs;
 				
 				auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
 								: get<FUNCTION_MAP_DATA*>( func->var );
+
+				newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
+				newFuncRunner->parent = funcFromMap->varMapCopy.second;
 
 				int total_comma = Data.argsVector.size() - 1;
 
@@ -420,7 +445,6 @@ class FunctionHandler: public VAR_VMAP {
 					}
 
 				}
-
 				size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 				size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
 				return ProgramExecutor<FunctionHandler>( 
@@ -511,11 +535,7 @@ class FunctionHandler: public VAR_VMAP {
 							newMapVar->mapType = MAPTYPE::FUNC_PTR;
 							newMapVar->var = get<FUNCTION_MAP_DATA*>(curValue);
 							this->addToMap( key, move( newMapVar ) );
-
-							auto funcCache = this->getCopyOfVMAP( );
-							this->addTofunctionMapsCache( curVarInfo.varName, funcCache, this );
 						}
-
 					}
 					else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 						x++;
@@ -669,14 +689,20 @@ class FunctionHandler: public VAR_VMAP {
 							"Unknown token: " + varsAndVals[x].token + " at line: " + to_string( varsAndVals[x].row ) 
 						);
 
-				if( mapData->mapType != MAPTYPE::VARIABLE && mapData->mapType != MAPTYPE::ARRAY_PTR )
+				if( mapData->mapType != MAPTYPE::VARIABLE && mapData->mapType != MAPTYPE::ARRAY_PTR ){
 					throw InvalidSyntaxError(
 						"Only variables are allowed for updation\n Error at line: " + to_string( varsAndVals[x].row )
 					);
-
+				}
 
 				DEEP_VALUE_DATA topValue = finalValueQueue.front();
 				finalValueQueue.pop();
+
+				if( holds_alternative<FUNCTION_MAP_DATA*>(topValue) ){
+					mapData->mapType = MAPTYPE::FUNC_PTR;
+					mapData->var = get<FUNCTION_MAP_DATA*>(topValue);
+					continue;
+				}
 
 				if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
 					auto& arr = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
@@ -702,8 +728,6 @@ class FunctionHandler: public VAR_VMAP {
 			if( isValidFunction( funcTokens.tokens ) ){ 
 				if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
 					throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
-
-				
 				
 				unique_ptr<FUNCTION_MAP_DATA> funcMapData = make_unique<FUNCTION_MAP_DATA>();
 				funcMapData->funcName 		= funcTokens.funcName;
@@ -711,16 +735,18 @@ class FunctionHandler: public VAR_VMAP {
 				funcMapData->bodyStartPtr 	= funcTokens.funcStartPtr;
 				funcMapData->bodyEndPtr 	= funcTokens.funcEndPtr;
 				funcMapData->argsInfo 		= move( funcTokens.args );
+				
+				auto vmapCopy = this->getDeepCopyOfVMAP();
+
+				funcMapData->varMapCopy		= make_pair(vmapCopy, this->parent);
 
 				unique_ptr<MapItem> funcMapItem = make_unique<MapItem>();
-				
 				funcMapItem->mapType = MAPTYPE::FUNCTION;
+				funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem.get();
 				funcMapItem->var 	 = move( funcMapData );
-
+					
 				this->addToMap( funcTokens.funcName, move( funcMapItem ) );
-				auto funcCache = this->getCopyOfVMAP( );
 
-				this->addTofunctionMapsCache( funcTokens.funcName, funcCache, this );
 			}
 			else throw InvalidSyntaxError( "Syntax Error occured in thenga" );
 		}
@@ -736,8 +762,10 @@ class FunctionHandler: public VAR_VMAP {
 				returnStatementData.push_back( curToken );
 				currentPtr++;
 			}
+
 			if( returnStatementData.empty() )
 				return nullopt;
+
 			if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
 				auto mapData = this->moveFromVmap( returnStatementData.back().token );
 				if( mapData.has_value() )
@@ -896,8 +924,7 @@ ProgramExecutor( const vector<Token>& tokens,
 			switch( C_CLASS ){
 				case CALLER::FUNCTION: {
 					if( curToken == "poda" ){
-						auto test = prntClass->getReturnedData( tokens, currentPtr );
-						return test;
+						return prntClass->getReturnedData( tokens, currentPtr );
 					}
 				}
 				default: break;

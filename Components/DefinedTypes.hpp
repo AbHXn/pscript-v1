@@ -29,6 +29,20 @@ enum class MAPTYPE{ VARIABLE, FUNCTION, ARRAY_PTR, NULL_PTR, FUNC_PTR };
 template<typename T>
 inline constexpr bool is_number_v = std::is_same_v<T, long int> || std::is_same_v<T, double> || std::is_same_v<T, bool>;
 
+struct MapItem;
+class VAR_VMAP;
+
+struct FUNCTION_MAP_DATA{
+	string funcName;
+	size_t argsSize;
+	vector<unique_ptr<ARG_VAR_INFO>> argsInfo;
+	size_t bodyStartPtr;
+	size_t bodyEndPtr;
+	pair<unordered_map<string, MapItem*>, VAR_VMAP*> varMapCopy;
+
+	FUNCTION_MAP_DATA() = default;
+};
+
 using ARRAY_SUPPORT_TYPES	= variant<VarDtype, FUNCTION_MAP_DATA*>;
 using DEEP_VALUE_DATA  		= variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
 using AST_NODE_DATA 		= variant<AST_TOKENS, DEEP_VALUE_DATA>;
