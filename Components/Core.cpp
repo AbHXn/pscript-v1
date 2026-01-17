@@ -4,33 +4,71 @@ using namespace std;
 
 class LoopHandler;
 
+
 class VAR_VMAP{
 	private:
 		queue<unique_ptr<MapItem>> funcReturnedCache;
+		unordered_map<string, 
+			pair<unordered_map<string, MapItem*>, VAR_VMAP*>
+		> functionMapsCache;
 		size_t cacheElement = 0;
 
 	public:
 		string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
 		unordered_map<string, unique_ptr<MapItem>> VMAP;
+		unordered_map<string, MapItem*> VMAP_COPY;
+
+		pair<unordered_map<string, MapItem*>, VAR_VMAP*>
+		getFromFunctionMapsCache(const string& key){
+			VAR_VMAP* cur = this;
+			while( cur != nullptr ){
+				auto result = cur->functionMapsCache.find(key);
+				if( result != cur->functionMapsCache.end() )
+					return result->second;
+				cur = cur->parent;
+			}
+			throw runtime_error(key);
+		}
+
+		void addTofunctionMapsCache( const string& key, unordered_map<string, MapItem*> data, VAR_VMAP* parent ){
+			this->functionMapsCache[ key ] = make_pair(data, parent);
+		}
+
+		unordered_map<string, MapItem*>
+		getCopyOfVMAP( void ){
+			unordered_map<string, MapItem*> copyData;
+			VAR_VMAP* currentDir = this;
+			while( currentDir && currentDir->runnerBody == this->runnerBody ){
+				for( auto& value: currentDir->VMAP )
+					copyData[value.first] = value.second.get();
+				currentDir = currentDir->parent;
+			}
+			return copyData;
+		}
 
 		pair<MapItem*, VAR_VMAP*>
-		getFromVmap(const std::string& key) {
+		getFromVmapCopy(const std::string& key) {
 		    VAR_VMAP* currentEnv = this;
-		    while (currentEnv != nullptr) {
-		        auto it = currentEnv->VMAP.find(key);
-		        if (it != currentEnv->VMAP.end())
-		            return make_pair( it->second.get(), currentEnv );
-		        currentEnv = currentEnv->parent;
+ 		    while (currentEnv != nullptr) {
+		        auto it_2 = currentEnv->VMAP_COPY.find(key);
+		        if( it_2 != currentEnv->VMAP_COPY.end() )
+		        	return make_pair( it_2->second, currentEnv );
+ 		        currentEnv = currentEnv->parent;
 		    }
 		    return make_pair(nullptr, nullptr);
 		}
 
-		VAR_VMAP* getPrevParent(){
-			VAR_VMAP* curParent = this->parent;
-			while( curParent && curParent->runnerBody == this->runnerBody )
-				curParent = curParent->parent;
-			return curParent;
+		pair<MapItem*, VAR_VMAP*>
+		getFromVmap(const std::string& key) {
+	        auto cur = this;
+	        while( cur && cur->runnerBody == this->runnerBody ){
+	        	auto it = cur->VMAP.find(key);
+	       		if (it != cur->VMAP.end())
+	            	return make_pair( it->second.get(), cur );
+	            cur = cur->parent;
+	        }
+		    return getFromVmapCopy(key);
 		}
 
 		optional<unique_ptr<MapItem>>
@@ -68,6 +106,7 @@ class VAR_VMAP{
 				funcReturnedCache.pop();
 			this->cacheElement = 0;
 		}
+
 };
 
 vector<Token> fullTokens;
@@ -297,8 +336,9 @@ class FunctionHandler: public VAR_VMAP {
 
 			unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 			newFuncRunner->runnerBody = funcName;
-			
-			newFuncRunner->parent = rPT;
+			auto funcMetaData = getFromFunctionMapsCache( funcName );
+			newFuncRunner->VMAP_COPY = funcMetaData.first;
+			newFuncRunner->parent = funcMetaData.second;
 
 			return ProgramExecutor( 
 					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
@@ -318,8 +358,9 @@ class FunctionHandler: public VAR_VMAP {
 
 				unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 				newFuncRunner->runnerBody = Data.funcName;
-
-				newFuncRunner->parent = rPT;
+				auto funcMetaData = getFromFunctionMapsCache(  Data.funcName );
+				newFuncRunner->VMAP_COPY = funcMetaData.first;
+				newFuncRunner->parent = funcMetaData.second;
 
 				queue<DEEP_VALUE_DATA> resolvedArgs;
 				
@@ -452,7 +493,6 @@ class FunctionHandler: public VAR_VMAP {
 							newVariable->isTypeArray = false;
 							newVariable->value = get<VarDtype>( curValue );
 
-							// add to vmap
 							auto newMapVar = make_unique<MapItem>( );
 							newMapVar->mapType = MAPTYPE::VARIABLE;
 							newMapVar->var = move( newVariable ) ;
@@ -469,8 +509,11 @@ class FunctionHandler: public VAR_VMAP {
 							string& key    = curVarInfo.varName;
 							auto newMapVar = make_unique<MapItem>( );
 							newMapVar->mapType = MAPTYPE::FUNC_PTR;
-							newMapVar->var = get<FUNCTION_MAP_DATA*>( curValue );
+							newMapVar->var = get<FUNCTION_MAP_DATA*>(curValue);
 							this->addToMap( key, move( newMapVar ) );
+
+							auto funcCache = this->getCopyOfVMAP( );
+							this->addTofunctionMapsCache( curVarInfo.varName, funcCache, this );
 						}
 
 					}
@@ -659,6 +702,8 @@ class FunctionHandler: public VAR_VMAP {
 			if( isValidFunction( funcTokens.tokens ) ){ 
 				if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
 					throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
+
+				
 				
 				unique_ptr<FUNCTION_MAP_DATA> funcMapData = make_unique<FUNCTION_MAP_DATA>();
 				funcMapData->funcName 		= funcTokens.funcName;
@@ -673,6 +718,9 @@ class FunctionHandler: public VAR_VMAP {
 				funcMapItem->var 	 = move( funcMapData );
 
 				this->addToMap( funcTokens.funcName, move( funcMapItem ) );
+				auto funcCache = this->getCopyOfVMAP( );
+
+				this->addTofunctionMapsCache( funcTokens.funcName, funcCache, this );
 			}
 			else throw InvalidSyntaxError( "Syntax Error occured in thenga" );
 		}
@@ -871,7 +919,6 @@ ProgramExecutor( const vector<Token>& tokens,
 							);
 				}
 			}
-			
 		}
 		currentPtr++;
 	}

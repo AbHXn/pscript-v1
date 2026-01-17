@@ -1,6 +1,7 @@
-thenga test(){
-	para "admi\n";
+thenga test(pidi x){
+	thenga admin(pidi y){
+		para x + y;	
+	}
+	admin(5);
 }
-
-pidi x kootam = {test};
-x[0]();
+test(4);
