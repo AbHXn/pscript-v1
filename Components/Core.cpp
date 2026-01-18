@@ -676,6 +676,43 @@ class FunctionHandler: public VAR_VMAP {
 
 			vector<Token>& varsAndVals = InsTokensAndData.leftVector;
 
+			if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
+				for( int x = 0; x < varsAndVals.size(); x++ ){
+					auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
+
+					if( x >= InsTokensAndData.rightVector.size() )
+						throw InvalidSyntaxError("Typecasting error");
+
+					vector<Token>castInfo = InsTokensAndData.rightVector[x];
+					if( castInfo.size() != 1 )
+						throw InvalidSyntaxError("Typecasting error");
+
+					Token& top = castInfo.back();
+
+					if( mapData == nullptr )
+						throw InvalidSyntaxError(
+								"Unknown token: " + varsAndVals[x].token + " at line: " + to_string( varsAndVals[x].row ) 
+							);
+
+					if( mapData->mapType != MAPTYPE::VARIABLE ){
+						throw InvalidSyntaxError(
+							"Only variables are allowed for TYPE_CASTING\n Error at line: " + to_string( varsAndVals[x].row )
+						);
+					}
+					if( top.token == "INT" ){
+						mapData->typeCastToInt();
+					}
+					else if( top.token == "THULA" ){
+						mapData->typeCastToDouble();
+					}
+					else if( top.token == "STR" ){
+						mapData->typeCastToString();
+					}
+					else throw TypeCastError("Failed to cast");
+				}
+				return;
+			}
+
 			for( vector<Token>& astStrToks: InsTokensAndData.rightVector ){
 				DEEP_VALUE_DATA data = getTheResult( astStrToks );
 				finalValueQueue.push( data  );

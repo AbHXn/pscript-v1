@@ -66,6 +66,69 @@ struct MapItem{
 		}
 		else throw runtime_error("not an single element");
 	}
+
+	void typeCastToInt(){
+		if( mapType == MAPTYPE::VARIABLE ){
+			auto& VHdata = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			
+			if( VHdata->isTypeArray )
+				TypeCastError("Cannot cast array type");
+
+			auto& vardata = get<VarDtype>(VHdata->value);
+			
+			if (auto p = std::get_if<double>(&vardata)) {
+				vardata = static_cast<long>(*p);
+			}
+			else if (auto s = std::get_if<std::string>(&vardata)) {
+            	vardata = std::stol(*s);
+        	}
+        	else if (auto p = std::get_if<bool>(&vardata)) {
+    			vardata = static_cast<long>(*p);
+			}
+		}
+	}
+
+	void typeCastToDouble(){
+		if( mapType == MAPTYPE::VARIABLE ){
+			auto& VHdata = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			
+			if( VHdata->isTypeArray )
+				TypeCastError("Cannot cast array type");
+
+			auto& vardata = get<VarDtype>(VHdata->value);
+			
+			if (auto p = std::get_if<long>(&vardata)) {
+				vardata = static_cast<double>(*p);
+			}
+			else if (auto s = std::get_if<std::string>(&vardata)) {
+            	vardata = std::stod(*s);
+        	}
+        	else if (auto p = std::get_if<bool>(&vardata)) {
+    			vardata = static_cast<double>(*p);
+			}
+		}
+	}
+
+	void typeCastToString(){
+		if( mapType == MAPTYPE::VARIABLE ){
+			auto& VHdata = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			
+			if( VHdata->isTypeArray )
+				TypeCastError("Cannot cast array type");
+
+			auto& vardata = get<VarDtype>(VHdata->value);
+			
+			if (auto p = std::get_if<long>(&vardata)) {
+				vardata = to_string(*p);
+			}
+			else if (auto s = std::get_if<double>(&vardata)) {
+            	vardata = to_string(*s);
+        	}
+        	else if (auto p = std::get_if<bool>(&vardata)) {
+    			vardata = to_string(*p);
+			}
+		}
+	}
 };
 
 class ValueHelper{
@@ -158,6 +221,9 @@ class ValueHelper{
 		else if( mapData->mapType == MAPTYPE::FUNCTION ){
 			auto& VariableData = get<unique_ptr<FUNCTION_MAP_DATA>>( mapData->var );
 			return VariableData.get();
+		}
+		else if( mapData->mapType == MAPTYPE::FUNC_PTR ){
+			return get<FUNCTION_MAP_DATA*>( mapData->var );
 		}
 		throw runtime_error("DTYPE not defined in MAP");
 	}

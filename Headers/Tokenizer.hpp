@@ -20,7 +20,7 @@ unordered_set<string> SCHARS = {
 };
 
 unordered_set<string> OPTR{
-	"+", "-", "*", "/", "%", ">", "<", "=", "!"
+	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":"
 };
 
 bool isReservedKey( const string& tok ){

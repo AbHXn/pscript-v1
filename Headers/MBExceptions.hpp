@@ -39,4 +39,11 @@ class ArrayOutOfBound: public std::runtime_error{
 		explicit ArrayOutOfBound( const std::string& msg ):
 			runtime_error( "ArrayOutOfBound: " + msg ){};
 };
+
+class TypeCastError: public std::runtime_error{
+	public:
+		explicit TypeCastError( const std::string& msg ):
+			runtime_error( "TypeCastError: " + msg ){};
+};
+
 #endif

@@ -9,7 +9,7 @@
 using namespace std;
 
 unordered_set<string> REG_INS_TOKEN = {
-	"=", "+=", "-=", "/=", "*=", "%=", ",", ";"
+	"=", "+=", "-=", "/=", "*=", ":=", "%=", ",", ";"
 };
 
 bool isRegisteredInsTokens( const string& tok ){
@@ -21,6 +21,7 @@ enum class INS_TOKEN{
 	REPLACE,
 	COMMA,
 	ADD_REPLACE,
+	TYPE_CAST  ,
 	SUB_REPLACE,
 	MUL_REPLACE,
 	DIV_REPLACE,
@@ -38,9 +39,11 @@ unordered_map<INS_TOKEN, vector<INS_TOKEN>> INS_GRAPH = {
 							  INS_TOKEN::MUL_REPLACE, 
 							  INS_TOKEN::DIV_REPLACE, 
 							  INS_TOKEN::MOD_REPLACE,
+							  INS_TOKEN::TYPE_CAST	,
 							  INS_TOKEN::REPLACE } },
 	
 	{ INS_TOKEN::ADD_REPLACE, { INS_TOKEN::RHS_VALUE } },
+	{ INS_TOKEN::TYPE_CAST,   { INS_TOKEN::RHS_VALUE } },
 	{ INS_TOKEN::SUB_REPLACE, { INS_TOKEN::RHS_VALUE } },
 	{ INS_TOKEN::MUL_REPLACE, { INS_TOKEN::RHS_VALUE } },
 	{ INS_TOKEN::DIV_REPLACE, { INS_TOKEN::RHS_VALUE } },
@@ -74,6 +77,10 @@ bool MainToken( const string& curToken, INS_TOKEN& Optr ){
 	}
 	else if( curToken == "%=" ){
 		Optr = INS_TOKEN::MOD_REPLACE;
+		return true;
+	}
+	else if( curToken == ":=" ){
+		Optr = INS_TOKEN::TYPE_CAST;
 		return true;
 	}
 	return false;
