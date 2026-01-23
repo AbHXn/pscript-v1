@@ -307,6 +307,7 @@ class FunctionHandler: public VAR_VMAP {
 												get<unique_ptr<FUNCTION_MAP_DATA>>( VMAPData->var ).get() : get<FUNCTION_MAP_DATA*>( VMAPData->var );
 								
 								FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
+								cout << "function call\n";
 								if( isFuncPtr( pt.callTokens ) ){
 									simpleVector.push_back("FUNC_PTR");
 									resolvedVector.push( varHolder );
@@ -332,6 +333,7 @@ class FunctionHandler: public VAR_VMAP {
 								x--; // stringfuncalltokens it hits then unknown token get that token back
 							}
 							catch ( const InvalidSyntaxError& err ){
+								cout << "sdg\n";
 								cout << err.what() << endl;
 							}
 						}
@@ -376,6 +378,9 @@ class FunctionHandler: public VAR_VMAP {
 			if( data.has_value() )
 				Data = data.value();
 			else Data = stringToFunctionCallTokens( tokens, currentPtr );
+
+			for(auto test: Data.callTokens)
+				cout << (int) test << endl;
 
 			if( isValidFuncCall( Data.callTokens ) ){
 				if( Data.argsVector.size() == 0 )
@@ -467,7 +472,7 @@ class FunctionHandler: public VAR_VMAP {
 					valVec == VALUE_TOKENS::NORMAL_VALUE ){
 					auto testVec = names.second[ curIndex++ ];
 
-					DEEP_VALUE_DATA evaluatedRes = getTheResult( testVec );
+					DEEP_VALUE_DATA evaluatedRes = getTheResult( testVec ); 
 					resolvedValueVector.push( evaluatedRes );
 				}
 			}
@@ -805,8 +810,12 @@ class FunctionHandler: public VAR_VMAP {
 
 			if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
 				auto mapData = this->moveFromVmap( returnStatementData.back().token );
-				if( mapData.has_value() )
+				if( mapData.has_value() ){
+					for( auto& mapData: this->VMAP )
+						propHolderTemp.push_back( move( mapData.second ) );
+
 					return  move( mapData.value() ) ;
+				}
 				throw InvalidSyntaxError(
 					"no variable found line:  " + to_string(returnStatementData.back().row) + " " + returnStatementData.back().token
 				);

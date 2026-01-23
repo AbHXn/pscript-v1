@@ -1,0 +1,65 @@
+thenga makeRecursiveEngine(pidi limit){
+    pidi step = 0;
+    pidi evenRef = 0;
+    pidi oddRef = 0;
+
+    thenga even(pidi n){
+        pidi r = 0;
+        step = step + 1;
+
+        nok n <= 0 {
+            r = 0;
+        } :umbi {
+            r = oddRef(n - 1) + 1;
+        };
+
+        poda r;
+    }
+
+    thenga odd(pidi n){
+        pidi r = 0;
+        step = step + 1;
+
+        nok n <= 0 {
+            r = 0;
+        } :umbi {
+            r = evenRef(n - 2) + 2;
+        };
+
+        poda r;
+    }
+
+    evenRef = even;
+    oddRef = odd;
+
+    thenga run(pidi n){
+        pidi r = 0;
+
+        nok n > limit {
+            r = evenRef(limit);
+        } :umbi {
+            r = evenRef(n);
+        };
+
+        poda r;
+    }
+
+    thenga getSteps(){
+        pidi r = step;
+        poda r;
+    }
+
+    pidi engine = run;
+    poda engine;
+}
+pidi engine = makeRecursiveEngine(10);
+
+pidi a = engine(5);
+para a koode "\n";
+
+pidi b = engine(8);
+para b koode "\n";
+
+pidi c = engine(12);
+para c koode "\n";
+

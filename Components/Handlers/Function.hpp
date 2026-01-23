@@ -223,7 +223,7 @@ isValidFuncCall( vector<FUNC_CALL_TOKEN>& callTokens ){
 			throw InvalidSyntaxError( "Invalid Token encounter in thenga call" );
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter end ; token in thenga call" );
+	throw InvalidSyntaxError( "Do dont encounter ) token in thenga call" );
 }
 
 struct FunctionCallReturns{

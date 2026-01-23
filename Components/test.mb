@@ -1,16 +1,18 @@
-pidi x kootam = {1, 4, 6, 8, 10, 23};
-pidi start, end = 0, x:valupam - 1;
-pidi search = 23;
+thenga DDDD(pidi x, pidi lo){
+    pidi r = 0;
 
-ittuthiri start <= end {
-	pidi mid = (start + end) / 2;
-	mid := INT;
-	nok x[mid] == search {
-		para "Element found at" koode mid koode "\n";
-		theku;
-	}: nok x[mid] > search {
-		end = mid - 1;
-	}: umbi {
-		start = mid + 1;
-	};
+    nok x < lo {
+        r = lo;
+    } :umbi {
+        nok x > 4 {
+            r = 4;
+        } :umbi {
+            r = x;
+        };
+    };
+
+    poda r;
 }
+pidi a = 0;
+a = a + DDDD(1, 2);
+para a koode "\n";
