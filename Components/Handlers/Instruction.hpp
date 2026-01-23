@@ -137,11 +137,18 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 			}
 			else{
 				vector<Token> valueVector;
+				int openBrackCnts = 0;
 				while( startIndex < tokens.size() ){
-					if( isRegisteredInsTokens( tokens[ startIndex ].token ) ){
+					if( tokens[ startIndex ].token == "(" )
+						openBrackCnts++;
+					else if( tokens[ startIndex ].token == ")" )
+						openBrackCnts--;
+
+					if( !openBrackCnts && isRegisteredInsTokens( tokens[ startIndex ].token ) ){
 						startIndex--;
 						break;
 					}
+					
 					valueVector.push_back( tokens[ startIndex++ ] );
 				}
 				rightVector.push_back( valueVector );

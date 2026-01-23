@@ -263,6 +263,7 @@ class FunctionHandler: public VAR_VMAP {
 
 		pair<queue<DEEP_VALUE_DATA>, vector<string>>
 		vectorResolver( const vector<Token>& tokens ){
+
 			queue<DEEP_VALUE_DATA> resolvedVector;       
 			vector<string> simpleVector;
 
@@ -305,9 +306,9 @@ class FunctionHandler: public VAR_VMAP {
 							try{
 								auto varHolder = (VMAPData->mapType == MAPTYPE::FUNCTION) ? \
 												get<unique_ptr<FUNCTION_MAP_DATA>>( VMAPData->var ).get() : get<FUNCTION_MAP_DATA*>( VMAPData->var );
-								
+
 								FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
-								cout << "function call\n";
+
 								if( isFuncPtr( pt.callTokens ) ){
 									simpleVector.push_back("FUNC_PTR");
 									resolvedVector.push( varHolder );
@@ -375,12 +376,11 @@ class FunctionHandler: public VAR_VMAP {
 		optional<variant<VarDtype, unique_ptr<MapItem>>>
 		handleFunctionCall( MapItem* func, const vector<Token>& tokens, size_t& currentPtr, VAR_VMAP* rPT, optional<FunctionCallReturns> data = nullopt ){
 			FunctionCallReturns Data;
+			
 			if( data.has_value() )
 				Data = data.value();
+			
 			else Data = stringToFunctionCallTokens( tokens, currentPtr );
-
-			for(auto test: Data.callTokens)
-				cout << (int) test << endl;
 
 			if( isValidFuncCall( Data.callTokens ) ){
 				if( Data.argsVector.size() == 0 )
@@ -391,8 +391,9 @@ class FunctionHandler: public VAR_VMAP {
 				
 				queue<DEEP_VALUE_DATA> resolvedArgs;
 				
-				auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
-								: get<FUNCTION_MAP_DATA*>( func->var );
+				auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? \ 
+									get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
+									: get<FUNCTION_MAP_DATA*>( func->var );
 
 				newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
 				newFuncRunner->parent = funcFromMap->varMapCopy.second;
