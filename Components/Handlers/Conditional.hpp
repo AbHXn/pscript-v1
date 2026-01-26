@@ -10,7 +10,7 @@
 using namespace std;
 
 unordered_set<string> REG_COND_TOKENS = {
-	"nok", "{", "}", "umbi", ":",   
+	"nok", "{", "}", "umbi",   
 };
 
 enum class COND_TOKENS{ IF, ELSE, CONDITION, BODY_OPEN, BODY_CLOSE, CHAIN, END };

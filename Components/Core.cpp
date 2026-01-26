@@ -1,137 +1,10 @@
 #include "DefinedTypes.hpp"
+#include "VMAP.hpp"
 
 using namespace std;
 
 class LoopHandler;
 
-vector<unique_ptr<MapItem>> propHolderTemp;
-
-class VAR_VMAP{
-	private:
-		queue<unique_ptr<MapItem>> funcReturnedCache;
-		unordered_map<string, 
-			pair<unordered_map<string, MapItem*>, VAR_VMAP*>
-		> functionMapsCache;
-		size_t cacheElement = 0;
-
-	public:
-		string runnerBody = "__xmain__";
-		VAR_VMAP* parent = nullptr;
-		unordered_map<string, unique_ptr<MapItem>> VMAP;
-		unordered_map<string, MapItem*> VMAP_COPY;
-
-		pair<unordered_map<string, MapItem*>, VAR_VMAP*>
-		getFromFunctionMapsCache(const string& key){
-			VAR_VMAP* cur = this;
-			while( cur != nullptr ){
-				auto result = cur->functionMapsCache.find(key);
-				if( result != cur->functionMapsCache.end() )
-					return result->second;
-				cur = cur->parent;
-			}
-			throw runtime_error(key);
-		}
-
-		void addTofunctionMapsCache( const string& key, unordered_map<string, MapItem*> data, VAR_VMAP* parent ){
-			this->functionMapsCache[ key ] = make_pair(data, parent);
-		}
-
-		unordered_map<string, MapItem*>
-		getCopyOfVMAP( void ){
-			unordered_map<string, MapItem*> copyData;
-			VAR_VMAP* currentDir = this;
-			while( currentDir && currentDir->runnerBody == this->runnerBody ){
-				for( auto& value: currentDir->VMAP )
-					copyData[value.first] = value.second.get();
-				currentDir = currentDir->parent;
-			}
-			return copyData;
-		}
-
-		unordered_map<string, MapItem*>
-		getDeepCopyOfVMAP( void ){
-			unordered_map<string, MapItem*> copyData;
-			VAR_VMAP* currentDir = this;
-			while( currentDir ){
-				for( auto& value: currentDir->VMAP )
-					copyData[value.first] = value.second.get();
-				for( auto value: currentDir->VMAP_COPY )
-					copyData[value.first] = value.second;
-				currentDir = currentDir->parent;
-			}
-			return copyData;
-		}
-
-		pair<MapItem*, VAR_VMAP*>
-		getFromVmapCopy(const std::string& key) {
-		    VAR_VMAP* currentEnv = this;
- 		    while (currentEnv != nullptr) {
-		        auto it_2 = currentEnv->VMAP_COPY.find(key);
-		        if( it_2 != currentEnv->VMAP_COPY.end() )
-		        	return make_pair( it_2->second, currentEnv );
- 		        currentEnv = currentEnv->parent;
-		    }
-		    return make_pair(nullptr, nullptr);
-		}
-
-		pair<MapItem*, VAR_VMAP*>
-		getFromVmap(const std::string& key) {
-	        auto cur = this;
-	        while( cur && cur->runnerBody == this->runnerBody ){
-	        	auto it = cur->VMAP.find(key);
-	       		if (it != cur->VMAP.end())
-	            	return make_pair( it->second.get(), cur );
-	            cur = cur->parent;
-	        }
-		    return getFromVmapCopy(key);
-		}
-
-		optional<unique_ptr<MapItem>>
-		moveFromVmap(const std::string& key){
-		    auto it = VMAP.find(key);
-
-		    if (it == VMAP.end())
-		        return std::nullopt;
-
-		    auto result = std::move(it->second);
-		    VMAP.erase(it);
-
-		    if( result->mapType == MAPTYPE::FUNCTION ){
-		    	for( auto& test: this->VMAP ){
-		    		propHolderTemp.push_back( move(test.second) );
-		    	}
-		    }
-
-		    return result;
-		}
-
-		void addToMap( string key, unique_ptr<MapItem> data ){
-			this->VMAP[ key ] = move( data );
-		}
-
-		void pushCache( unique_ptr<MapItem> data ){
-			this->cacheElement++;
-			this->funcReturnedCache.push( move( data ) );
-		}
-
-		unique_ptr<MapItem> getCacheItem(void){
-			auto data = move( this->funcReturnedCache.front() );
-			this->funcReturnedCache.pop();
-			this->cacheElement--;
-			return move(data);
-		}
-
-		size_t getCacheSize( void ){
-			return this->cacheElement;
-		}
-
-		void clearFuncRetCache( void ){
-			while( !this->funcReturnedCache.empty() )
-				funcReturnedCache.pop();
-			this->cacheElement = 0;
-		}
-
-};
 
 vector<Token> fullTokens;
 size_t 		   pointer = 0;
@@ -192,10 +65,17 @@ class FunctionHandler: public VAR_VMAP {
 			
 		}
 
-		optional<size_t>
+		optional<VarDtype>
 		handleArrayProperties( ArrayList<ARRAY_SUPPORT_TYPES>* array, ArrayAccessTokens& arrToken){
+
 			if( arrToken.arrProperty.propertyType == "valupam" ){
-				return array->totalElementsAllocated;
+				return (long int) array->totalElementsAllocated;
+			} 
+			else if( arrToken.arrProperty.propertyType == "jaadi" ){
+				return "KOOTAM";
+			}
+			else if( arrToken.arrProperty.propertyType == "keru" ){
+				cout << "sagf" << endl;
 			}
 			return nullopt;
 		}
@@ -227,22 +107,29 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedIndexVector.push_back( index );
 				}
 
-				variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
+				variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
 				
-				if( holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) ){
-					auto spData = get<ARRAY_SUPPORT_TYPES>( returnIndex );
+				if( holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
+					auto* spData = get<ARRAY_SUPPORT_TYPES*>( returnIndex );
+					std::visit([&](auto&& data) {
+					    if (arrToken.isTouchedArrayProperty) {
+					        DEEP_VALUE_DATA dv = data;
+					        resolvedVector.push(
+					        		handleVarDefinedProperties(dv, arrToken)
+					        	);
+					    } else resolvedVector.push(data);
+					    simpleVector.push_back("VAR");
 
-					visit( [&]( auto&& data ){
-						resolvedVector.push( data );
-						simpleVector.push_back("VAR");
-					},  spData );
+					}, *spData);
+
+
 				}
 				else{
 					ArrayList<ARRAY_SUPPORT_TYPES>* arrList = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
 					if( arrToken.isTouchedArrayProperty ){
 						auto data = handleArrayProperties( arrList, arrToken );
 						if( data.has_value() ) 
-							resolvedVector.push( (long int) data.value() );
+							resolvedVector.push( data.value() );
 					}
 					else resolvedVector.push( arrList );
 					simpleVector.push_back("VAR");
@@ -252,12 +139,74 @@ class FunctionHandler: public VAR_VMAP {
 				if( arrToken.isTouchedArrayProperty ){
 					auto data = handleArrayProperties( arrayData, arrToken );
 					if( data.has_value() )
-						resolvedVector.push( (long int) data.value() );
+						resolvedVector.push( data.value() );
 				}
 				else resolvedVector.push( arrayData );
 				simpleVector.push_back("VAR");
 			
 			}	
+		}
+
+		VarDtype 
+		handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
+			if( tok.arrProperty.propertyType == "jaadi" ){
+				if( holds_alternative<VarDtype> (Vdata) ){
+					auto data = get<VarDtype>( Vdata );
+					if( holds_alternative<string> ( data ) )
+						return "STR";
+					else if( holds_alternative<double> (data) )
+						return "THULA";
+					else if( holds_alternative<long> (data) )
+						return "INT";
+					else if( holds_alternative<bool> (data) )
+						return "BOOL";
+					else return "ARILA";
+				}
+				else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( Vdata ) )
+					return "ARRAY_PTR";
+				else if( holds_alternative<FUNCTION_MAP_DATA*>( Vdata ) )
+					return "FUNC_PTR";
+				else return "ARILA";
+			}
+			return 34;
+		}
+
+		DEEP_VALUE_DATA 
+		handleRawVariables( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder ){
+			DEEP_VALUE_DATA HandlingDtype = varHolder;
+			if( arrToken.indexVector.size() ){
+				if( !holds_alternative<VarDtype> ( varHolder ) 
+					|| !holds_alternative<string> ( get<VarDtype>( varHolder ) ) )
+					throw runtime_error("indexing invalid dtype");
+
+				if( arrToken.indexVector.size() > 1 )
+					throw runtime_error("indexing error");
+
+				DEEP_VALUE_DATA val = getTheResult( arrToken.indexVector.back() );
+				if( !holds_alternative<VarDtype>( val ) )
+					throw InvalidSyntaxError("Array Index Expects numbesdfr");
+				
+				VarDtype vDtypeIndex = get<VarDtype>( val );
+				if( !holds_alternative<long int> ( vDtypeIndex ) &&
+								 !holds_alternative<double> ( vDtypeIndex ))
+					throw InvalidSyntaxError("Array Index Expects 99number");
+
+				long int index;
+				if( holds_alternative<long int>(vDtypeIndex) )
+					index = get<long int>(vDtypeIndex);
+				else index = (long int) get<double>( vDtypeIndex );
+
+				string& stringVarHolder = get<string>( get<VarDtype>( varHolder ) );
+
+				if( index >= 0 && index < stringVarHolder.size())
+					HandlingDtype =  DEEP_VALUE_DATA { string(1, stringVarHolder[ index ]) };
+			}
+
+			if( arrToken.isTouchedArrayProperty ){
+				return handleVarDefinedProperties( HandlingDtype, arrToken );
+			}
+			
+			return HandlingDtype;
 		}
 
 
@@ -290,8 +239,11 @@ class FunctionHandler: public VAR_VMAP {
 						if( VMAPData->mapType == MAPTYPE::VARIABLE ){
 							auto& varHolder = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( VMAPData->var );
 							if( !varHolder->isTypeArray ){
-								auto& data = get<VarDtype>( varHolder->value );
-								resolvedVector.push( data );
+								ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
+								x--;
+								DEEP_VALUE_DATA tdata = ValueHelper::getFinalValueFromMap( VMAPData );
+								auto datan = handleRawVariables( arrToken,  tdata );
+								resolvedVector.push( datan );
 								simpleVector.push_back("VAR");
 							}
 							else {
@@ -366,7 +318,6 @@ class FunctionHandler: public VAR_VMAP {
 			newFuncRunner->runnerBody = funcName;
 			newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
 			newFuncRunner->parent = funcFromMap->varMapCopy.second;
-
 
 			return ProgramExecutor( 
 					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
@@ -613,6 +564,21 @@ class FunctionHandler: public VAR_VMAP {
 				}
 			}
 
+		void updateString( string& strToUpdate, long int index, DEEP_VALUE_DATA updata ){
+			if( !holds_alternative<VarDtype>( updata ) )
+				throw runtime_error("Invalid string updation dtype");
+
+			auto& dataL1 = get<VarDtype>( updata );
+			if( !holds_alternative<string> ( dataL1 ) )
+				throw runtime_error( "invalid string updation dtype" );
+
+			string rightValue = get<string> ( dataL1 );
+
+			if( index >= 0 && index < strToUpdate.size() )
+				strToUpdate.replace(index, 1, rightValue);
+			else throw runtime_error("Index limit failed");
+		}
+
 		void arrayUpdation( const vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList<ARRAY_SUPPORT_TYPES>* arr ){
 			ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
 			curPtr--;
@@ -649,10 +615,21 @@ class FunctionHandler: public VAR_VMAP {
 				if( updationIndex < 0 )
 					throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
 
-				variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
+				variant<
+					ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*
+				> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
 
-				if( holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) )
-					throw InvalidSyntaxError("Failed to index an non array type");
+				if( holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
+					auto* arrData = get<ARRAY_SUPPORT_TYPES*>( returnIndex );
+
+					if( !holds_alternative<VarDtype>( *arrData ) || !holds_alternative<string> ( get<VarDtype>( *arrData ) ) )
+						throw InvalidSyntaxError("Failed to index an non array type");
+					
+					auto& ttt = get<VarDtype>( *arrData );
+					string& strToUpdate = get<string>( ttt );
+					updateString( strToUpdate, updationIndex, upvalue );
+					return ;
+				}
 
 				ArrayList<ARRAY_SUPPORT_TYPES>* arrList = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
 
@@ -672,11 +649,45 @@ class FunctionHandler: public VAR_VMAP {
 			}
 		}
 
+		pair<ArrayAccessTokens, vector<long int>>
+		arrayAccessResolver( const vector<Token>& tokens, size_t& curPtr ){
+			ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
+			curPtr--;
+
+			vector<long int> resolvedIndexVector;
+
+			if( arrToken.indexVector.size() ){
+				for( auto& vec: arrToken.indexVector ){
+					DEEP_VALUE_DATA val = getTheResult( vec );
+
+					if( !holds_alternative<VarDtype>( val ) )
+						throw InvalidSyntaxError("Array Index Expects Type Integer");
+					
+					VarDtype vDtypeIndex = get<VarDtype>( val );
+					
+					if( !holds_alternative<long int> ( vDtypeIndex ) && !holds_alternative<double> ( vDtypeIndex ))
+						throw InvalidSyntaxError("Array Index Expects Integer");
+
+					long int index;
+					
+					if( holds_alternative<long int>(vDtypeIndex) )
+						index = get<long int>(vDtypeIndex);
+					else 
+						index = (long int) get<double>( vDtypeIndex );
+				
+					resolvedIndexVector.push_back( index );
+				}
+			}
+			
+			return make_pair( arrToken, resolvedIndexVector );
+		}
+
 		void InstructionHandlerRunner( const vector<Token>& tokens, size_t& currentPtr ){
 			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
-			if( !isValidInstructionSet( InsTokensAndData.insToken) )
+			if( !isValidInstructionSet( InsTokensAndData.insToken) ){
 				throw InvalidSyntaxError( "Invalid Instruction set" );
+			}
 
 			queue<DEEP_VALUE_DATA> finalValueQueue;
 
@@ -754,6 +765,23 @@ class FunctionHandler: public VAR_VMAP {
 				}
 
 				auto& vmapvariable = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
+				if( holds_alternative<VarDtype> ( vmapvariable->value ) ){
+					auto& varDtypeData = get<VarDtype>( vmapvariable->value );
+					
+					if( holds_alternative<string> ( varDtypeData ) ){
+						auto resData = arrayAccessResolver( varsAndVals, x );
+						
+						if( resData.second.size() > 1 )
+							throw runtime_error("string is a one dimensional");
+
+						string& strToUpdate = get<string> ( varDtypeData );
+						if( !resData.second.empty() ){
+							long int index = resData.second.back();
+							updateString( strToUpdate, index, topValue );
+						}
+						else mapData->updateSingleVariable( get<VarDtype>( topValue ) );
+					}
+				}
 
 				if( vmapvariable->isTypeArray ){
 					auto& arr = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
@@ -845,7 +873,7 @@ class Conditional: public FunctionHandler{
 
 				if( holds_alternative<VarDtype>( evRes ) ){
 					auto VdtypData = get<VarDtype>( evRes );
-					
+
 					if( get<bool>( VdtypData ) ){
 						start = data.second + 1;
 						// nothing will return here so just skip

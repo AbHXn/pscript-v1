@@ -186,10 +186,10 @@ isValidInstructionSet( vector<INS_TOKEN>& tokens ){
 			}
 		}
 		if( !continueNext )
-			throw InvalidSyntaxError("Invalid Instruction");
+			return false;
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter end ; token in para" );
+	return false;
 }
 
 #endif

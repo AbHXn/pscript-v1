@@ -129,7 +129,7 @@ class ArrayList{
 			}, singleElement );
 		}
 		
-		variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES>
+		variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*>
 		getElementAtIndex(vector<long int>& dimensions, size_t index = 0){
 			if( dimensions.empty() )
 				return this;
@@ -140,7 +140,7 @@ class ArrayList{
 
 				if( index == dimensions.size() - 1 ){
 					if ( holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
-						return get<ARRAY_SUPPORT_TYPES>(test);
+						return &get<ARRAY_SUPPORT_TYPES>( test );
 
 					else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(test) )
 						return get<ArrayList<ARRAY_SUPPORT_TYPES>*>( test );
