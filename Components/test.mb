@@ -1,15 +1,2 @@
-pidi x kootam = {1, 2, 3, {6, 7, 7}, {{3, 4}}};
-
-thenga rec_print_array( pidi x kootam ){
-	pidi start = 0;
-	ittuthiri start < x:valupam {
-		nok x[start]:jaadi == "KOOTAM" {
-			rec_print_array( x[start] );		
-		}: nok x[start]:jaadi == "INT" {
-			para x[start] koode "\n";
-		};
-		start = start + 1;
-	};
-}
-
-rec_print_array(x);
+pidi str = "admin";
+str[12] = "34";

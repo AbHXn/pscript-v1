@@ -19,6 +19,12 @@ ProgramExecutor( const vector<Token>& tokens,
 				 size_t endPtr = 0  
 );
 
+using BUCKET_TYPE = variant<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,
+		unique_ptr<FUNCTION_MAP_DATA>>;
+
+vector<BUCKET_TYPE> _CACHE_VARS;
+
+
 class FunctionHandler: public VAR_VMAP {
 	public:
 		string functionName;
@@ -67,25 +73,16 @@ class FunctionHandler: public VAR_VMAP {
 
 		optional<VarDtype>
 		handleArrayProperties( ArrayList<ARRAY_SUPPORT_TYPES>* array, ArrayAccessTokens& arrToken){
-
 			if( arrToken.arrProperty.propertyType == "valupam" ){
 				return (long int) array->totalElementsAllocated;
 			} 
 			else if( arrToken.arrProperty.propertyType == "jaadi" ){
 				return "KOOTAM";
 			}
-			else if( arrToken.arrProperty.propertyType == "keru" ){
-				cout << "sagf" << endl;
-			}
 			return nullopt;
 		}
 
-		void handleArrayCases( 
-				ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, 
-				ArrayAccessTokens& arrToken,
-				queue<DEEP_VALUE_DATA>& resolvedVector,
-				vector<string>& simpleVector
-		){
+		void handleArrayCases( ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, ArrayAccessTokens& arrToken, queue<DEEP_VALUE_DATA>& resolvedVector, vector<string>& simpleVector ){
 			if( arrToken.indexVector.size() ){
 				vector<long int> resolvedIndexVector;
 
@@ -95,8 +92,7 @@ class FunctionHandler: public VAR_VMAP {
 						throw InvalidSyntaxError("Array Index Expects numbesdfr");
 					
 					VarDtype vDtypeIndex = get<VarDtype>( val );
-					if( !holds_alternative<long int> ( vDtypeIndex ) &&
-									 !holds_alternative<double> ( vDtypeIndex ))
+					if( !holds_alternative<long int> ( vDtypeIndex ) && !holds_alternative<double> ( vDtypeIndex ))
 						throw InvalidSyntaxError("Array Index Expects 99number");
 
 					long int index;
@@ -111,18 +107,14 @@ class FunctionHandler: public VAR_VMAP {
 				
 				if( holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
 					auto* spData = get<ARRAY_SUPPORT_TYPES*>( returnIndex );
-					std::visit([&](auto&& data) {
+					std::visit( [&]( auto&& data ) {
 					    if (arrToken.isTouchedArrayProperty) {
 					        DEEP_VALUE_DATA dv = data;
-					        resolvedVector.push(
-					        		handleVarDefinedProperties(dv, arrToken)
-					        	);
-					    } else resolvedVector.push(data);
+					        resolvedVector.push( handleVarDefinedProperties(dv, arrToken));
+					    } 
+					    else resolvedVector.push(data);
 					    simpleVector.push_back("VAR");
-
 					}, *spData);
-
-
 				}
 				else{
 					ArrayList<ARRAY_SUPPORT_TYPES>* arrList = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
@@ -142,8 +134,7 @@ class FunctionHandler: public VAR_VMAP {
 						resolvedVector.push( data.value() );
 				}
 				else resolvedVector.push( arrayData );
-				simpleVector.push_back("VAR");
-			
+				simpleVector.push_back("VAR");	
 			}	
 		}
 
@@ -168,7 +159,20 @@ class FunctionHandler: public VAR_VMAP {
 					return "FUNC_PTR";
 				else return "ARILA";
 			}
-			return 34;
+			else if( tok.arrProperty.propertyType == "valupam" ){
+				if( holds_alternative<VarDtype>(Vdata) ){
+					auto data = get<VarDtype>(Vdata);
+					if( holds_alternative<string> ( data ) )
+						return (long) get<string>(data).size();
+					else if( holds_alternative<double> (data) )
+						return 8;
+					else if( holds_alternative<long> (data) )
+						return 8;
+					else if( holds_alternative<bool> (data) )
+						return 1;
+				}
+			}
+			throw;
 		}
 
 		DEEP_VALUE_DATA 
@@ -202,9 +206,8 @@ class FunctionHandler: public VAR_VMAP {
 					HandlingDtype =  DEEP_VALUE_DATA { string(1, stringVarHolder[ index ]) };
 			}
 
-			if( arrToken.isTouchedArrayProperty ){
-				return handleVarDefinedProperties( HandlingDtype, arrToken );
-			}
+			if( arrToken.isTouchedArrayProperty )
+				return handleVarDefinedProperties( HandlingDtype, arrToken );		
 			
 			return HandlingDtype;
 		}
@@ -237,7 +240,7 @@ class FunctionHandler: public VAR_VMAP {
 					if( VMAPData != nullptr ){
 						// if it is variable then get its value
 						if( VMAPData->mapType == MAPTYPE::VARIABLE ){
-							auto& varHolder = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( VMAPData->var );
+							auto varHolder = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
 							if( !varHolder->isTypeArray ){
 								ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 								x--;
@@ -256,8 +259,7 @@ class FunctionHandler: public VAR_VMAP {
 						// if it is a function then call it and get the value
 						else if( VMAPData->mapType == MAPTYPE::FUNCTION || VMAPData->mapType == MAPTYPE::FUNC_PTR ){
 							try{
-								auto varHolder = (VMAPData->mapType == MAPTYPE::FUNCTION) ? \
-												get<unique_ptr<FUNCTION_MAP_DATA>>( VMAPData->var ).get() : get<FUNCTION_MAP_DATA*>( VMAPData->var );
+								auto varHolder = get<FUNCTION_MAP_DATA*>( VMAPData->var );
 
 								FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
@@ -286,7 +288,6 @@ class FunctionHandler: public VAR_VMAP {
 								x--; // stringfuncalltokens it hits then unknown token get that token back
 							}
 							catch ( const InvalidSyntaxError& err ){
-								cout << "sdg\n";
 								cout << err.what() << endl;
 							}
 						}
@@ -308,8 +309,7 @@ class FunctionHandler: public VAR_VMAP {
 
 		optional<variant<VarDtype, unique_ptr<MapItem>>>	
 		zeroArgFunction( MapItem* func, const vector<Token>& tokens, string funcName, VAR_VMAP* rPT ){
-			auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
-								: get<FUNCTION_MAP_DATA*>( func->var );
+			auto funcFromMap = get<FUNCTION_MAP_DATA*>( func->var );
 
 			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 			size_t funcEndStartPtr = funcFromMap->bodyEndPtr;
@@ -342,9 +342,7 @@ class FunctionHandler: public VAR_VMAP {
 				
 				queue<DEEP_VALUE_DATA> resolvedArgs;
 				
-				auto funcFromMap = ( func->mapType == MAPTYPE::FUNCTION ) ? \ 
-									get<unique_ptr<FUNCTION_MAP_DATA>>( func->var ).get() \
-									: get<FUNCTION_MAP_DATA*>( func->var );
+				auto funcFromMap = get<FUNCTION_MAP_DATA*>( func->var );
 
 				newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
 				newFuncRunner->parent = funcFromMap->varMapCopy.second;
@@ -388,7 +386,8 @@ class FunctionHandler: public VAR_VMAP {
 						// add to vmap
 						auto newMapVar = make_unique<MapItem>( );
 						newMapVar->mapType = MAPTYPE::VARIABLE;
-						newMapVar->var = move( newVariable ) ;
+						newMapVar->var = newVariable.get();
+						_CACHE_VARS.push_back( move( newVariable ) );
 						newFuncRunner->addToMap( ArgsInfo->name, move( newMapVar ) );
 
 					}
@@ -476,7 +475,8 @@ class FunctionHandler: public VAR_VMAP {
 
 							auto newMapVar = make_unique<MapItem>( );
 							newMapVar->mapType = MAPTYPE::VARIABLE;
-							newMapVar->var = move( newVariable ) ;
+							newMapVar->var = newVariable.get() ;
+							_CACHE_VARS.push_back( move( newVariable ) );
 							this->addToMap( curVarInfo.varName, move(newMapVar) );
 						}
 						else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( curValue )){
@@ -497,8 +497,7 @@ class FunctionHandler: public VAR_VMAP {
 					else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 						x++;
 
-						auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>( 
-											toks.second,  x, resolvedValueVector );
+						auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(toks.second,  x, resolvedValueVector );
 
 						unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 						newVariable->key = curVarInfo.varName;
@@ -507,7 +506,8 @@ class FunctionHandler: public VAR_VMAP {
 
 						auto newMapVar = make_unique<MapItem>( );
 						newMapVar->mapType = MAPTYPE::VARIABLE;
-						newMapVar->var = move( newVariable ) ;
+						newMapVar->var = newVariable.get() ;
+						_CACHE_VARS.push_back( move( newVariable ) );
 						this->addToMap( curVarInfo.varName, move(newMapVar) );
 					}
 				}
@@ -633,16 +633,21 @@ class FunctionHandler: public VAR_VMAP {
 
 				ArrayList<ARRAY_SUPPORT_TYPES>* arrList = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
 
-				if( arrList->totalElementsAllocated <= updationIndex )
-					throw ArrayOutOfBound( to_string( updationIndex ) );
+				if( arrList->totalElementsAllocated <= updationIndex ){
+					size_t cur = arrList->totalElementsAllocated;
+					for(; cur <= updationIndex; cur++)
+						arrList->push_SingleElement( VarDtype{0} );
+				}
 
 				auto& elementAtIndex = arrList->arrayList[ updationIndex ];
 
 				if( holds_alternative<ARRAY_SUPPORT_TYPES>( elementAtIndex ) ){
 					auto arrData = get<ARRAY_SUPPORT_TYPES>( elementAtIndex );
 
-				 	if( holds_alternative<VarDtype>( arrData ) && holds_alternative<VarDtype>( upvalue ))
-						arrList->arrayList[ updationIndex ] = get<VarDtype>( upvalue );
+					visit( [&]( auto&& data ){
+						arrList->arrayList[updationIndex] = data;
+					}, upvalue );
+
 				}
 				else throw InvalidDTypeError("Dtype mismatch in array updation");
 
@@ -685,9 +690,8 @@ class FunctionHandler: public VAR_VMAP {
 		void InstructionHandlerRunner( const vector<Token>& tokens, size_t& currentPtr ){
 			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
-			if( !isValidInstructionSet( InsTokensAndData.insToken) ){
+			if( !isValidInstructionSet( InsTokensAndData.insToken) )
 				throw InvalidSyntaxError( "Invalid Instruction set" );
-			}
 
 			queue<DEEP_VALUE_DATA> finalValueQueue;
 
@@ -764,7 +768,7 @@ class FunctionHandler: public VAR_VMAP {
 					return ;
 				}
 
-				auto& vmapvariable = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
+				auto vmapvariable = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
 				if( holds_alternative<VarDtype> ( vmapvariable->value ) ){
 					auto& varDtypeData = get<VarDtype>( vmapvariable->value );
 					
@@ -780,6 +784,7 @@ class FunctionHandler: public VAR_VMAP {
 							updateString( strToUpdate, index, topValue );
 						}
 						else mapData->updateSingleVariable( get<VarDtype>( topValue ) );
+						return;
 					}
 				}
 
@@ -814,8 +819,8 @@ class FunctionHandler: public VAR_VMAP {
 				unique_ptr<MapItem> funcMapItem = make_unique<MapItem>();
 				funcMapItem->mapType = MAPTYPE::FUNCTION;
 				funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem.get();
-				funcMapItem->var 	 = move( funcMapData );
-					
+				funcMapItem->var 	 = funcMapData.get();
+				_CACHE_VARS.push_back( move(funcMapData) );					
 				this->addToMap( funcTokens.funcName, move( funcMapItem ) );
 
 			}

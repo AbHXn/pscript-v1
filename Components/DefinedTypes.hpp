@@ -51,15 +51,14 @@ using AST_NODE_DATA 		= variant<AST_TOKENS, DEEP_VALUE_DATA>;
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;
 	variant<
-		unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,
-		unique_ptr<FUNCTION_MAP_DATA>,
+		VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*,
 		ArrayList<ARRAY_SUPPORT_TYPES>*,
 		FUNCTION_MAP_DATA*
 	> var;
 
 	void updateSingleVariable( VarDtype newValue ){
 		if( this->mapType == MAPTYPE::VARIABLE ){
-			auto& varHolderData = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			auto varHolderData = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			if( varHolderData->isTypeArray )
 				throw runtime_error("var is an array");
 			varHolderData->value = newValue;
@@ -69,7 +68,7 @@ struct MapItem{
 
 	void typeCastToInt(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto& VHdata = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			auto VHdata = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -90,7 +89,7 @@ struct MapItem{
 
 	void typeCastToDouble(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto& VHdata = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			auto VHdata = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -111,7 +110,7 @@ struct MapItem{
 
 	void typeCastToString(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto& VHdata = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			auto VHdata = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -214,13 +213,13 @@ class ValueHelper{
 	static DEEP_VALUE_DATA
 	getFinalValueFromMap( MapItem* mapData ){
 		if( mapData->mapType == MAPTYPE::VARIABLE ){
-			auto& VariableData = get<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
-			auto varData = ValueHelper::getDataFromVariableHolder( VariableData.get() );
+			auto VariableData = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+			auto varData = ValueHelper::getDataFromVariableHolder( VariableData );
 			return varData;
 		}
 		else if( mapData->mapType == MAPTYPE::FUNCTION ){
-			auto& VariableData = get<unique_ptr<FUNCTION_MAP_DATA>>( mapData->var );
-			return VariableData.get();
+			auto VariableData = get<FUNCTION_MAP_DATA*>( mapData->var );
+			return VariableData;
 		}
 		else if( mapData->mapType == MAPTYPE::FUNC_PTR ){
 			return get<FUNCTION_MAP_DATA*>( mapData->var );
