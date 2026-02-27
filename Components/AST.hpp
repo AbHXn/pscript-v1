@@ -11,7 +11,7 @@
 #include <queue>
 #include <unordered_set>
 
- #include <cassert>
+#include <cassert>
 
 using namespace std;
 
@@ -32,12 +32,6 @@ unordered_set<string> EXPR_CONSTANTS = {
 	"+", "-", "/", "%", "*",
 	">", "<", "==", "!=", "<=", ">=",
 	"um", "yo"
-};
-
-unordered_set<string> REG_AST_TOKEN = {
-	"+", "-", "/", "%", "*",
-	">", "<", "==", "!=", "<=", ">=",
-	"um", "yo", ")", "("
 };
 
 unordered_map<AST_TOKENS, short unsigned int> PRIORITY = {
@@ -90,10 +84,6 @@ AST_TOKENS getExprToken( const string& curTokens ) {
 	return AST_TOKENS::NONE;
 }
 
-bool isRegisteredASTTokens( const string& tok ){
-	return REG_AST_TOKEN.find( tok ) != REG_AST_TOKEN.end();
-}
-
 bool isRegisteredASTExprTokens( const string& tok ){
 	return EXPR_CONSTANTS.find( tok ) != EXPR_CONSTANTS.end();
 }
@@ -105,16 +95,14 @@ stringToASTTokens( const vector<string>& tokens ){
 	for( int startIndex = 0; startIndex < tokens.size(); startIndex++ ){
 		const string& curToken = tokens[ startIndex ];
 
-		if( EXPR_CONSTANTS.find( curToken ) != EXPR_CONSTANTS.end() ){
+		if( isRegisteredASTExprTokens(curToken) ){
 			AST_TOKENS getToken = getExprToken( curToken );
 			resultTokens.push_back( getToken );
 		}
-		else if( curToken == "(" ){
+		else if( curToken == "(" ) 
 			resultTokens.push_back( CODE_TOKENS::OPEN );
-		}
-		else if( curToken == ")" ){
+		else if( curToken == ")" )
 			resultTokens.push_back( CODE_TOKENS::CLOSE );
-		}
 		else resultTokens.push_back( CODE_TOKENS::VALUE );
 	}
 	return resultTokens;
@@ -172,8 +160,8 @@ BUILD_AST( vector<variant<CODE_TOKENS, AST_TOKENS>>& codeTokens, queue<VAR_HOLD_
 					auto optCompleteNode = BUILD_AST<VAR_HOLD_DATA, AST_NODE_DATA>( codeTokens, valueQueue, start);
 					if( !optCompleteNode.has_value() )
 						return nullopt;
-					unique_ptr<AST_NODE<AST_NODE_DATA>> completeNode = move(optCompleteNode.value());
-					nodeStack.push_back( move(completeNode) );
+					unique_ptr<AST_NODE<AST_NODE_DATA>> completeNode = move( optCompleteNode.value() );
+					nodeStack.push_back( move( completeNode ) );
 					break;
 				}
 				case CODE_TOKENS::CLOSE:
@@ -199,8 +187,8 @@ BUILD_AST( vector<variant<CODE_TOKENS, AST_TOKENS>>& codeTokens, queue<VAR_HOLD_
 					nodeStack.pop_back();
 					unique_ptr<AST_NODE<AST_NODE_DATA>> left = move( nodeStack.back() );
 					nodeStack.pop_back();
-					topOptr->left  = move(left);
-					topOptr->right = move(right);
+					topOptr->left  = move( left );
+					topOptr->right = move( right );
 					nodeStack.push_back( move( topOptr ) );
 
 					if( optrStack.empty() ) break;
