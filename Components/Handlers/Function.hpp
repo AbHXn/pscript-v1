@@ -37,8 +37,6 @@ struct ARG_VAR_INFO{
 	bool isArray;
 };
 
-
-
 struct FunctionTokenReturn {
 	vector<FUNC_TOKENS> tokens;
 	vector<unique_ptr<ARG_VAR_INFO>> args;

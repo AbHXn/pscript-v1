@@ -1,0 +1,44 @@
+thenga swap(pidi arr, pidi i, pidi j){
+    pidi t = arr[i];
+    arr[i] = arr[j];
+    arr[j] = t;
+}
+
+thenga partition(pidi arr, pidi low, pidi high){
+    pidi pivot = arr[high];
+    pidi i = low - 1;
+    pidi j = low;
+
+    ittuthiri j < high {
+        nok arr[j] <= pivot {
+            i = i + 1;
+            swap(arr, i, j);
+        };
+        j = j + 1;
+    }
+
+    swap(arr, i + 1, high);
+    poda i + 1;
+}
+
+thenga quicksort(pidi arr, pidi low, pidi high){
+    nok low < high {
+        pidi pi = partition(arr, low, high);
+        quicksort(arr, low, pi - 1);
+        quicksort(arr, pi + 1, high);
+    };
+}
+
+pidi arr kootam = {0};
+
+arr[0] = 9; 
+arr[1] = 4; arr[2] = 8; arr[3] = 3; arr[4] = 1;
+arr[5] = 2; arr[6] = 5; arr[7] = 7; arr[8] = 6;
+
+quicksort(arr, 0, 8);
+
+pidi i = 0;
+ittuthiri i < 9 {
+    para arr[i] koode "\n";
+    i = i + 1;
+}

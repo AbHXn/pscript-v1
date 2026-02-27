@@ -1,2 +1,4 @@
-pidi str = "admin";
-str[12] = "34";
+pidi x kootam = {1, 2, 3};
+
+pidi final = x(1);
+para "===" koode final koode "\n";

@@ -5,7 +5,6 @@ using namespace std;
 
 class LoopHandler;
 
-
 vector<Token> fullTokens;
 size_t 		   pointer = 0;
 
@@ -13,14 +12,18 @@ enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
 template <typename T>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
-ProgramExecutor( const vector<Token>& tokens, 
-				 size_t& currentPtr, 
-				 CALLER C_CLASS, T* prntClass, 
-				 size_t endPtr = 0  
+ProgramExecutor( 
+			const vector<Token>& tokens, 
+			size_t& currentPtr, 
+			CALLER C_CLASS, T* prntClass, 
+			size_t endPtr = 0  
 );
 
-using BUCKET_TYPE = variant<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,
-		unique_ptr<FUNCTION_MAP_DATA>>;
+using BUCKET_TYPE = variant<
+					unique_ptr<
+						VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>
+					>,unique_ptr<FUNCTION_MAP_DATA>
+					>;
 
 vector<BUCKET_TYPE> _CACHE_VARS;
 
@@ -243,18 +246,25 @@ class FunctionHandler: public VAR_VMAP {
 							auto varHolder = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
 							if( !varHolder->isTypeArray ){
 								ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-								x--;
-								DEEP_VALUE_DATA tdata = ValueHelper::getFinalValueFromMap( VMAPData );
+
+								if( !isValidArrayAccess( arrToken.tokens ) )
+									throw runtime_error("Invalid array access token");
+
+								DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
 								auto datan = handleRawVariables( arrToken,  tdata );
-								resolvedVector.push( datan );
-								simpleVector.push_back("VAR");
+								
+								resolvedVector.push( datan ); simpleVector.push_back("VAR");
 							}
 							else {
 								auto& arrayData = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
 								ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-								x--;
+								
+								if( !isValidArrayAccess( arrToken.tokens ) )
+									throw runtime_error("Invalid array access token");
+				
 								handleArrayCases( arrayData.get(), arrToken, resolvedVector, simpleVector );
 							}
+							x--;
 						}
 						// if it is a function then call it and get the value
 						else if( VMAPData->mapType == MAPTYPE::FUNCTION || VMAPData->mapType == MAPTYPE::FUNC_PTR ){

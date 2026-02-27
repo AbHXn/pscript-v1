@@ -495,14 +495,8 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 
 		else if( curToken == ":" ){
 			isTouchedArrayProperty = true;
-			arrAccessTokens.push_back( ARRAY_ACCESS::PROPERTY_ACCESS);
+			arrAccessTokens.push_back( ARRAY_ACCESS::PROPERTY_ACCESS );
 		}
-		
-		else if( curToken == "(" ){
-			currentPtr++;
-			fill_property_vector( tokens, propertyArgs, currentPtr );
-		}
-
 		else {
 			if( prev == ARRAY_ACCESS::NOTHING ){
 				arrName = curToken;
@@ -607,10 +601,10 @@ isValidArrayAccess( vector<ARRAY_ACCESS>& tokens ){
 			}
 		}
 		if( !continueNext )
-			throw InvalidSyntaxError("Invalid Array Access");
+			return false;
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Occurs error in array accessing" );
+	return false;
 }
 
 #endif
