@@ -47,8 +47,7 @@ isValidCondToken( std::vector<COND_TOKENS>& tokens ){
 		if( startIndex + 1 >= tokens.size() )
 			throw InvalidSyntaxError( "Do dont encounter ; in nok statement" );
 
-		startIndex++;
-		COND_TOKENS nextExpected = tokens[ startIndex ];
+		COND_TOKENS nextExpected = tokens[ ++startIndex ];
 		vector<COND_TOKENS>& nextExpectedTokens = CONDITIONAL_GRAPH[ curStage ];
 
 		bool continueNext = false;
@@ -113,8 +112,7 @@ stringToCondTokens( const std::vector<Token>& tokens, size_t& start, size_t& end
 			continue;
 		}
 		else if( curToken == "}" ){
-			bodyOpenCount--;
-			if( !bodyOpenCount ) 
+			if( --bodyOpenCount == 0 ) 
 				condTokens.push_back( COND_TOKENS::BODY_CLOSE );
 		}
 	}
