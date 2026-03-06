@@ -1,4 +1,7 @@
-pidi x kootam = {1, 2, 3};
+pidi data = 23;
 
-pidi final = x(1);
-para "===" koode final koode "\n";
+nok {
+	para "execute this";
+}: nok data == 23 {
+	para "instead of this";
+}

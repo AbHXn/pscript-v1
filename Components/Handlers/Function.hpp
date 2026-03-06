@@ -9,8 +9,8 @@
 
 using namespace std;
 
-unordered_set<string> REGISTERED_FUNC_TOKEN = {
-	"thenga", "(", ")", "{", "}", ",", "pidi", "kootam"
+unordered_set<string> REGISTERED_FUNC_TOKEN = { 
+	"thenga", "(", ")", "{", "}", ",", "pidi", "kootam" 
 };
 
 unordered_set<string> REGISTERED_FUNC_BODY_TOKENS = {
@@ -18,31 +18,33 @@ unordered_set<string> REGISTERED_FUNC_BODY_TOKENS = {
 };
 
 enum class FUNC_TOKENS{
-	NOTHING,
-	FUNC_START,
-	FUNC_NAME,
-	ARGS_OPEN,
-	ARGS_CLOSE,
-	BODY_OPEN,
-	FUNC_BODY,
-	BODY_CLOSE,
-	VAR_START,
-	VAR_NAME,
-	VAR_ARRAY,
+	NOTHING 	,
+	FUNC_START 	,
+	FUNC_NAME 	,
+	ARGS_OPEN 	,
+	ARGS_CLOSE 	,
+	BODY_OPEN 	,
+	FUNC_BODY 	,
+	BODY_CLOSE 	,
+	VAR_START 	,
+	VAR_NAME 	,
+	VAR_ARRAY 	,
 	VAR_COMMA
 };
 
+// For arg Name and Type ( Single or Array )
 struct ARG_VAR_INFO{
 	string name;
 	bool isArray;
 };
 
+// Func Info
 struct FunctionTokenReturn {
-	vector<FUNC_TOKENS> tokens;
+	vector<FUNC_TOKENS> 			 tokens;
 	vector<unique_ptr<ARG_VAR_INFO>> args;
-	string funcName;
-	size_t funcStartPtr;
-	size_t funcEndPtr;
+	string 							 funcName;
+	size_t 							 funcStartPtr;
+	size_t 							 funcEndPtr;
 
 	FunctionTokenReturn( 
 		vector<FUNC_TOKENS> tokens,
@@ -58,12 +60,12 @@ struct FunctionTokenReturn {
 		this->funcEndPtr	= funcEndPtr;
 	}
 };
-
+// Function syntax verifier
 unordered_map<FUNC_TOKENS, vector<FUNC_TOKENS>> FUNC_GRAPH = {
 	{ FUNC_TOKENS::FUNC_START, 	{ FUNC_TOKENS::FUNC_NAME } 	},
 	{ FUNC_TOKENS::FUNC_NAME, 	{ FUNC_TOKENS::ARGS_OPEN }  },
 	{ FUNC_TOKENS::VAR_START, 	{ FUNC_TOKENS::VAR_NAME }   },
-	{ FUNC_TOKENS::ARGS_OPEN,  { FUNC_TOKENS::ARGS_CLOSE, 
+	{ FUNC_TOKENS::ARGS_OPEN,  	{ FUNC_TOKENS::ARGS_CLOSE, 
 								  FUNC_TOKENS::VAR_START }  },
 	{ FUNC_TOKENS::VAR_NAME, 	{ FUNC_TOKENS::VAR_COMMA, 
 							  	  FUNC_TOKENS::ARGS_CLOSE, 
@@ -83,13 +85,15 @@ isValidFunction( vector<FUNC_TOKENS>& tokens ){
 
 	while( startIndex < tokens.size() ){
 		FUNC_TOKENS newTok = tokens[ startIndex ];
+		
+		// return if function hits its end without breaking the graph
 		if( newTok == FUNC_TOKENS::BODY_CLOSE )
 			return true;
-		if( startIndex + 1 < tokens.size() )
-			startIndex++;
-		else break;
+		
+		if( startIndex + 1 >= tokens.size() )
+			throw InvalidSyntaxError("Function doesnot hit closing body } ");
 
-		FUNC_TOKENS nextExpected = tokens[ startIndex ];
+		FUNC_TOKENS nextExpected = tokens[ ++startIndex ];
 		vector<FUNC_TOKENS>& nextExpectedTokens = FUNC_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
@@ -99,52 +103,60 @@ isValidFunction( vector<FUNC_TOKENS>& tokens ){
 				break;
 			}
 		}
+		// throw error if it violate the graph rule
 		if( !continueNext )
-			throw InvalidSyntaxError("Invalid Syntax");
+			throw InvalidSyntaxError("Breaks Function Syntax");
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter end } token in thenga" );
+	throw InvalidSyntaxError( "Do dont encounter end } token in Function" );
 }
 
 FunctionTokenReturn
 stringToFuncTokens( const vector<Token>&tokens, size_t& startIndex ){
 	vector<FUNC_TOKENS> funcTokens;
-	FUNC_TOKENS prev = FUNC_TOKENS::NOTHING;
-	string funcName;
 	vector<unique_ptr<ARG_VAR_INFO>> args;
+	string funcName;
+
 	size_t bodyStart = 0;
+	FUNC_TOKENS prev = FUNC_TOKENS::NOTHING;
 
 	for( ; startIndex < tokens.size(); startIndex++ ){
 		const string& curToken = tokens[ startIndex ].token;
 
-		if( curToken == "thenga" )
+		if( curToken == "thenga" ){
 			funcTokens.push_back( FUNC_TOKENS::FUNC_START );
-		else if( curToken == "(" )
+		}
+		else if( curToken == "(" ){
 			funcTokens.push_back( FUNC_TOKENS::ARGS_OPEN );
-		else if( curToken == ")" )
+		}
+		else if( curToken == ")" ){
 			funcTokens.push_back( FUNC_TOKENS::ARGS_CLOSE );
-		else if( curToken == "pidi" )
+		}
+		else if( curToken == "pidi" ){
 			funcTokens.push_back( FUNC_TOKENS::VAR_START );
-		else if( curToken == "," )
+		}
+		else if( curToken == "," ){
 			funcTokens.push_back( FUNC_TOKENS::VAR_COMMA );
+		}
 		else if( curToken == "{" ){
 			funcTokens.push_back( FUNC_TOKENS::BODY_OPEN );
 			funcTokens.push_back( FUNC_TOKENS::FUNC_BODY );
-			bodyStart = startIndex;
-			startIndex++;
 			
-			int open = 1;
+			bodyStart = startIndex++;
+			int openBody = 1;
+
 			while( startIndex < tokens.size() ){
 				const string& curToken = tokens[ startIndex++ ].token;
 				if( curToken == "}" ){
-					open--;
-					if( !open ){
+					if( --openBody == 0 ){
 						funcTokens.push_back( FUNC_TOKENS::BODY_CLOSE );
-						return FunctionTokenReturn(funcTokens, move(args), funcName, bodyStart,startIndex);
+						return FunctionTokenReturn(
+							funcTokens, move(args), funcName, bodyStart, startIndex
+						);
 					}
 				}
 				else if( curToken == "{" )
-					++open;
+					++openBody;
 			}
 		}
 		else{
@@ -161,6 +173,7 @@ stringToFuncTokens( const vector<Token>&tokens, size_t& startIndex ){
 			else if( curToken == "kootam" ){
 				if( args.empty() )
 					throw InvalidSyntaxError(" kootam keyword misuse ");
+				
 				auto& backArg = args.back();
 				backArg->isArray = true;
 			}
@@ -174,14 +187,15 @@ stringToFuncTokens( const vector<Token>&tokens, size_t& startIndex ){
 /* --------------------------- FUNC CALL HANDLER --------------------------------*/
 
 enum class FUNC_CALL_TOKEN{
-	NOTHING, // 0
+	NOTHING,   // 0
 	FUNC_NAME, // 1
-	ARG_OPEN, // 2
+	ARG_OPEN,  // 2
 	ARG_COMMA, // 3
 	ARG_VALUE, // 4
 	ARG_CLOSE, // 5
 };
 
+// function call syntax verifier
 unordered_map<FUNC_CALL_TOKEN, vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
 	{ FUNC_CALL_TOKEN::FUNC_NAME, { FUNC_CALL_TOKEN::ARG_OPEN } },
 	{ FUNC_CALL_TOKEN::ARG_OPEN,  { FUNC_CALL_TOKEN::ARG_VALUE, FUNC_CALL_TOKEN::ARG_CLOSE } },
