@@ -12,7 +12,7 @@ using namespace std;
 unordered_set<string> RESERVED_KEYS = {
 	"thenga", "pidi", "sheri", "thettu", "poda", "pinnava",
 	"theku", "ittuthiri", "nok", "umbi", "onnula", "para", 
-	"koode", "um", "yo", "kootam"
+	"koode", "um", "yo", "kootam", "edukku"
 };
 
 unordered_set<string> SCHARS = {
