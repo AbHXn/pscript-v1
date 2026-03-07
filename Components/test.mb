@@ -1,2 +1,4 @@
-pidi x, sf = 23, 34, 34;
-para sf;
+para "input name: ";
+pidi x = edukku;
+x := INT;
+para x:jaadi koode "\n";

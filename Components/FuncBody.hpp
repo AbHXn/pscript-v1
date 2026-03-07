@@ -156,6 +156,11 @@ class FunctionHandler: public VAR_VMAP {
 						x--;
 					}
 				}
+				else if( tok.type == TOKEN_TYPE::RESERVED && curToken == "edukku" ){
+					string inputValue; cin >> inputValue;
+					simpleVector.push_back("NUM");
+					resolvedVector.push( inputValue );
+				}
 				else throw InvalidSyntaxError( "Unknown Token at: " +  to_string(tok.row) + " " + curToken );
 			}
 			return { move(resolvedVector), simpleVector };
@@ -293,10 +298,8 @@ class FunctionHandler: public VAR_VMAP {
 				if( index >= 0 && index < stringVarHolder.size())
 					HandlingDtype =  DEEP_VALUE_DATA { string(1, stringVarHolder[ index ]) };
 			}
-
 			if( arrToken.isTouchedArrayProperty )
 				return handleVarDefinedProperties( HandlingDtype, arrToken );		
-			
 			return HandlingDtype;
 		}
 
@@ -321,7 +324,6 @@ class FunctionHandler: public VAR_VMAP {
 						tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
 					);
 				}
-
 				unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
 				newFuncRunner->runnerBody = Data.funcName;
 							
@@ -374,7 +376,6 @@ class FunctionHandler: public VAR_VMAP {
 
 						_CACHE_VARS.push_back( move( newVariable ) );
 						newFuncRunner->addToMap( ArgsInfo->name, move( newMapVar ) );
-
 					}
 					else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
 						// no need to create variable add to map
@@ -430,7 +431,6 @@ class FunctionHandler: public VAR_VMAP {
 					// check if variable is already existsed
 					if( data ) throw VariableAlreayExists( varVerification.varName );
 				}
-
 				// if syntax is not correct
 				if( !isValidValueSyntax( tokens.valueTokens ) )
 					throw InvalidSyntaxError("Invalid Value Initialization Syntax");
