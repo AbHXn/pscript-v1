@@ -559,7 +559,9 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 }
 
 unordered_map<ARRAY_ACCESS, vector<ARRAY_ACCESS>> ARRAY_ACCESS_GRAPH = {
-	{ ARRAY_ACCESS::VAR_NAME, 		  { ARRAY_ACCESS::BRACK_OPEN, 
+	{ ARRAY_ACCESS::VAR_NAME, 		  { 
+										ARRAY_ACCESS::PROPERTY_ACCESS,
+										ARRAY_ACCESS::BRACK_OPEN, 
 									    ARRAY_ACCESS::END } 			},
 	
 	{ ARRAY_ACCESS::BRACK_OPEN, 	  { ARRAY_ACCESS::INDEX_VECTOR }  	},
@@ -584,13 +586,14 @@ isValidArrayAccess( vector<ARRAY_ACCESS>& tokens ){
 
 	while( startIndex < tokens.size() ){
 		ARRAY_ACCESS newTok = tokens[ startIndex ];
+		
 		if( newTok == ARRAY_ACCESS::END )
 			return true;
-		if( startIndex + 1 < tokens.size() )
-			startIndex++;
-		else break;
+		
+		if( startIndex + 1 >= tokens.size() )
+			return false;
 
-		ARRAY_ACCESS nextExpected = tokens[ startIndex ];
+		ARRAY_ACCESS nextExpected = tokens[ ++startIndex ];
 		vector<ARRAY_ACCESS>& nextExpectedTokens = ARRAY_ACCESS_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
@@ -600,8 +603,7 @@ isValidArrayAccess( vector<ARRAY_ACCESS>& tokens ){
 				break;
 			}
 		}
-		if( !continueNext )
-			return false;
+		if( !continueNext ) return false;
 		currentStage = nextExpected;
 	}
 	return false;

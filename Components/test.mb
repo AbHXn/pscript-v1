@@ -1,7 +1,12 @@
-pidi data = 23;
-
-nok {
-	para "execute this";
-}: nok data == 23 {
-	para "instead of this";
+thenga sumofarray(pidi arr kootam){
+	pidi sum, index = 0, 0;
+	ittuthiri index < arr:valupam {
+		sum = sum + arr[index];
+		index = index + 1;	
+	}
+	poda sum;
 }
+
+pidi x kootam = {2, 3, 5, 2, 5, 6};
+pidi result = sumofarray(x);
+para result koode "\n";
