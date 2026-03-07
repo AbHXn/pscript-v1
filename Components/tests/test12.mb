@@ -1,10 +1,10 @@
-thenga swap(pidi arr, pidi i, pidi j){
+thenga swap(pidi arr kootam, pidi i, pidi j){
     pidi t = arr[i];
     arr[i] = arr[j];
     arr[j] = t;
 }
 
-thenga partition(pidi arr, pidi low, pidi high){
+thenga partition(pidi arr kootam, pidi low, pidi high){
     pidi pivot = arr[high];
     pidi i = low - 1;
     pidi j = low;
@@ -21,7 +21,7 @@ thenga partition(pidi arr, pidi low, pidi high){
     poda i + 1;
 }
 
-thenga quicksort(pidi arr, pidi low, pidi high){
+thenga quicksort(pidi arr kootam, pidi low, pidi high){
     nok low < high {
         pidi pi = partition(arr, low, high);
         quicksort(arr, low, pi - 1);
