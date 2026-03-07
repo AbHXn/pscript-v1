@@ -46,4 +46,10 @@ class TypeCastError: public std::runtime_error{
 			runtime_error( "TypeCastError: " + msg ){};
 };
 
+class RecoverError: public std::runtime_error{
+	public:
+		explicit RecoverError( ): runtime_error("RECOVER!"){};
+	
+};
+
 #endif
