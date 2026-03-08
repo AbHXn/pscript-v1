@@ -817,4 +817,101 @@ class FunctionHandler: public VAR_VMAP {
 			}
 };
 
+class Conditional: public FunctionHandler{
+	public:
+		// inside condition there may be loop statements
+		unique_ptr<LoopHandler> lpRunner;
+		Conditional( unique_ptr<LoopHandler> lpRunner ){
+			this->lpRunner = move( lpRunner );
+		}
+		void CondHandlerRunner( const vector<Token>& tokens, size_t& start ){
+			size_t endOfNOK = 0;
+			auto ctokens = stringToCondTokens( tokens, start, endOfNOK );
+			// pass the validation
+			isValidCondToken( ctokens.first );
+
+			bool runTheCondition = false;
+
+			for(int x = 0; x < ctokens.second.size(); x++){
+				auto data = ctokens.second[ x ];
+				DEEP_VALUE_DATA evRes = evaluateVector( data.first );
+
+				if( holds_alternative<VarDtype>( evRes ) ){
+					auto VdtypData = get<VarDtype>( evRes );
+
+					// only support when condition is boolean
+					if( holds_alternative<bool>( VdtypData ) ){
+						runTheCondition = true;
+						// if it is true run the statement
+						if( get<bool>( VdtypData ) ){
+							start = data.second + 1;
+							runTheCondition = true;
+							
+							try{
+								ProgramExecutor( tokens, start, CALLER::CONDITIONAL, this );
+								start = endOfNOK;
+								return;
+							} catch( const InvalidSyntaxError& err ){
+								cout << err.what() << endl;
+							}
+						}
+					}
+				}
+			}
+			if( !runTheCondition ) 
+				throw InvalidSyntaxError("Conditional Expression expects boolean values");
+		}
+};
+
+class LoopHandler: public FunctionHandler{
+	public:		
+		void 
+		LoopHandlerRunner ( const vector<Token>& tokens, size_t& currentPtr ){
+			size_t beginCopy = currentPtr;
+		 	LoopTokens lpTokens = stringToLoopTokens( tokens, currentPtr );
+			
+			if( !isValidLoopTokens( lpTokens.lpTokens ) )
+				throw InvalidSyntaxError("Invalid Syntax error in loop");
+
+			// run loop until its condition fails
+			while( true ){
+				DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );
+
+				if( !holds_alternative<VarDtype>( finalValue ) )
+					throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
+
+				VarDtype cdData = get<VarDtype>( finalValue );
+
+				if( !holds_alternative<bool>(cdData) )
+					throw InvalidSyntaxError( "loop condition should be boolean or blank" );
+
+				bool runTheBodyAgain = get<bool>( cdData );
+				if( !runTheBodyAgain ) break;
+
+				size_t bodyStart = lpTokens.startPtr;
+				try{
+					ProgramExecutor( tokens, bodyStart, CALLER::LOOP, this );
+					currentPtr = beginCopy;
+					return ;
+				} 
+				// inside loop some statement like break, continue
+				// or may be function statement 
+				catch( const RecoverError& err ){
+					currentPtr = bodyStart;
+					const string& expTok = tokens[ bodyStart ].token;
+					
+					if( expTok == "theku" )
+						break;
+					else if( expTok == "pinnava" )
+						currentPtr = beginCopy;
+					else throw err; 
+			}
+				catch( const InvalidSyntaxError& err ){
+					cout << err.what() << endl;
+				}
+			}
+			currentPtr = lpTokens.endPtr;
+		}
+};
+
 #endif
