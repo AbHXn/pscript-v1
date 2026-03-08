@@ -58,7 +58,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw;
 			}
 		}
-		else if( curToken == "thenga" ){
+		else if( curToken == "pari" ){
 			try{
 				prntClass->functionDefHandlerRunner( tokens, currentPtr );
 				currentPtr--;

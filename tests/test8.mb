@@ -1,9 +1,9 @@
-thenga makeRecursiveEngine(pidi limit){
+pari makeRecursiveEngine(pidi limit){
     pidi step = 0;
     pidi evenRef = 0;
     pidi oddRef = 0;
 
-    thenga even(pidi n){
+    pari even(pidi n){
         pidi r = 0;
         step = step + 1;
 
@@ -16,7 +16,7 @@ thenga makeRecursiveEngine(pidi limit){
         poda r;
     }
 
-    thenga odd(pidi n){
+    pari odd(pidi n){
         pidi r = 0;
         step = step + 1;
 
@@ -32,7 +32,7 @@ thenga makeRecursiveEngine(pidi limit){
     evenRef = even;
     oddRef = odd;
 
-    thenga run(pidi n){
+    pari run(pidi n){
         pidi r = 0;
 
         nok n > limit {
@@ -44,7 +44,7 @@ thenga makeRecursiveEngine(pidi limit){
         poda r;
     }
 
-    thenga getSteps(){
+    pari getSteps(){
         pidi r = step;
         poda r;
     }

@@ -1,4 +1,4 @@
-thenga collatzSteps(pidi n){
+pari collatzSteps(pidi n){
     pidi steps = 0;
 
     ittuthiri n != 1 {
@@ -19,7 +19,7 @@ thenga collatzSteps(pidi n){
 }
 
 
-thenga complexTest(pidi x){
+pari complexTest(pidi x){
     pidi a = collatzSteps(x);
     pidi b = collatzSteps(x + 1);
     pidi c = collatzSteps(x + 2);

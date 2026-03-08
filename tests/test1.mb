@@ -1,4 +1,4 @@
-thenga strongTest(pidi n){
+pari strongTest(pidi n){
     pidi i = 0;
     pidi total = 0;
     ittuthiri i < n {

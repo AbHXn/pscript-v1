@@ -1,4 +1,4 @@
-thenga abs(pidi x){
+pari abs(pidi x){
     pidi r = 0;
     nok x < 0 {
         r = 0 - x;
@@ -8,7 +8,7 @@ thenga abs(pidi x){
     poda r;
 }
 
-thenga sumRec(pidi n){
+pari sumRec(pidi n){
     pidi r = 0;
     nok n <= 0 {
         r = 0;
@@ -18,7 +18,7 @@ thenga sumRec(pidi n){
     poda r;
 }
 
-thenga factLimit(pidi n){
+pari factLimit(pidi n){
     pidi r = 0;
     nok n <= 1 {
         r = 1;
@@ -34,9 +34,9 @@ thenga factLimit(pidi n){
     poda r;
 }
 
-thenga makeToggle(pidi start){
+pari makeToggle(pidi start){
     pidi state = start;
-    thenga flip(){
+    pari flip(){
         pidi r = 0;
         nok state == 0 {
             state = 1;
@@ -49,11 +49,11 @@ thenga makeToggle(pidi start){
     poda flip;
 }
 
-thenga makeEvenOdd(){
+pari makeEvenOdd(){
     pidi evenRef = 0;
     pidi oddRef = 0;
 
-    thenga even(pidi n){
+    pari even(pidi n){
         pidi r = 0;
         nok n == 0 {
             r = sheri;
@@ -63,7 +63,7 @@ thenga makeEvenOdd(){
         poda r;
     }
 
-    thenga odd(pidi n){
+    pari odd(pidi n){
         pidi r = 0;
         nok n == 0 {
             r = thettu;
@@ -76,14 +76,14 @@ thenga makeEvenOdd(){
     evenRef = even;
     oddRef = odd;
 
-    thenga entry(pidi n){
+    pari entry(pidi n){
         pidi r = evenRef(n);
         poda r;
     }
     poda entry;
 }
 
-thenga deepLoop(pidi n){
+pari deepLoop(pidi n){
     pidi i = 0;
     pidi sum = 0;
     pidi r = 0;

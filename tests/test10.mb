@@ -1,6 +1,6 @@
 pidi x kootam = {1, 2, 3, {6, 7, 7}, {{3, 4}}};
 
-thenga rec_print_array( pidi x kootam ){
+pari rec_print_array( pidi x kootam ){
 	pidi start = 0;
 	ittuthiri start < x:valupam {
 		nok x[start]:jaadi == "KOOTAM" {

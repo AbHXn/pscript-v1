@@ -1,4 +1,4 @@
-thenga absDiff(pidi a, pidi b){
+pari absDiff(pidi a, pidi b){
     nok a > b {
         poda a - b;
     } :umbi {
@@ -6,14 +6,14 @@ thenga absDiff(pidi a, pidi b){
     };
 }
 
-thenga sumUpto(pidi n){
+pari sumUpto(pidi n){
     nok n <= 0 {
         poda 0;
     };
     poda n + sumUpto(n - 1);
 }
 
-thenga weirdFact(pidi n){
+pari weirdFact(pidi n){
     nok n <= 1 {
         poda 1;
     };
@@ -24,7 +24,7 @@ thenga weirdFact(pidi n){
     poda n * sub;
 }
 
-thenga zigzag(pidi n){
+pari zigzag(pidi n){
     pidi i = 0;
     pidi total = 0;
 
@@ -43,7 +43,7 @@ thenga zigzag(pidi n){
 }
 
 
-thenga recursiveMixer(pidi n){
+pari recursiveMixer(pidi n){
     nok n <= 0 {
         poda 0;
     };
@@ -57,7 +57,7 @@ thenga recursiveMixer(pidi n){
 }
 
 
-thenga deepLoop(pidi n){
+pari deepLoop(pidi n){
     pidi i = 0;
     pidi result = 0;
 
@@ -83,7 +83,7 @@ thenga deepLoop(pidi n){
     poda result;
 }
 
-thenga masterTest(pidi x){
+pari masterTest(pidi x){
     pidi r1 = recursiveMixer(x);
     pidi r2 = deepLoop(x);
     pidi r3 = weirdFact(x % 6);

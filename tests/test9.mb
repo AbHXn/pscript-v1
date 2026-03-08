@@ -1,4 +1,4 @@
-thenga clamp(pidi x, pidi lo, pidi hi){
+pari clamp(pidi x, pidi lo, pidi hi){
     pidi r = 0;
     nok x < lo {
         r = lo;
@@ -12,7 +12,7 @@ thenga clamp(pidi x, pidi lo, pidi hi){
     poda r;
 }
 
-thenga sumDigits(pidi n){
+pari sumDigits(pidi n){
     pidi s = 0;
     pidi t = n;
     ittuthiri t > 0 {
@@ -22,9 +22,9 @@ thenga sumDigits(pidi n){
     poda s;
 }
 
-thenga makeAccumulator(pidi start){
+pari makeAccumulator(pidi start){
     pidi total = start;
-    thenga add(pidi x){
+    pari add(pidi x){
         pidi r = 0;
         total = total + x;
         r = total;
@@ -34,12 +34,12 @@ thenga makeAccumulator(pidi start){
     poda f;
 }
 
-thenga makeParityEngine(){
+pari makeParityEngine(){
     pidi evenRef = 0;
     pidi oddRef = 0;
     pidi calls = 0;
 
-    thenga even(pidi n){
+    pari even(pidi n){
         pidi r = 0;
         calls = calls + 1;
         nok n <= 0 {
@@ -50,7 +50,7 @@ thenga makeParityEngine(){
         poda r;
     }
 
-    thenga odd(pidi n){
+    pari odd(pidi n){
         pidi r = 0;
         calls = calls + 1;
         nok n <= 0 {
@@ -62,7 +62,7 @@ thenga makeParityEngine(){
     }
     evenRef = even;
     oddRef = odd;
-    thenga run(pidi n){
+    pari run(pidi n){
         pidi r = evenRef(n);
         poda r;
     }
@@ -70,7 +70,7 @@ thenga makeParityEngine(){
     poda f;
 }
 
-thenga recursiveMix(pidi n){
+pari recursiveMix(pidi n){
     pidi r = 0;
 
     nok n <= 0 {
@@ -84,7 +84,7 @@ thenga recursiveMix(pidi n){
 }
 
 
-thenga deepCompute(pidi n){
+pari deepCompute(pidi n){
     pidi i = 0;
     pidi acc = 0;
     pidi r = 0;

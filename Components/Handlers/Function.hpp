@@ -8,7 +8,7 @@
 #include <memory>
 
 std::unordered_set<std::string> REGISTERED_FUNC_TOKEN = { 
-	"thenga", "(", ")", "{", "}", ",", "pidi", "kootam" 
+	"pari", "(", ")", "{", "}", ",", "pidi", "kootam" 
 };
 
 std::unordered_set<std::string> REGISTERED_FUNC_BODY_TOKENS = {
@@ -121,7 +121,7 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 	for( ; startIndex < tokens.size(); startIndex++ ){
 		const std::string& curToken = tokens[ startIndex ].token;
 
-		if( curToken == "thenga" ){
+		if( curToken == "pari" ){
 			funcTokens.push_back( FUNC_TOKENS::FUNC_START );
 		}
 		else if( curToken == "(" ){
@@ -179,7 +179,7 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 		}
 		prev = !funcTokens.empty() ? funcTokens.back() : prev;
 	}
-	throw InvalidSyntaxError("Invalid syntax error in thenga declaration");
+	throw InvalidSyntaxError("Invalid syntax error in pari declaration");
 }
 
 /* --------------------------- FUNC CALL HANDLER --------------------------------*/
@@ -232,10 +232,10 @@ passValidFuncCallToken( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 			}
 		}
 		if( !continueNext )
-			throw InvalidSyntaxError( "Invalid Token encounter in thenga call" );
+			throw InvalidSyntaxError( "Invalid Token encounter in pari call" );
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter ) token in thenga call" );
+	throw InvalidSyntaxError( "Do dont encounter ) token in pari call" );
 }
 
 struct FunctionCallReturns{

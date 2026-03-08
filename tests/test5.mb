@@ -1,4 +1,4 @@
-thenga alphaHelper(pidi n){
+pari alphaHelper(pidi n){
     pidi p = 0;
     pidi sum = 0;
 
@@ -16,7 +16,7 @@ thenga alphaHelper(pidi n){
     poda sum;
 }
 
-thenga betaHelper(pidi n){
+pari betaHelper(pidi n){
     pidi p = 1;
     pidi prod = 1;
 
@@ -30,7 +30,7 @@ thenga betaHelper(pidi n){
     poda prod;
 }
 
-thenga omegaTest(pidi n){
+pari omegaTest(pidi n){
     pidi i = 0;
     pidi j = 0;
     pidi k = 0;

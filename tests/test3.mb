@@ -1,4 +1,4 @@
-thenga breaker(pidi n){
+pari breaker(pidi n){
     pidi i = 0;
     pidi total = 0;
 
@@ -29,7 +29,7 @@ thenga breaker(pidi n){
 }
 
 
-thenga megaTest(pidi x){
+pari megaTest(pidi x){
     pidi a = breaker(x);
     pidi b = breaker(x + 1);
 

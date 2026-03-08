@@ -1,4 +1,4 @@
-thenga max_value(pidi num1, pidi num2){
+pari max_value(pidi num1, pidi num2){
 	nok num1 > num2 {
 		poda num1;
 	}: umbi {
