@@ -329,106 +329,106 @@ class FunctionHandler: public VAR_VMAP {
 		handleFunctionCall( MapItem* func, const vector<Token>& tokens, size_t& currentPtr, VAR_VMAP* rPT, optional<FunctionCallReturns> data = nullopt ){
 			FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
 			
-			if( isValidFuncCall( Data.callTokens ) ){
-				// if it is zero arg function then no need to resolve arg vectors
-				if( Data.argsVector.size() == 0 ){
-					auto funcFromMap = get<FUNCTION_MAP_DATA*>( func->var );
+			// pass the function call validation
+			passValidFuncCallToken( Data.callTokens ); 
 
-					unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
+			// if it is zero arg function then no need to resolve arg vectors
+			if( Data.argsVector.size() == 0 ){
+				auto funcFromMap = get<FUNCTION_MAP_DATA*>( func->var );
 
-					size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
-					size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
-					newFuncRunner->runnerBody 	= Data.funcName;
-					newFuncRunner->VMAP_COPY 	= funcFromMap->varMapCopy.first;
-					newFuncRunner->parent 		= funcFromMap->varMapCopy.second;
-
-					return ProgramExecutor( 
-						tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
-					);
-				}
 				unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
-				newFuncRunner->runnerBody = Data.funcName;
-							
-				auto funcFromMap 		 = get<FUNCTION_MAP_DATA*>( func->var );
-				newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
-				newFuncRunner->parent 	 = funcFromMap->varMapCopy.second;
 
-				queue<DEEP_VALUE_DATA> resolvedArgs;
-				int total_comma = Data.argsVector.size() - 1;
+				size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
+				size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
+				newFuncRunner->runnerBody 	= Data.funcName;
+				newFuncRunner->VMAP_COPY 	= funcFromMap->varMapCopy.first;
+				newFuncRunner->parent 		= funcFromMap->varMapCopy.second;
 
-				vector<Token> rhsTokens;
-				rhsTokens.push_back( Token( TOKEN_TYPE::OPERATOR, "=", 0, 0 ) );
-
-				for( auto argSingleVec: Data.argsVector ){
-					DEEP_VALUE_DATA dpData = evaluateVector( argSingleVec );
-					resolvedArgs.push( dpData );
-
-					rhsTokens.push_back( Token( TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
-					if( total_comma-- )
-						rhsTokens.push_back( Token( TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
-				}
-				rhsTokens.push_back(Token( TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
-
-				size_t start = 0;
-				VariableTokens funcVars = stringToVariableTokens( rhsTokens, start );
-				
-				if( !isValidValueSyntax( funcVars.valueTokens ) )
-					throw InvalidSyntaxError("Invalid args initalization in thenga");
-
-				for( auto& ArgsInfo: funcFromMap->argsInfo ){
-					if( resolvedArgs.empty() )
-						throw InvalidSyntaxError("No value to initialized the args in thenga");
-					
-					DEEP_VALUE_DATA topValue = resolvedArgs.front();
-					resolvedArgs.pop();
-
-					if( holds_alternative<VarDtype> ( topValue ) ){
-						if( ArgsInfo->isArray )
-							throw InvalidSyntaxError("Argument expects kootam\n");
-
-						// create variable
-						unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
-						newVariable->key 	= ArgsInfo->name;							
-						newVariable->value 	= get<VarDtype>( topValue );
-
-						// add to vmap
-						auto newMapVar 		= make_unique<MapItem>( );
-						newMapVar->mapType  = MAPTYPE::VARIABLE;
-						newMapVar->var 		= newVariable.get();
-
-						_CACHE_VARS.push_back( move( newVariable ) );
-						newFuncRunner->addToMap( ArgsInfo->name, move( newMapVar ) );
-					}
-					else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
-						// no need to create variable add to map
-						if( !ArgsInfo->isArray )
-							throw InvalidSyntaxError("Argument is not kootam type");
-
-						string& key    		= ArgsInfo->name;
-						auto newMapVar		= make_unique<MapItem>( );
-						newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
-
-						newMapVar->var = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
-						newFuncRunner->addToMap( key, move( newMapVar ) );
-					}
-					else if( holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
-						string& key    		= ArgsInfo->name;
-						auto newMapVar 		= make_unique<MapItem>( );
-						newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-						newMapVar->var 		= get<FUNCTION_MAP_DATA*>(topValue);
-						
-						newFuncRunner->addToMap( key, move( newMapVar ) );
-					}
-					else throw runtime_error("Type not defined");
-				}
-				size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
-				size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
-				
-				return ProgramExecutor<FunctionHandler>( 
-					fullTokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
+				return ProgramExecutor( 
+					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
 				);
 			}
-			throw InvalidSyntaxError("Invalid function call");
+			unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
+			newFuncRunner->runnerBody = Data.funcName;
+						
+			auto funcFromMap 		 = get<FUNCTION_MAP_DATA*>( func->var );
+			newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
+			newFuncRunner->parent 	 = funcFromMap->varMapCopy.second;
+
+			queue<DEEP_VALUE_DATA> resolvedArgs;
+			int total_comma = Data.argsVector.size() - 1;
+
+			vector<Token> rhsTokens;
+			rhsTokens.push_back( Token( TOKEN_TYPE::OPERATOR, "=", 0, 0 ) );
+
+			for( auto argSingleVec: Data.argsVector ){
+				DEEP_VALUE_DATA dpData = evaluateVector( argSingleVec );
+				resolvedArgs.push( dpData );
+
+				rhsTokens.push_back( Token( TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
+				if( total_comma-- )
+					rhsTokens.push_back( Token( TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
+			}
+			rhsTokens.push_back(Token( TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
+
+			size_t start = 0;
+			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start );
+			
+			if( !isValidValueSyntax( funcVars.valueTokens ) )
+				throw InvalidSyntaxError("Invalid args initalization in thenga");
+
+			for( auto& ArgsInfo: funcFromMap->argsInfo ){
+				if( resolvedArgs.empty() )
+					throw InvalidSyntaxError("No value to initialized the args in thenga");
+				
+				DEEP_VALUE_DATA topValue = resolvedArgs.front();
+				resolvedArgs.pop();
+
+				if( holds_alternative<VarDtype> ( topValue ) ){
+					if( ArgsInfo->isArray )
+						throw InvalidSyntaxError("Argument expects kootam\n");
+
+					// create variable
+					unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					newVariable->key 	= ArgsInfo->name;							
+					newVariable->value 	= get<VarDtype>( topValue );
+
+					// add to vmap
+					auto newMapVar 		= make_unique<MapItem>( );
+					newMapVar->mapType  = MAPTYPE::VARIABLE;
+					newMapVar->var 		= newVariable.get();
+
+					_CACHE_VARS.push_back( move( newVariable ) );
+					newFuncRunner->addToMap( ArgsInfo->name, move( newMapVar ) );
+				}
+				else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
+					// no need to create variable add to map
+					if( !ArgsInfo->isArray )
+						throw InvalidSyntaxError("Argument is not kootam type");
+
+					string& key    		= ArgsInfo->name;
+					auto newMapVar		= make_unique<MapItem>( );
+					newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
+
+					newMapVar->var = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
+					newFuncRunner->addToMap( key, move( newMapVar ) );
+				}
+				else if( holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
+					string& key    		= ArgsInfo->name;
+					auto newMapVar 		= make_unique<MapItem>( );
+					newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
+					newMapVar->var 		= get<FUNCTION_MAP_DATA*>(topValue);
+					
+					newFuncRunner->addToMap( key, move( newMapVar ) );
+				}
+				else throw runtime_error("Type not defined");
+			}
+			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
+			size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
+			
+			return ProgramExecutor<FunctionHandler>( 
+				fullTokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
+			);
 		}
 
 		void VarHandlerRunner( const vector<Token>& test, size_t& start ){

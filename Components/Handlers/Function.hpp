@@ -208,22 +208,24 @@ bool isFuncPtr( vector<FUNC_CALL_TOKEN>& callTokens ){
 	return callTokens.size() == 1 && callTokens.back() == FUNC_CALL_TOKEN::FUNC_NAME;
 }
 
-bool
-isValidFuncCall( vector<FUNC_CALL_TOKEN>& callTokens ){
+void
+passValidFuncCallToken( vector<FUNC_CALL_TOKEN>& callTokens ){
 	if( callTokens.empty() )
-		return false;
+		throw InvalidSyntaxError("Function call token is empty");
 
 	FUNC_CALL_TOKEN currentStage = FUNC_CALL_TOKEN::FUNC_NAME;
 	size_t startIndex = 0;
 
 	while( startIndex < callTokens.size() ){
 		if( callTokens[ startIndex ] == FUNC_CALL_TOKEN::ARG_CLOSE )
-			return true;
-		if( startIndex + 1 < callTokens.size() )
-			startIndex++;
-		else break;
-		FUNC_CALL_TOKEN nextExpected = callTokens[ startIndex ];
+			return ;
+		
+		if( startIndex + 1 >= callTokens.size() )
+			break;
+
+		FUNC_CALL_TOKEN nextExpected = callTokens[ ++startIndex ];
 		vector<FUNC_CALL_TOKEN>& nextExpectedTokens = FUNC_CALL_GRAPH[ currentStage ];
+		
 		bool continueNext = false;
 		for( FUNC_CALL_TOKEN nextToks: nextExpectedTokens ){
 			if( nextToks == nextExpected ){
