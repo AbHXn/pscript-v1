@@ -45,7 +45,7 @@ passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 		}
 		// check if no more tokens to process 
 		if( startIndex + 1 >= tokens.size() )
-			throw InvalidSyntaxError( "Do dont encounter ; in nok statement" );
+			break;
 
 		COND_TOKENS nextExpected = tokens[ ++startIndex ];
 		vector<COND_TOKENS>& nextExpectedTokens = CONDITIONAL_GRAPH[ curStage ];
@@ -62,7 +62,7 @@ passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 		// move to next token
 		curStage = nextExpected;
 	}
-	throw;
+	throw InvalidSyntaxError( "Do dont encounter ; in nok statement" );
 }
 
 std::pair<std::vector<COND_TOKENS>, std::vector<std::pair<std::vector<Token>, size_t>>>

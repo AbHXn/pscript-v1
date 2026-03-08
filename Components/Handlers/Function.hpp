@@ -91,7 +91,7 @@ passValidFuncToken( vector<FUNC_TOKENS>& tokens ){
 			return ;
 		
 		if( startIndex + 1 >= tokens.size() )
-			throw InvalidSyntaxError("Function doesnot hit closing body } ");
+			break ;
 
 		FUNC_TOKENS nextExpected = tokens[ ++startIndex ];
 		vector<FUNC_TOKENS>& nextExpectedTokens = FUNC_GRAPH[ currentStage ];
