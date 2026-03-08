@@ -6,21 +6,20 @@
 
 class LoopHandler;
 
-vector<Token> fullTokens;
+std::vector<Token> fullTokens;
 size_t 		   pointer = 0;
 
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
-template <typename T> optional<variant<VarDtype, unique_ptr<MapItem>>>
-ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, T* prntClass, size_t endPtr = 0  );
-using BUCKET_TYPE = variant<unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,unique_ptr<FUNCTION_MAP_DATA>>;
+template <typename T> std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
+ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, T* prntClass, size_t endPtr = 0  );
+using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
 
-vector<BUCKET_TYPE> _CACHE_VARS;
-
+std::vector<BUCKET_TYPE> _CACHE_VARS;
 
 class FunctionHandler: public VAR_VMAP {
 	public:
-		string functionName;
+		std::string functionName;
 
 		VarDtype getValueFromToken( const Token& tok ){
 			if( tok.type == TOKEN_TYPE::STRING )
@@ -40,7 +39,7 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		DEEP_VALUE_DATA 
-		evaluateVector( vector<Token>& vtr ){
+		evaluateVector( std::vector<Token>& vtr ){
 			auto [resolvedQeueu, strVector] = vectorResolver( vtr );
 			auto astTokenAndData 			= stringToASTTokens( strVector );
 			size_t startAST 				= 0;
@@ -49,11 +48,11 @@ class FunctionHandler: public VAR_VMAP {
 			auto newAstNode = BUILD_AST<DEEP_VALUE_DATA, AST_NODE_DATA>( astTokenAndData, resolvedQeueu, startAST );
 
 			if( newAstNode.has_value() ){
-				auto AST_NODE = move( newAstNode.value() );
+				auto AST_NODE = std::move( newAstNode.value() );
 
 				// if Tree has only one node and that holds DEEP_VALUE_DATA
-				if( !AST_NODE->left && !AST_NODE->right && holds_alternative<DEEP_VALUE_DATA> ( AST_NODE->AST_DATA ))
-					return get<DEEP_VALUE_DATA>( AST_NODE->AST_DATA );
+				if( !AST_NODE->left && !AST_NODE->right && std::holds_alternative<DEEP_VALUE_DATA> ( AST_NODE->AST_DATA ))
+					return std::get<DEEP_VALUE_DATA>( AST_NODE->AST_DATA );
 
 				// else we will evaluate tree ( AFTER EVALUATION IT WILL BE EITHER, string, long, double, boolean )
 				return ValueHelper::evaluate_AST_NODE( AST_NODE );
@@ -63,15 +62,15 @@ class FunctionHandler: public VAR_VMAP {
 
 		/* this function is to convert to pure vector
 		resolve variables, function call, array calls etc */
-		pair<queue<DEEP_VALUE_DATA>, vector<string>>
-		vectorResolver( const vector<Token>& tokens ){
+		std::pair<std::queue<DEEP_VALUE_DATA>, std::vector<std::string>>
+		vectorResolver( const std::vector<Token>& tokens ){
 
-			queue<DEEP_VALUE_DATA> resolvedVector;       
-			vector<string> 		   simpleVector;
+			std::queue<DEEP_VALUE_DATA> resolvedVector;       
+			std::vector<std::string> 	simpleVector;
 
 			for( size_t x = 0; x < tokens.size(); x++ ){
 				const Token& tok = tokens[ x ];
-				const string& curToken = tokens[ x ].token;
+				const std::string& curToken = tokens[ x ].token;
 
 				if( !isValueType( tok.type ) && isRegisteredASTExprTokens( curToken ) || curToken == ")" ||  curToken == "(" ){
 					simpleVector.push_back( curToken );
@@ -91,7 +90,7 @@ class FunctionHandler: public VAR_VMAP {
 
 					// Resolve if it is variable
 					if( VMAPData->mapType == MAPTYPE::VARIABLE ){
-						auto varHolder = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
+						auto varHolder = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
 						
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 
@@ -106,14 +105,14 @@ class FunctionHandler: public VAR_VMAP {
 							simpleVector.push_back( "VAR" );
 						}
 						else {
-							auto& arrayData = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
+							auto& arrayData = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
 							handleArrayCases( arrayData.get(), arrToken, resolvedVector, simpleVector );
 						}
 						x--;
 					}
 					// Resolve if it is function call
 					else if( VMAPData->mapType == MAPTYPE::FUNCTION || VMAPData->mapType == MAPTYPE::FUNC_PTR ){
-						auto varHolder = get<FUNCTION_MAP_DATA*>( VMAPData->var );
+						auto varHolder = std::get<FUNCTION_MAP_DATA*>( VMAPData->var );
 
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
@@ -124,43 +123,43 @@ class FunctionHandler: public VAR_VMAP {
 						else{
 							auto data = this->handleFunctionCall( VMAPData, fullTokens, x, rPT, pt);
 							if( data.has_value() ){	
-								if( holds_alternative<VarDtype>( data.value() ) ){
-									VarDtype returnedData = get<VarDtype>( data.value() );
+								if( std::holds_alternative<VarDtype>( data.value() ) ){
+									VarDtype returnedData = std::get<VarDtype>( data.value() );
 									
 									simpleVector.push_back("VAR");
 									resolvedVector.push( returnedData );
 								}
-								else if( holds_alternative<unique_ptr<MapItem>>( data.value() ) ){
-									auto returnedData = move( get<unique_ptr<MapItem>>( data.value() ) );
+								else if( std::holds_alternative<std::unique_ptr<MapItem>>( data.value() ) ){
+									auto returnedData = std::move( std::get<std::unique_ptr<MapItem>>( data.value() ) );
 									DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
-									this->pushCache( move( returnedData ) );
+									this->pushCache( std::move( returnedData ) );
 									
 									simpleVector.push_back("CACHE");
 									resolvedVector.push( final );
 								}
-								else throw runtime_error("unknown typed pushed to queue");
+								else throw std::runtime_error("unknown typed pushed to queue");
 							}
 						}
 						x--; // stringfuncalltokens it hits then unknown token get that token back
 					}
 					else if( VMAPData->mapType == MAPTYPE::ARRAY_PTR ){
-						auto arryListPtr = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
+						auto arryListPtr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 						handleArrayCases( arryListPtr, arrToken, resolvedVector, simpleVector );
 						x--;
 					}
 				}
 				else if( tok.type == TOKEN_TYPE::RESERVED && curToken == "edukku" ){
-					string inputValue; cin >> inputValue;
+					std::string inputValue; std::cin >> inputValue;
 					simpleVector.push_back("NUM");
 					resolvedVector.push( inputValue );
 				}
-				else throw InvalidSyntaxError( "Unknown Token at: " +  to_string(tok.row) + " " + curToken );
+				else throw InvalidSyntaxError( "Unknown Token " + curToken );
 			}
-			return { move(resolvedVector), simpleVector };
+			return { std::move(resolvedVector), simpleVector };
 		}
 
-		optional<VarDtype>
+		std::optional<VarDtype>
 		handleArrayProperties( ArrayList<ARRAY_SUPPORT_TYPES>* array, ArrayAccessTokens& arrToken){
 			if( arrToken.arrProperty == "valupam" ){
 				return (long int) array->totalElementsAllocated;
@@ -168,31 +167,31 @@ class FunctionHandler: public VAR_VMAP {
 			else if( arrToken.arrProperty == "jaadi" ){
 				return "KOOTAM";
 			}
-			return nullopt;
+			return std::nullopt;
 		}
 
-		void handleArrayCases( ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, ArrayAccessTokens& arrToken, queue<DEEP_VALUE_DATA>& resolvedVector, vector<string>& simpleVector ){
+		void handleArrayCases( ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, ArrayAccessTokens& arrToken, std::queue<DEEP_VALUE_DATA>& resolvedVector, std::vector<std::string>& simpleVector ){
 			if( arrToken.indexVector.size() ){
-				vector<long int> resolvedIndexVector;
+				std::vector<long int> resolvedIndexVector;
 
 				// Resolve the index vector to the final value
 				for( auto& vec: arrToken.indexVector ){
 					DEEP_VALUE_DATA val = evaluateVector( vec );
-					if( !holds_alternative<VarDtype>( val ) )
+					if( !std::holds_alternative<VarDtype>( val ) )
 						throw InvalidSyntaxError("Array Index Expects Positive Integer");
 				
-					VarDtype vDtypeIndex = get<VarDtype>( val );
-					if( !holds_alternative<long int> ( vDtypeIndex ) && !holds_alternative<double> ( vDtypeIndex ))
+					VarDtype vDtypeIndex = std::get<VarDtype>( val );
+					if( !std::holds_alternative<long int> ( vDtypeIndex ) && !std::holds_alternative<double> ( vDtypeIndex ))
 						throw InvalidSyntaxError("Array Index Expects Positive Integer");
 
-					long int index = holds_alternative<long int> ( vDtypeIndex ) ? get<long int> ( vDtypeIndex ) : get<double> (vDtypeIndex);
+					long int index = std::holds_alternative<long int> ( vDtypeIndex ) ? std::get<long int> ( vDtypeIndex ) : std::get<double> (vDtypeIndex);
 					resolvedIndexVector.push_back( index );
 				}
 
-				variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
+				std::variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
 				// resolve if it touch property functions (:)
-				if( holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
-					auto spData = get<ARRAY_SUPPORT_TYPES*>( returnIndex );
+				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
+					auto spData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
 					std::visit( [&]( auto&& data ) {
 					    if (arrToken.isTouchedArrayProperty) {
 					        DEEP_VALUE_DATA dv = data;
@@ -203,7 +202,7 @@ class FunctionHandler: public VAR_VMAP {
 					}, *spData);
 				}
 				else{
-					auto arrList = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
+					auto arrList = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
 					if( arrToken.isTouchedArrayProperty ){
 						auto data = handleArrayProperties( arrList, arrToken );
 						if( data.has_value() ) 
@@ -227,74 +226,74 @@ class FunctionHandler: public VAR_VMAP {
 		VarDtype 
 		handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
 			if( tok.arrProperty == "jaadi" ){
-				if( holds_alternative<VarDtype> (Vdata) ){
-					auto data = get<VarDtype>( Vdata );
+				if( std::holds_alternative<VarDtype> (Vdata) ){
+					auto data = std::get<VarDtype>( Vdata );
 					
-					if( holds_alternative<string> ( data ) )
+					if( std::holds_alternative<std::string> ( data ) )
 						return "STR";
 					
-					else if( holds_alternative<double> (data) )
+					else if( std::holds_alternative<double> (data) )
 						return "THULA";
 					
-					else if( holds_alternative<long> (data) )
+					else if( std::holds_alternative<long> (data) )
 						return "INT";
 					
-					else if( holds_alternative<bool> (data) )
+					else if( std::holds_alternative<bool> (data) )
 						return "BOOL";
 					
 					else return "ARILA";
 				}
-				else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( Vdata ) )
+				else if( std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( Vdata ) )
 					return "ARRAY_PTR";
 				
-				else if( holds_alternative<FUNCTION_MAP_DATA*>( Vdata ) )
+				else if( std::holds_alternative<FUNCTION_MAP_DATA*>( Vdata ) )
 					return "FUNC_PTR";
 				
 				else return "ARILA";
 			}
 			else if( tok.arrProperty == "kanam" ){
-				if( holds_alternative<VarDtype>(Vdata) ){
-					auto data = get<VarDtype>(Vdata);
+				if( std::holds_alternative<VarDtype>(Vdata) ){
+					auto data = std::get<VarDtype>(Vdata);
 					
-					if( holds_alternative<string> ( data ) )
-						return (long) get<string>(data).size();
+					if( std::holds_alternative<std::string> ( data ) )
+						return (long) std::get<std::string>(data).size();
 					
-					else if( holds_alternative<double> (data) )
+					else if( std::holds_alternative<double> (data) )
 						return (long) sizeof(double);
 					
-					else if( holds_alternative<long> (data) )
+					else if( std::holds_alternative<long> (data) )
 						return (long) sizeof(long);
 
-					else if( holds_alternative<bool> (data) )
+					else if( std::holds_alternative<bool> (data) )
 						return (long) sizeof(bool);
 				}
 			}
 			else if( tok.arrProperty == "THA_ASCII" ){
-				if( !holds_alternative<VarDtype>( Vdata ) )
+				if( !std::holds_alternative<VarDtype>( Vdata ) )
 					throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
 
-				VarDtype data = get<VarDtype>( Vdata );
+				VarDtype data = std::get<VarDtype>( Vdata );
 
-				if( !holds_alternative<string> ( data ) )
+				if( !std::holds_alternative<std::string> ( data ) )
 					throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
 
-				string str = get<string> (data);
+				std::string str = std::get<std::string> (data);
 				if( str.size() != 1 )
 					throw InvalidSyntaxError("ASCII is only for size 1");
 
 				return (long) str[0];
 			}
 			else if( tok.arrProperty == "PO_ASCII" ){
-				if( !holds_alternative<VarDtype>( Vdata ) )
+				if( !std::holds_alternative<VarDtype>( Vdata ) )
 					throw InvalidSyntaxError("PO_ASCII is only for INT");
 
-				VarDtype data = get<VarDtype>( Vdata );
+				VarDtype data = std::get<VarDtype>( Vdata );
 
-				if( !holds_alternative<long int> ( data ) )
+				if( !std::holds_alternative<long int> ( data ) )
 					throw InvalidSyntaxError("PO_ASCII is only for INT");
 
-				long str = get<long int> (data);
-				return string(1, (char) str);
+				long str = std::get<long int> (data);
+				return std::string(1, (char) str);
 			}
 
 			throw InvalidSyntaxError("Invalid property");
@@ -304,18 +303,18 @@ class FunctionHandler: public VAR_VMAP {
 		handleRawVariables( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder ){
 			DEEP_VALUE_DATA HandlingDtype = varHolder;
 			if( arrToken.indexVector.size() > 0 ){
-				if( !holds_alternative<VarDtype> ( varHolder ) || !holds_alternative<string> ( get<VarDtype>( varHolder ) ) )
-					throw runtime_error("Indexing Invalid DType");
+				if( !std::holds_alternative<VarDtype> ( varHolder ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( varHolder ) ) )
+					throw std::runtime_error("Indexing Invalid DType");
 
 				if( arrToken.indexVector.size() > 1 )
-					throw runtime_error("Indexing ND on 1D type");
+					throw std::runtime_error("Indexing ND on 1D type");
 
 				long int index = getResolvedIndexVectors( arrToken.indexVector ).back();
 
-				string& stringVarHolder = get<string>( get<VarDtype>( varHolder ) );
+				std::string& stringVarHolder = std::get<std::string>( std::get<VarDtype>( varHolder ) );
 
 				if( index >= 0 && index < stringVarHolder.size())
-					HandlingDtype =  DEEP_VALUE_DATA { string(1, stringVarHolder[ index ]) };
+					HandlingDtype =  DEEP_VALUE_DATA { std::string(1, stringVarHolder[ index ]) };
 			}
 			if( arrToken.isTouchedArrayProperty )
 				return handleVarDefinedProperties( HandlingDtype, arrToken );	
@@ -323,8 +322,8 @@ class FunctionHandler: public VAR_VMAP {
 			return HandlingDtype;
 		}
 
-		optional<variant<VarDtype, unique_ptr<MapItem>>>
-		handleFunctionCall( MapItem* func, const vector<Token>& tokens, size_t& currentPtr, VAR_VMAP* rPT, optional<FunctionCallReturns> data = nullopt ){
+		std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
+		handleFunctionCall( MapItem* func, const std::vector<Token>& tokens, size_t& currentPtr, VAR_VMAP* rPT, std::optional<FunctionCallReturns> data = std::nullopt ){
 			FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
 			
 			// pass the function call validation
@@ -332,9 +331,9 @@ class FunctionHandler: public VAR_VMAP {
 
 			// if it is zero arg function then no need to resolve arg vectors
 			if( Data.argsVector.size() == 0 ){
-				auto funcFromMap = get<FUNCTION_MAP_DATA*>( func->var );
+				auto funcFromMap = std::get<FUNCTION_MAP_DATA*>( func->var );
 
-				unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
+				std::unique_ptr<FunctionHandler> newFuncRunner = std::make_unique<FunctionHandler>();
 
 				size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
 				size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
@@ -346,17 +345,17 @@ class FunctionHandler: public VAR_VMAP {
 					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
 				);
 			}
-			unique_ptr<FunctionHandler> newFuncRunner = make_unique<FunctionHandler>();
+			std::unique_ptr<FunctionHandler> newFuncRunner = std::make_unique<FunctionHandler>();
 			newFuncRunner->runnerBody = Data.funcName;
 						
-			auto funcFromMap 		 = get<FUNCTION_MAP_DATA*>( func->var );
+			auto funcFromMap 		 = std::get<FUNCTION_MAP_DATA*>( func->var );
 			newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
 			newFuncRunner->parent 	 = funcFromMap->varMapCopy.second;
 
-			queue<DEEP_VALUE_DATA> resolvedArgs;
+			std::queue<DEEP_VALUE_DATA> resolvedArgs;
 			int total_comma = Data.argsVector.size() - 1;
 
-			vector<Token> rhsTokens;
+			std::vector<Token> rhsTokens;
 			rhsTokens.push_back( Token( TOKEN_TYPE::OPERATOR, "=", 0, 0 ) );
 
 			for( auto argSingleVec: Data.argsVector ){
@@ -382,44 +381,44 @@ class FunctionHandler: public VAR_VMAP {
 				DEEP_VALUE_DATA topValue = resolvedArgs.front();
 				resolvedArgs.pop();
 
-				if( holds_alternative<VarDtype> ( topValue ) ){
+				if( std::holds_alternative<VarDtype> ( topValue ) ){
 					if( ArgsInfo->isArray )
 						throw InvalidSyntaxError("Argument expects kootam\n");
 
 					// create variable
-					unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 					newVariable->key 	= ArgsInfo->name;							
-					newVariable->value 	= get<VarDtype>( topValue );
+					newVariable->value 	= std::get<VarDtype>( topValue );
 
 					// add to vmap
-					auto newMapVar 		= make_unique<MapItem>( );
+					auto newMapVar 		= std::make_unique<MapItem>( );
 					newMapVar->mapType  = MAPTYPE::VARIABLE;
 					newMapVar->var 		= newVariable.get();
 
-					_CACHE_VARS.push_back( move( newVariable ) );
-					newFuncRunner->addToMap( ArgsInfo->name, move( newMapVar ) );
+					_CACHE_VARS.push_back( std::move( newVariable ) );
+					newFuncRunner->addToMap( ArgsInfo->name, std::move( newMapVar ) );
 				}
-				else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
+				else if(std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
 					// no need to create variable add to map
 					if( !ArgsInfo->isArray )
 						throw InvalidSyntaxError("Argument is not kootam type");
 
-					string& key    		= ArgsInfo->name;
-					auto newMapVar		= make_unique<MapItem>( );
+					std::string& key    = ArgsInfo->name;
+					auto newMapVar		= std::make_unique<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
 
-					newMapVar->var = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
-					newFuncRunner->addToMap( key, move( newMapVar ) );
+					newMapVar->var = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
+					newFuncRunner->addToMap( key, std::move( newMapVar ) );
 				}
-				else if( holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
-					string& key    		= ArgsInfo->name;
-					auto newMapVar 		= make_unique<MapItem>( );
+				else if( std::holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
+					std::string& key    = ArgsInfo->name;
+					auto newMapVar 		= std::make_unique<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-					newMapVar->var 		= get<FUNCTION_MAP_DATA*>(topValue);
+					newMapVar->var 		= std::get<FUNCTION_MAP_DATA*>(topValue);
 					
-					newFuncRunner->addToMap( key, move( newMapVar ) );
+					newFuncRunner->addToMap( key, std::move( newMapVar ) );
 				}
-				else throw runtime_error("Type not defined");
+				else throw std::runtime_error("Type not defined");
 			}
 			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 			size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
@@ -429,10 +428,10 @@ class FunctionHandler: public VAR_VMAP {
 			);
 		}
 
-		void VarHandlerRunner( const vector<Token>& test, size_t& start ){
+		void VarHandlerRunner( const std::vector<Token>& test, size_t& start ){
 			VariableTokens tokens  = stringToVariableTokens( test, start );
 
-			queue<DEEP_VALUE_DATA> resolvedValueVector;
+			std::queue<DEEP_VALUE_DATA> resolvedValueVector;
 			size_t curIndex = 0;
 
 			for( auto valVec: tokens.valueTokens ){
@@ -443,7 +442,7 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedValueVector.push( evaluatedRes );
 				}
 			}
-			vector<VAR_INFO> varInfos;
+			std::vector<VAR_INFO> varInfos;
 			// pass the validity test for variable declaration
 			passValidVarDeclaration( tokens.varTokens, varInfos, tokens.VarQueue );
 
@@ -477,94 +476,94 @@ class FunctionHandler: public VAR_VMAP {
 					auto curValue = resolvedValueVector.front();
 					resolvedValueVector.pop();
 
-					if( curVarInfo.isTypeArray && !holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ) )
+					if( curVarInfo.isTypeArray && !std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ) )
 						throw InvalidSyntaxError("Assigning value to array type is invalid");
 
-					if( holds_alternative<VarDtype> ( curValue ) ){
-						unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					if( std::holds_alternative<VarDtype> ( curValue ) ){
+						std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 						newVariable->key 		 = curVarInfo.varName;
 						newVariable->isTypeArray = false;
-						newVariable->value 		 = get<VarDtype>( curValue );
+						newVariable->value 		 = std::get<VarDtype>( curValue );
 
-						auto newMapVar 		= make_unique<MapItem>( );
+						auto newMapVar 		= std::make_unique<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::VARIABLE;
 						newMapVar->var 	  	= newVariable.get() ;
 						
-						_CACHE_VARS.push_back( move( newVariable ) );
-						this->addToMap( curVarInfo.varName, move(newMapVar) );
+						_CACHE_VARS.push_back( std::move( newVariable ) );
+						this->addToMap( curVarInfo.varName, std::move(newMapVar) );
 					}
-					else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( curValue )){
-						string& key    		= curVarInfo.varName;
-						auto newMapVar 		= make_unique<MapItem>( );
+					else if(std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( curValue )){
+						std::string& key    = curVarInfo.varName;
+						auto newMapVar 		= std::make_unique<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
-						newMapVar->var 		= get<ArrayList<ARRAY_SUPPORT_TYPES>*>(curValue) ;
+						newMapVar->var 		= std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(curValue) ;
 						
-						this->addToMap( key, move( newMapVar ) );
+						this->addToMap( key, std::move( newMapVar ) );
 					}
-					else if( holds_alternative<FUNCTION_MAP_DATA*>( curValue ) ){
-						string& key    		= curVarInfo.varName;
-						auto newMapVar 		= make_unique<MapItem>( );
+					else if( std::holds_alternative<FUNCTION_MAP_DATA*>( curValue ) ){
+						std::string& key    = curVarInfo.varName;
+						auto newMapVar 		= std::make_unique<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-						newMapVar->var 		= get<FUNCTION_MAP_DATA*>(curValue);
+						newMapVar->var 		= std::get<FUNCTION_MAP_DATA*>(curValue);
 						
-						this->addToMap( key, move( newMapVar ) );
+						this->addToMap( key, std::move( newMapVar ) );
 					}
-					else throw runtime_error("Type not defined");
+					else throw std::runtime_error("Type not defined");
 				}
 				else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 					x++;
 
 					auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.valueTokens,  x, resolvedValueVector );
 
-					unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 					newVariable->key 		 = curVarInfo.varName;
 					newVariable->isTypeArray = true;
-					newVariable->value 		 = move( newArray );
+					newVariable->value 		 = std::move( newArray );
 
-					auto newMapVar 		= make_unique<MapItem>( );
+					auto newMapVar 		= std::make_unique<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::VARIABLE;
 					newMapVar->var 		= newVariable.get();
 
-					_CACHE_VARS.push_back( move( newVariable ) );
-					this->addToMap( curVarInfo.varName, move(newMapVar) );
+					_CACHE_VARS.push_back( std::move( newVariable ) );
+					this->addToMap( curVarInfo.varName, std::move(newMapVar) );
 				}
 			}
 		}
 
-		void updateString( string& strToUpdate, long int index, DEEP_VALUE_DATA updata ){
-			if( !holds_alternative<VarDtype>( updata ) )
-				throw runtime_error("Invalid string updation dtype");
+		void updateString( std::string& strToUpdate, long int index, DEEP_VALUE_DATA updata ){
+			if( !std::holds_alternative<VarDtype>( updata ) )
+				throw std::runtime_error("Invalid string updation dtype");
 
-			auto& dataL1 = get<VarDtype>( updata );
-			if( !holds_alternative<string> ( dataL1 ) )
-				throw runtime_error( "invalid string updation dtype" );
+			auto& dataL1 = std::get<VarDtype>( updata );
+			if( !std::holds_alternative<std::string> ( dataL1 ) )
+				throw std::runtime_error( "invalid string updation dtype" );
 
-			string rightValue = get<string> ( dataL1 );
+			std::string rightValue = std::get<std::string> ( dataL1 );
 
-			( index >= 0 && index < strToUpdate.size() ) ? strToUpdate.replace(index, 1, rightValue) : throw runtime_error("Index limit failed");
+			( index >= 0 && index < strToUpdate.size() ) ? strToUpdate.replace(index, 1, rightValue) : throw std::runtime_error("Index limit failed");
 		}
 
-		vector<long int> getResolvedIndexVectors( vector<vector<Token>>& indexVector ){
-			vector<long int> resolvedIndexVector;
+		std::vector<long int> getResolvedIndexVectors( std::vector<std::vector<Token>>& indexVector ){
+			std::vector<long int> resolvedIndexVector;
 
 			for( auto& vec: indexVector ){
 				DEEP_VALUE_DATA val = evaluateVector( vec );
 
-				if( !holds_alternative<VarDtype>( val ) )
+				if( !std::holds_alternative<VarDtype>( val ) )
 					throw InvalidSyntaxError("Array Index Expects Type Integer");
 				
-				VarDtype vDtypeIndex = get<VarDtype>( val );
+				VarDtype vDtypeIndex = std::get<VarDtype>( val );
 				
-				if( !holds_alternative<long int> ( vDtypeIndex ) && !holds_alternative<double> ( vDtypeIndex ))
+				if( !std::holds_alternative<long int> ( vDtypeIndex ) && !std::holds_alternative<double> ( vDtypeIndex ))
 					throw InvalidSyntaxError("Array Index Expects Integer");
 
-				long int index = ( holds_alternative<long int>( vDtypeIndex ) ) ? get<long int> ( vDtypeIndex ) : (long int) get<double>( vDtypeIndex );
+				long int index = ( std::holds_alternative<long int>( vDtypeIndex ) ) ? std::get<long int> ( vDtypeIndex ) : (long int) std::get<double>( vDtypeIndex );
 				resolvedIndexVector.push_back( index );
 			}
 			return resolvedIndexVector;
 		}
 
-		void arrayUpdation( const vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList<ARRAY_SUPPORT_TYPES>* arr ){
+		void arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList<ARRAY_SUPPORT_TYPES>* arr ){
 			ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
 			curPtr--;
 
@@ -572,27 +571,27 @@ class FunctionHandler: public VAR_VMAP {
 				throw InvalidSyntaxError("Using array property in updatation is not allowed");
 
 			if( arrToken.indexVector.size() ){
-				vector<long int> resolvedIndexVector = getResolvedIndexVectors( arrToken.indexVector );
+				std::vector<long int> resolvedIndexVector = getResolvedIndexVectors( arrToken.indexVector );
 
 				long int updationIndex = resolvedIndexVector.back();
 				resolvedIndexVector.pop_back();
 
-				if( updationIndex < 0 )throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
+				if( updationIndex < 0 ) throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
 
-				variant< ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
+				std::variant< ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
 
-				if( holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
-					auto* arrData = get<ARRAY_SUPPORT_TYPES*>( returnIndex );
+				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
+					auto* arrData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
 
-					if( !holds_alternative<VarDtype>( *arrData ) || !holds_alternative<string> ( get<VarDtype>( *arrData ) ) )
+					if( !std::holds_alternative<VarDtype>( *arrData ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( *arrData ) ) )
 						throw InvalidSyntaxError("Failed to index an non array type");
 					
-					auto& ttt = get<VarDtype>( *arrData );
-					string& strToUpdate = get<string>( ttt );
+					auto& ttt = std::get<VarDtype>( *arrData );
+					std::string& strToUpdate = std::get<std::string>( ttt );
 					updateString( strToUpdate, updationIndex, upvalue );
 					return ;
 				}
-				ArrayList<ARRAY_SUPPORT_TYPES>* arrList = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
+				ArrayList<ARRAY_SUPPORT_TYPES>* arrList = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
 
 				if( arrList->totalElementsAllocated <= updationIndex ){
 					size_t cur = arrList->totalElementsAllocated;
@@ -601,22 +600,22 @@ class FunctionHandler: public VAR_VMAP {
 				}
 				auto& elementAtIndex = arrList->arrayList[ updationIndex ];
 
-				if( holds_alternative<ARRAY_SUPPORT_TYPES>( elementAtIndex ) ){
-					auto arrData = get<ARRAY_SUPPORT_TYPES>( elementAtIndex );
-					visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
+				if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( elementAtIndex ) ){
+					auto arrData = std::get<ARRAY_SUPPORT_TYPES>( elementAtIndex );
+					std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
 				}
 				else throw InvalidDTypeError("Dtype mismatch in array updation");
 			}
 		}
 
-		void InstructionHandlerRunner( const vector<Token>& tokens, size_t& currentPtr ){
+		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr ){
 			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
 			// check instruction token validation
 			passValidInstructionTokens( InsTokensAndData.insToken );
 
-			queue<DEEP_VALUE_DATA> finalValueQueue;
-			vector<Token>& varsAndVals = InsTokensAndData.leftVector;
+			std::queue<DEEP_VALUE_DATA> finalValueQueue;
+			std::vector<Token>& varsAndVals = InsTokensAndData.leftVector;
 
 			if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
 				for( int x = 0; x < varsAndVals.size(); x++ ){
@@ -625,7 +624,7 @@ class FunctionHandler: public VAR_VMAP {
 					if( x >= InsTokensAndData.rightVector.size() )
 						throw InvalidSyntaxError("Typecasting error");
 
-					vector<Token>castInfo = InsTokensAndData.rightVector[x];
+					std::vector<Token>castInfo = InsTokensAndData.rightVector[x];
 					if( castInfo.size() != 1 )
 						throw InvalidSyntaxError("Typecasting error");
 
@@ -651,7 +650,7 @@ class FunctionHandler: public VAR_VMAP {
 				return;
 			}
 
-			for( vector<Token>& astStrToks: InsTokensAndData.rightVector ){
+			for( std::vector<Token>& astStrToks: InsTokensAndData.rightVector ){
 				DEEP_VALUE_DATA data = evaluateVector( astStrToks );
 				finalValueQueue.push( data  );
 			}
@@ -668,51 +667,51 @@ class FunctionHandler: public VAR_VMAP {
 				DEEP_VALUE_DATA topValue = finalValueQueue.front();
 				finalValueQueue.pop();
 
-				if( holds_alternative<FUNCTION_MAP_DATA*>(topValue) ){
+				if( std::holds_alternative<FUNCTION_MAP_DATA*>(topValue) ){
 					mapData->mapType = MAPTYPE::FUNC_PTR;
-					mapData->var = get<FUNCTION_MAP_DATA*>(topValue);
+					mapData->var = std::get<FUNCTION_MAP_DATA*>(topValue);
 					continue;
 				}
 
 				if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
-					auto& arr = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+					auto& arr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
 					arrayUpdation( varsAndVals, x, topValue, arr );
 					return ;
 				}
 
-				auto vmapvariable = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
-				if( holds_alternative<VarDtype> ( vmapvariable->value ) ){
-					auto& varDtypeData = get<VarDtype>( vmapvariable->value );
+				auto vmapvariable = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+				if( std::holds_alternative<VarDtype> ( vmapvariable->value ) ){
+					auto& varDtypeData = std::get<VarDtype>( vmapvariable->value );
 
-					if( holds_alternative<string> ( varDtypeData ) ){
+					if( std::holds_alternative<std::string> ( varDtypeData ) ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( varsAndVals, x );
 						x--;
 						
 						auto resData = getResolvedIndexVectors( arrToken.indexVector );
 						
 						if( resData.size() > 1 )
-							throw runtime_error("string is a one dimensional");
+							throw std::runtime_error("string is a one dimensional");
 
-						string& strToUpdate = get<string> ( varDtypeData );
+						std::string& strToUpdate = std::get<std::string> ( varDtypeData );
 						if( !resData.empty() ){
 							long int index = resData.back();
 							updateString( strToUpdate, index, topValue );
 						}
-						else mapData->updateSingleVariable( get<VarDtype>( topValue ) );
+						else mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
 						return;
 					}
 				}
 				if( vmapvariable->isTypeArray ){
-					auto& arr = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
+					auto& arr = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
 					arrayUpdation( varsAndVals, x, topValue, arr.get());
 				}
-				else if( holds_alternative<VarDtype>( topValue ) )
-					mapData->updateSingleVariable( get<VarDtype>( topValue ) );
+				else if( std::holds_alternative<VarDtype>( topValue ) )
+					mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
 			}
 		}
 
 		void 
-		functionDefHandlerRunner( const vector<Token>&token, size_t& start ){
+		functionDefHandlerRunner( const std::vector<Token>&token, size_t& start ){
 			FunctionTokenReturn funcTokens = stringToFuncTokens( token, start );
 			// pass the validation to move forward
 			passValidFuncToken( funcTokens.tokens );
@@ -720,30 +719,29 @@ class FunctionHandler: public VAR_VMAP {
 			if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
 				throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
 			
-			unique_ptr<FUNCTION_MAP_DATA> funcMapData = make_unique<FUNCTION_MAP_DATA>();
+			std::unique_ptr<FUNCTION_MAP_DATA> funcMapData = std::make_unique<FUNCTION_MAP_DATA>();
 			funcMapData->funcName 		= funcTokens.funcName;
 			funcMapData->argsSize 		= funcTokens.args.size();
 			funcMapData->bodyStartPtr 	= funcTokens.funcStartPtr;
 			funcMapData->bodyEndPtr 	= funcTokens.funcEndPtr;
-			funcMapData->argsInfo 		= move( funcTokens.args );
+			funcMapData->argsInfo 		= std::move( funcTokens.args );
 			
 			auto vmapCopy = this->getDeepCopyOfVMAP();
 
-			funcMapData->varMapCopy		= make_pair(vmapCopy, this->parent);
-
-			unique_ptr<MapItem> funcMapItem = make_unique<MapItem>();
-			funcMapItem->mapType = MAPTYPE::FUNCTION;
+			funcMapData->varMapCopy				 			   = std::make_pair(vmapCopy, this->parent);
+			std::unique_ptr<MapItem> funcMapItem 			   = std::make_unique<MapItem>();
+			funcMapItem->mapType 				 			   = MAPTYPE::FUNCTION;
 			funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem.get();
-			funcMapItem->var 	 = funcMapData.get();
-			_CACHE_VARS.push_back( move(funcMapData) );					
-			this->addToMap( funcTokens.funcName, move( funcMapItem ) );
+			funcMapItem->var 	 							   = funcMapData.get();
 
+			_CACHE_VARS.push_back( std::move(funcMapData) );					
+			this->addToMap( funcTokens.funcName, std::move( funcMapItem ) );
 		}
 
-		optional<variant<VarDtype, unique_ptr<MapItem>>>
-		getReturnedData( const vector<Token>&tokens, size_t& currentPtr ){
+		std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
+		getReturnedData( const std::vector<Token>&tokens, size_t& currentPtr ){
 			currentPtr++;
-			vector<Token> returnStatementData;
+			std::vector<Token> returnStatementData;
 
 			while( currentPtr < tokens.size() ){
 				const Token& curToken = tokens[ currentPtr ];
@@ -753,33 +751,33 @@ class FunctionHandler: public VAR_VMAP {
 			}
 
 			if( returnStatementData.empty() )
-				return nullopt;
+				return std::nullopt;
 
 			if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
 				auto mapData = this->moveFromVmap( returnStatementData.back().token );
 				if( mapData.has_value() ){
 					for( auto& mapData: this->VMAP )
-						propHolderTemp.push_back( move( mapData.second ) );
-					return  move( mapData.value() ) ;
+						propHolderTemp.push_back( std::move( mapData.second ) );
+					return  std::move( mapData.value() ) ;
 				}
 				throw InvalidSyntaxError("no variable foun " + returnStatementData.back().token );
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
 
-			if( holds_alternative<VarDtype> ( res ) )
-				return get<VarDtype>( res );
+			if( std::holds_alternative<VarDtype> ( res ) )
+				return std::get<VarDtype>( res );
 
 			throw InvalidSyntaxError("Invalid return statement");
 		}
 
-		void IOHandlerRunner( const vector<Token>& tokens, size_t& start ){
+		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start ){
 				auto tokensAndData = stringToIoTokens( tokens, start );
 				// pass the validation test for iotokens
 				passValidIOTokens( tokensAndData.first );
 
-				queue<DEEP_VALUE_DATA> finalQueue;
+				std::queue<DEEP_VALUE_DATA> finalQueue;
 				
-				for( vector<Token>&valToks: tokensAndData.second ){
+				for( std::vector<Token>&valToks: tokensAndData.second ){
 					DEEP_VALUE_DATA data = evaluateVector( valToks );
 					finalQueue.push(data);
 				}
@@ -789,7 +787,7 @@ class FunctionHandler: public VAR_VMAP {
 					switch( tok ){
 						case IO_TOKENS::PRINT: {
 							if( !isFirstPrint )
-								cout << "\n";
+								std::cout << "\n";
 							else isFirstPrint = false;
 
 							if( finalQueue.empty() )
@@ -801,7 +799,7 @@ class FunctionHandler: public VAR_VMAP {
 							break;
 						}
 						case IO_TOKENS::CONCAT:{
-							cout << " ";
+							std::cout << " ";
 							if( finalQueue.empty() )
 								throw InvalidSyntaxError("In koode statement");
 
@@ -824,11 +822,11 @@ class FunctionHandler: public VAR_VMAP {
 class Conditional: public FunctionHandler{
 	public:
 		// inside condition there may be loop statements
-		unique_ptr<LoopHandler> lpRunner;
-		Conditional( unique_ptr<LoopHandler> lpRunner ){
-			this->lpRunner = move( lpRunner );
+		std::unique_ptr<LoopHandler> lpRunner;
+		Conditional( std::unique_ptr<LoopHandler> lpRunner ){
+			this->lpRunner = std::move( lpRunner );
 		}
-		void CondHandlerRunner( const vector<Token>& tokens, size_t& start ){
+		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start ){
 			size_t endOfNOK = 0;
 			auto ctokens = stringToCondTokens( tokens, start, endOfNOK );
 			// pass the validation
@@ -840,14 +838,14 @@ class Conditional: public FunctionHandler{
 				auto data = ctokens.second[ x ];
 				DEEP_VALUE_DATA evRes = evaluateVector( data.first );
 
-				if( holds_alternative<VarDtype>( evRes ) ){
-					auto VdtypData = get<VarDtype>( evRes );
+				if( std::holds_alternative<VarDtype>( evRes ) ){
+					auto VdtypData = std::get<VarDtype>( evRes );
 
 					// only support when condition is boolean
-					if( holds_alternative<bool>( VdtypData ) ){
+					if( std::holds_alternative<bool>( VdtypData ) ){
 						runTheCondition = true;
 						// if it is true run the statement
-						if( get<bool>( VdtypData ) ){
+						if( std::get<bool>( VdtypData ) ){
 							start = data.second + 1;
 							runTheCondition = true;
 							
@@ -866,7 +864,7 @@ class Conditional: public FunctionHandler{
 class LoopHandler: public FunctionHandler{
 	public:		
 		void 
-		LoopHandlerRunner ( const vector<Token>& tokens, size_t& currentPtr ){
+		LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr ){
 			size_t beginCopy = currentPtr;
 		 	LoopTokens lpTokens = stringToLoopTokens( tokens, currentPtr );
 
@@ -877,15 +875,15 @@ class LoopHandler: public FunctionHandler{
 			while( true ){
 				DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );
 
-				if( !holds_alternative<VarDtype>( finalValue ) )
+				if( !std::holds_alternative<VarDtype>( finalValue ) )
 					throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
 
-				VarDtype cdData = get<VarDtype>( finalValue );
+				VarDtype cdData = std::get<VarDtype>( finalValue );
 
-				if( !holds_alternative<bool>(cdData) )
+				if( !std::holds_alternative<bool>(cdData) )
 					throw InvalidSyntaxError( "loop condition should be boolean or blank" );
 
-				bool runTheBodyAgain = get<bool>( cdData );
+				bool runTheBodyAgain = std::get<bool>( cdData );
 				if( !runTheBodyAgain ) break;
 
 				size_t bodyStart = lpTokens.startPtr;
@@ -898,7 +896,7 @@ class LoopHandler: public FunctionHandler{
 				// or may be function statement 
 				catch( const RecoverError& err ){
 					currentPtr = bodyStart;
-					const string& expTok = tokens[ bodyStart ].token;
+					const std::string& expTok = tokens[ bodyStart ].token;
 					
 					if( expTok == "theku" )
 						break;

@@ -7,13 +7,11 @@
 #include <string>
 #include <memory>
 
-using namespace std;
-
-unordered_set<string> REGISTERED_FUNC_TOKEN = { 
+std::unordered_set<std::string> REGISTERED_FUNC_TOKEN = { 
 	"thenga", "(", ")", "{", "}", ",", "pidi", "kootam" 
 };
 
-unordered_set<string> REGISTERED_FUNC_BODY_TOKENS = {
+std::unordered_set<std::string> REGISTERED_FUNC_BODY_TOKENS = {
 	"poda"
 };
 
@@ -34,34 +32,34 @@ enum class FUNC_TOKENS{
 
 // For arg Name and Type ( Single or Array )
 struct ARG_VAR_INFO{
-	string name;
+	std::string name;
 	bool isArray;
 };
 
 // Func Info
 struct FunctionTokenReturn {
-	vector<FUNC_TOKENS> 			 tokens;
-	vector<unique_ptr<ARG_VAR_INFO>> args;
-	string 							 funcName;
+	std::vector<FUNC_TOKENS> 			 tokens;
+	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
+	std::string 					 funcName;
 	size_t 							 funcStartPtr;
 	size_t 							 funcEndPtr;
 
 	FunctionTokenReturn( 
-		vector<FUNC_TOKENS> tokens,
-		vector<unique_ptr<ARG_VAR_INFO>> args,
-		string funcName,
+		std::vector<FUNC_TOKENS> tokens,
+		std::vector<std::unique_ptr<ARG_VAR_INFO>> args,
+		std::string funcName,
 		size_t funcStartPtr,
 		size_t funcEndPtr
 	){
 		this->tokens 		= tokens;
-		this->args 			= move(args);
+		this->args 			= std::move(args);
 		this->funcName 		= funcName;
 		this->funcStartPtr  = funcStartPtr;
 		this->funcEndPtr	= funcEndPtr;
 	}
 };
 // Function syntax verifier
-unordered_map<FUNC_TOKENS, vector<FUNC_TOKENS>> FUNC_GRAPH = {
+std::unordered_map<FUNC_TOKENS, std::vector<FUNC_TOKENS>> FUNC_GRAPH = {
 	{ FUNC_TOKENS::FUNC_START, 	{ FUNC_TOKENS::FUNC_NAME } 	},
 	{ FUNC_TOKENS::FUNC_NAME, 	{ FUNC_TOKENS::ARGS_OPEN }  },
 	{ FUNC_TOKENS::VAR_START, 	{ FUNC_TOKENS::VAR_NAME }   },
@@ -79,7 +77,7 @@ unordered_map<FUNC_TOKENS, vector<FUNC_TOKENS>> FUNC_GRAPH = {
 };
 
 void 
-passValidFuncToken( vector<FUNC_TOKENS>& tokens ){
+passValidFuncToken( std::vector<FUNC_TOKENS>& tokens ){
 	size_t startIndex = 0;
 	FUNC_TOKENS currentStage = FUNC_TOKENS::FUNC_START;
 
@@ -94,7 +92,7 @@ passValidFuncToken( vector<FUNC_TOKENS>& tokens ){
 			break ;
 
 		FUNC_TOKENS nextExpected = tokens[ ++startIndex ];
-		vector<FUNC_TOKENS>& nextExpectedTokens = FUNC_GRAPH[ currentStage ];
+		std::vector<FUNC_TOKENS>& nextExpectedTokens = FUNC_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
 		for( FUNC_TOKENS nextToks: nextExpectedTokens ){
@@ -112,16 +110,16 @@ passValidFuncToken( vector<FUNC_TOKENS>& tokens ){
 }
 
 FunctionTokenReturn
-stringToFuncTokens( const vector<Token>&tokens, size_t& startIndex ){
-	vector<FUNC_TOKENS> funcTokens;
-	vector<unique_ptr<ARG_VAR_INFO>> args;
-	string funcName;
+stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
+	std::vector<FUNC_TOKENS> funcTokens;
+	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
+	std::string funcName;
 
 	size_t bodyStart = 0;
 	FUNC_TOKENS prev = FUNC_TOKENS::NOTHING;
 
 	for( ; startIndex < tokens.size(); startIndex++ ){
-		const string& curToken = tokens[ startIndex ].token;
+		const std::string& curToken = tokens[ startIndex ].token;
 
 		if( curToken == "thenga" ){
 			funcTokens.push_back( FUNC_TOKENS::FUNC_START );
@@ -146,12 +144,12 @@ stringToFuncTokens( const vector<Token>&tokens, size_t& startIndex ){
 			int openBody = 1;
 
 			while( startIndex < tokens.size() ){
-				const string& curToken = tokens[ startIndex++ ].token;
+				const std::string& curToken = tokens[ startIndex++ ].token;
 				if( curToken == "}" ){
 					if( --openBody == 0 ){
 						funcTokens.push_back( FUNC_TOKENS::BODY_CLOSE );
 						return FunctionTokenReturn(
-							funcTokens, move(args), funcName, bodyStart, startIndex
+							funcTokens, std::move(args), funcName, bodyStart, startIndex
 						);
 					}
 				}
@@ -165,10 +163,10 @@ stringToFuncTokens( const vector<Token>&tokens, size_t& startIndex ){
 				funcTokens.push_back( FUNC_TOKENS::FUNC_NAME );
 			}
 			else if( prev == FUNC_TOKENS::VAR_START ){
-				unique_ptr<ARG_VAR_INFO> newVar = make_unique<ARG_VAR_INFO>();
+				std::unique_ptr<ARG_VAR_INFO> newVar = std::make_unique<ARG_VAR_INFO>();
 				newVar->name = curToken;
 				funcTokens.push_back( FUNC_TOKENS::VAR_NAME );
-				args.push_back( move(newVar) );
+				args.push_back( std::move(newVar) );
 			}
 			else if( curToken == "kootam" ){
 				if( args.empty() )
@@ -196,7 +194,7 @@ enum class FUNC_CALL_TOKEN{
 };
 
 // function call syntax verifier
-unordered_map<FUNC_CALL_TOKEN, vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
+std::unordered_map<FUNC_CALL_TOKEN, std::vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
 	{ FUNC_CALL_TOKEN::FUNC_NAME, { FUNC_CALL_TOKEN::ARG_OPEN } },
 	{ FUNC_CALL_TOKEN::ARG_OPEN,  { FUNC_CALL_TOKEN::ARG_VALUE, FUNC_CALL_TOKEN::ARG_CLOSE } },
 	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_COMMA, FUNC_CALL_TOKEN::ARG_CLOSE } },
@@ -204,12 +202,12 @@ unordered_map<FUNC_CALL_TOKEN, vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
 	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_CLOSE } }
 };
 
-bool isFuncPtr( vector<FUNC_CALL_TOKEN>& callTokens ){
+bool isFuncPtr( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 	return callTokens.size() == 1 && callTokens.back() == FUNC_CALL_TOKEN::FUNC_NAME;
 }
 
 void
-passValidFuncCallToken( vector<FUNC_CALL_TOKEN>& callTokens ){
+passValidFuncCallToken( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 	if( callTokens.empty() )
 		throw InvalidSyntaxError("Function call token is empty");
 
@@ -224,7 +222,7 @@ passValidFuncCallToken( vector<FUNC_CALL_TOKEN>& callTokens ){
 			break;
 
 		FUNC_CALL_TOKEN nextExpected = callTokens[ ++startIndex ];
-		vector<FUNC_CALL_TOKEN>& nextExpectedTokens = FUNC_CALL_GRAPH[ currentStage ];
+		std::vector<FUNC_CALL_TOKEN>& nextExpectedTokens = FUNC_CALL_GRAPH[ currentStage ];
 		
 		bool continueNext = false;
 		for( FUNC_CALL_TOKEN nextToks: nextExpectedTokens ){
@@ -241,16 +239,16 @@ passValidFuncCallToken( vector<FUNC_CALL_TOKEN>& callTokens ){
 }
 
 struct FunctionCallReturns{
-	vector<FUNC_CALL_TOKEN> callTokens;
-	vector<vector<Token>> argsVector;
-	string funcName;
+	std::vector<FUNC_CALL_TOKEN> callTokens;
+	std::vector<std::vector<Token>> argsVector;
+	std::string funcName;
 
 	FunctionCallReturns() = default;
 
 	FunctionCallReturns( 
-		vector<FUNC_CALL_TOKEN> callTokens,
-		vector<vector<Token>> argsVector,
-		string funcName
+		std::vector<FUNC_CALL_TOKEN> callTokens,
+		std::vector<std::vector<Token>> argsVector,
+		std::string funcName
 	){
 		this->callTokens = callTokens;
 		this->argsVector = argsVector;
@@ -258,15 +256,15 @@ struct FunctionCallReturns{
 	}
 };
 
-FunctionCallReturns stringToFunctionCallTokens( const vector<Token>& tokens, size_t& curPtr ){
-	vector<FUNC_CALL_TOKEN> ctokens;
-	vector<vector<Token>> argsTokens;
-	string funcCallName;
+FunctionCallReturns stringToFunctionCallTokens( const std::vector<Token>& tokens, size_t& curPtr ){
+	std::vector<FUNC_CALL_TOKEN> ctokens;
+	std::vector<std::vector<Token>> argsTokens;
+	std::string funcCallName;
 
 	FUNC_CALL_TOKEN prev = FUNC_CALL_TOKEN::NOTHING;
 
 	for( ; curPtr < tokens.size(); curPtr++ ){
-		const string& curToken = tokens[ curPtr ].token;
+		const std::string& curToken = tokens[ curPtr ].token;
 
 		if( prev == FUNC_CALL_TOKEN::NOTHING ){
 			ctokens.push_back( FUNC_CALL_TOKEN::FUNC_NAME );
@@ -276,7 +274,7 @@ FunctionCallReturns stringToFunctionCallTokens( const vector<Token>& tokens, siz
 			ctokens.push_back( FUNC_CALL_TOKEN::ARG_OPEN );
 			int openCnts = 1;
 
-			vector<Token> curVector;
+			std::vector<Token> curVector;
 			curPtr++;
 
 			while( curPtr < tokens.size() ){

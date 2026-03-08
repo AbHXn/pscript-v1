@@ -1,23 +1,23 @@
 #ifndef VMAP_HPP
 #define VMAP_HPP
 
-vector<unique_ptr<MapItem>> propHolderTemp;
+std::vector<std::unique_ptr<MapItem>> propHolderTemp;
 
 class VAR_VMAP{
 	private:
-		queue<unique_ptr<MapItem>> funcReturnedCache;
+		std::queue<std::unique_ptr<MapItem>> funcReturnedCache;
 		size_t cacheElement = 0;
 
 	public:
-		string runnerBody = "__xmain__";
+		std::string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
 		
-		unordered_map< string, unique_ptr<MapItem>> VMAP;
-		unordered_map<string, MapItem*> VMAP_COPY;
+		std::unordered_map<std::string, std::unique_ptr<MapItem>> VMAP;
+		std::unordered_map<std::string, MapItem*> VMAP_COPY;
 
-		unordered_map<string, MapItem*>
+		std::unordered_map<std::string, MapItem*>
 		getDeepCopyOfVMAP( void ){
-			unordered_map<string, MapItem*> copyData;
+			std::unordered_map<std::string, MapItem*> copyData;
 			VAR_VMAP* currentDir = this;
 			
 			while( currentDir ){
@@ -31,32 +31,32 @@ class VAR_VMAP{
 			return copyData;
 		}
 
-		pair<MapItem*, VAR_VMAP*>
+		std::pair<MapItem*, VAR_VMAP*>
 		getFromVmapCopy(const std::string& key) {
 		    VAR_VMAP* currentEnv = this;
  		    
  		    while (currentEnv != nullptr) {
 		        auto it_2 = currentEnv->VMAP_COPY.find(key);
 		        if( it_2 != currentEnv->VMAP_COPY.end() )
-		        	return make_pair( it_2->second, currentEnv );
+		        	return std::make_pair( it_2->second, currentEnv );
  		        currentEnv = currentEnv->parent;
 		    }
-		    return make_pair(nullptr, nullptr);
+		    return std::make_pair(nullptr, nullptr);
 		}
 
-		pair<MapItem*, VAR_VMAP*>
+		std::pair<MapItem*, VAR_VMAP*>
 		getFromVmap(const std::string& key) {
 	        auto cur = this;
 	        while( cur && cur->runnerBody == this->runnerBody ){
 	        	auto it = cur->VMAP.find(key);
 	       		if (it != cur->VMAP.end())
-	            	return make_pair( it->second.get(), cur );
+	            	return std::make_pair( it->second.get(), cur );
 	            cur = cur->parent;
 	        }
 		    return getFromVmapCopy(key);
 		}
 
-		optional<unique_ptr<MapItem>>
+		std::optional<std::unique_ptr<MapItem>>
 		moveFromVmap(const std::string& key){
 		    auto it = VMAP.find(key);
 
@@ -68,17 +68,17 @@ class VAR_VMAP{
 
 		    if( result->mapType == MAPTYPE::FUNCTION )
 		    	for( auto& test: this->VMAP )
-		    		propHolderTemp.push_back( move(test.second) );
+		    		propHolderTemp.push_back( std::move(test.second) );
 		    return result;
 		}
 
-		void addToMap( string key, unique_ptr<MapItem> data ){
-			this->VMAP[ key ] = move( data );
+		void addToMap( std::string key, std::unique_ptr<MapItem> data ){
+			this->VMAP[ key ] = std::move( data );
 		}
 
-		void pushCache( unique_ptr<MapItem> data ){
+		void pushCache( std::unique_ptr<MapItem> data ){
 			this->cacheElement++;
-			this->funcReturnedCache.push( move( data ) );
+			this->funcReturnedCache.push( std::move( data ) );
 		}
 };
 

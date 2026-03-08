@@ -31,24 +31,24 @@ struct MapItem;
 class VAR_VMAP;
 
 struct FUNCTION_MAP_DATA{
-	string funcName;
+	std::string funcName;
 	size_t argsSize;
-	vector<unique_ptr<ARG_VAR_INFO>> argsInfo;
+	std::vector<std::unique_ptr<ARG_VAR_INFO>> argsInfo;
 	size_t bodyStartPtr;
 	size_t bodyEndPtr;
-	pair<unordered_map<string, MapItem*>, VAR_VMAP*> varMapCopy;
+	std::pair<std::unordered_map<std::string, MapItem*>, VAR_VMAP*> varMapCopy;
 
 	FUNCTION_MAP_DATA() = default;
 };
 
-using ARRAY_SUPPORT_TYPES	= variant<VarDtype, FUNCTION_MAP_DATA*>;
-using DEEP_VALUE_DATA  		= variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
-using AST_NODE_DATA 		= variant<AST_TOKENS, DEEP_VALUE_DATA>;
+using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, FUNCTION_MAP_DATA*>;
+using DEEP_VALUE_DATA  		= std::variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
+using AST_NODE_DATA 		= std::variant<AST_TOKENS, DEEP_VALUE_DATA>;
 
 
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;
-	variant<
+	std::variant<
 		VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*,
 		ArrayList<ARRAY_SUPPORT_TYPES>*,
 		FUNCTION_MAP_DATA*
@@ -56,22 +56,22 @@ struct MapItem{
 
 	void updateSingleVariable( VarDtype newValue ){
 		if( this->mapType == MAPTYPE::VARIABLE ){
-			auto varHolderData = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto varHolderData = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			if( varHolderData->isTypeArray )
-				throw runtime_error("var is an array");
+				throw std::runtime_error("var is an array");
 			varHolderData->value = newValue;
 		}
-		else throw runtime_error("not an single element");
+		else throw std::runtime_error("not an single element");
 	}
 
 	void typeCastToInt(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
 
-			auto& vardata = get<VarDtype>(VHdata->value);
+			auto& vardata = std::get<VarDtype>(VHdata->value);
 			
 			if (auto p = std::get_if<double>(&vardata)) {
 				vardata = static_cast<long>(*p);
@@ -87,12 +87,12 @@ struct MapItem{
 
 	void typeCastToDouble(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
 
-			auto& vardata = get<VarDtype>(VHdata->value);
+			auto& vardata = std::get<VarDtype>(VHdata->value);
 			
 			if (auto p = std::get_if<long>(&vardata)) {
 				vardata = static_cast<double>(*p);
@@ -108,21 +108,21 @@ struct MapItem{
 
 	void typeCastToString(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
 
-			auto& vardata = get<VarDtype>(VHdata->value);
+			auto& vardata = std::get<VarDtype>(VHdata->value);
 			
 			if (auto p = std::get_if<long>(&vardata)) {
-				vardata = to_string(*p);
+				vardata = std::to_string(*p);
 			}
 			else if (auto s = std::get_if<double>(&vardata)) {
-            	vardata = to_string(*s);
+            	vardata = std::to_string(*s);
         	}
         	else if (auto p = std::get_if<bool>(&vardata)) {
-    			vardata = to_string(*p);
+    			vardata = std::to_string(*p);
 			}
 		}
 	}
@@ -185,22 +185,22 @@ class ValueHelper{
         std::cout << "[";
         for (size_t i = 0; i < array->arrayList.size(); ++i) {
             const auto& elem = array->arrayList[i];
-            if( holds_alternative<ARRAY_SUPPORT_TYPES>( elem ) ){
-            	auto arrSpType = get<ARRAY_SUPPORT_TYPES>( elem );
-            	if( holds_alternative<VarDtype>(arrSpType) ){
-            		ValueHelper::printVarDtype( get<VarDtype>( arrSpType ) );
+            if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( elem ) ){
+            	auto arrSpType = std::get<ARRAY_SUPPORT_TYPES>( elem );
+            	if( std::holds_alternative<VarDtype>(arrSpType) ){
+            		ValueHelper::printVarDtype( std::get<VarDtype>( arrSpType ) );
             	}
-            	else if( holds_alternative<FUNCTION_MAP_DATA*>(arrSpType) ){
-            		cout << "FUNC";
+            	else if( std::holds_alternative<FUNCTION_MAP_DATA*>(arrSpType) ){
+            		std::cout << "FUNC";
             	}
-            	else cout << "Unknown";
+            	else std::cout << "Unknown";
             }
-            else if (holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem )){
-            	auto arrptr = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem );
+            else if (std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem )){
+            	auto arrptr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem );
             	ValueHelper::printArrayList( arrptr );
             }
-            else if( holds_alternative<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem ) ){
-            	auto& arrptr =get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem );
+            else if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem ) ){
+            	auto& arrptr = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem );
             	ValueHelper::printArrayList( arrptr.get() );
             }
             if (i + 1 < array->arrayList.size()) std::cout << ", ";
@@ -211,42 +211,40 @@ class ValueHelper{
 	static DEEP_VALUE_DATA
 	getFinalValueFromMap( MapItem* mapData ){
 		if( mapData->mapType == MAPTYPE::VARIABLE ){
-			auto VariableData = get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
-			auto varData = ValueHelper::getDataFromVariableHolder( VariableData );
-			return varData;
+			auto VariableData = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+			return ValueHelper::getDataFromVariableHolder( VariableData );
 		}
 		else if( mapData->mapType == MAPTYPE::FUNCTION ){
-			auto VariableData = get<FUNCTION_MAP_DATA*>( mapData->var );
-			return VariableData;
+			return std::get<FUNCTION_MAP_DATA*>( mapData->var );
 		}
 		else if( mapData->mapType == MAPTYPE::FUNC_PTR ){
-			return get<FUNCTION_MAP_DATA*>( mapData->var );
+			return std::get<FUNCTION_MAP_DATA*>( mapData->var );
 		}
-		throw runtime_error("DTYPE not defined in MAP");
+		throw std::runtime_error("DTYPE not defined in MAP");
 	}
 
 	static DEEP_VALUE_DATA
 	getDataFromVariableHolder( VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>* varData ){
-		if( holds_alternative<VarDtype> ( varData->value ) ){
-			return get<VarDtype>( varData->value );
+		if( std::holds_alternative<VarDtype> ( varData->value ) ){
+			return std::get<VarDtype>( varData->value );
 		}
-		else if( holds_alternative<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value ) ){
-			auto& arrList = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value );
+		else if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value ) ){
+			auto& arrList = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value );
 			return arrList.get();
 		}
-		throw runtime_error("DTYPE not defined in MAP");
+		throw std::runtime_error("DTYPE not defined in MAP");
 	}
 
 	static void
 	printDEEP_VALUE_DATA( DEEP_VALUE_DATA& data ){
-		if( holds_alternative<VarDtype>( data ) ){
-			printVarDtype( get<VarDtype>( data ) );
+		if( std::holds_alternative<VarDtype>( data ) ){
+			printVarDtype( std::get<VarDtype>( data ) );
 		}
-		else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(data) ){
-			auto& test = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(data);
+		else if( std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(data) ){
+			auto& test = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(data);
 			printArrayList( test );
 		}
-		else throw runtime_error("Didn't create display method for given type");
+		else throw std::runtime_error("Didn't create display method for given type");
 	}
 
 	template<typename T>
@@ -260,14 +258,13 @@ class ValueHelper{
 	}
 
 	static VarDtype 
-	evaluate_AST_NODE( unique_ptr<AST_NODE<AST_NODE_DATA>>& astNode ){
+	evaluate_AST_NODE( std::unique_ptr<AST_NODE<AST_NODE_DATA>>& astNode ){
 		auto& astNodeData = astNode->AST_DATA;
 
-		if( holds_alternative<DEEP_VALUE_DATA>( astNodeData ) ){
-			auto& valueData = get<DEEP_VALUE_DATA>( astNodeData );
-			if( holds_alternative<VarDtype>( valueData ) ){
-				VarDtype varDtypeData = get<VarDtype>( valueData );
-				return varDtypeData;
+		if( std::holds_alternative<DEEP_VALUE_DATA>( astNodeData ) ){
+			auto& valueData = std::get<DEEP_VALUE_DATA>( astNodeData );
+			if( std::holds_alternative<VarDtype>( valueData ) ){
+				return std::get<VarDtype>( valueData );
 			}
 			throw InvalidSyntaxError("Invalid dtype for operation");
 		}
@@ -284,7 +281,7 @@ class ValueHelper{
 					using Y = std::decay_t<decltype(y)>;
 
 					if constexpr (is_number_v<X> && is_number_v<Y>) {
-					    switch (astNode->isASTTokens ? get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
+					    switch (astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
 
 						    case AST_TOKENS::ADD:
 						        if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
@@ -340,7 +337,7 @@ class ValueHelper{
 					}
 					else if constexpr (std::is_same_v<X, std::string> && std::is_same_v<Y, std::string>) {
 
-					    switch (astNode->isASTTokens ? get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
+					    switch (astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
 
 					        case AST_TOKENS::ADD:  return x + y;
 
@@ -358,7 +355,7 @@ class ValueHelper{
 					else if constexpr (
 					    (std::is_same_v<X, std::string> || std::is_same_v<Y, std::string>)
 					) {
-					    switch (astNode->isASTTokens ? get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
+					    switch (astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
 					        case AST_TOKENS::ADD:
 					            return toString(x) + toString(y);
 					        default:

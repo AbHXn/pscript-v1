@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-unordered_set<string> REG_INS_TOKEN = {
+std::unordered_set<std::string> REG_INS_TOKEN = {
 	"=", "+=", "-=", "/=", "*=", ":=", "%=", ",", ";"
 };
 
@@ -87,7 +87,7 @@ bool MainToken( const std::string& curToken, INS_TOKEN& Optr ){
 struct InstructionTokens{
 	std::vector<INS_TOKEN> insToken;
 	INS_TOKEN optr;
-	std::vector<vector<Token>> rightVector;
+	std::vector<std::vector<Token>> rightVector;
 	std::vector<Token> leftVector;
 
 	InstructionTokens(

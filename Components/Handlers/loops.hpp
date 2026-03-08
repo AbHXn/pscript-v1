@@ -75,7 +75,7 @@ stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 	std::vector<Token> conditions;
 
 	while( startIndex < tokens.size() ){
-		const string& curToken = tokens[ startIndex ].token;
+		const std::string& curToken = tokens[ startIndex ].token;
 		
 		if( curToken == "ittuthiri" )
 			lpTokens.push_back( LOOP_TOKENS::LOOP_START );
@@ -126,7 +126,7 @@ passValidLoopTokens( std::vector<LOOP_TOKENS>& tokens ){
 			break;
 
 		LOOP_TOKENS nextExpected = tokens[ ++startIndex ];
-		vector<LOOP_TOKENS>& nextExpectedTokens = LOOP_GRAPH[ currentStage ];
+		std::vector<LOOP_TOKENS>& nextExpectedTokens = LOOP_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
 		for( LOOP_TOKENS nextToks: nextExpectedTokens ){

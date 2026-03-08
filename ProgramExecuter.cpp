@@ -1,5 +1,7 @@
 #include "Components/FuncBody.hpp"
 
+using namespace std;
+
 template <typename PARENT_CLASS>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
 ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, PARENT_CLASS* prntClass, size_t endPtr ){
