@@ -97,8 +97,8 @@ class FunctionHandler: public VAR_VMAP {
 						
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 
-						if( !isValidArrayAccess( arrToken.tokens ) )
-							throw runtime_error("Invalid Array Access Syntax");
+						// pass array access validity
+						passArrayAccessToken( arrToken.tokens );
 
 						if( !varHolder->isTypeArray ){
 							DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
@@ -164,10 +164,10 @@ class FunctionHandler: public VAR_VMAP {
 
 		optional<VarDtype>
 		handleArrayProperties( ArrayList<ARRAY_SUPPORT_TYPES>* array, ArrayAccessTokens& arrToken){
-			if( arrToken.arrProperty.propertyType == "valupam" ){
+			if( arrToken.arrProperty == "valupam" ){
 				return (long int) array->totalElementsAllocated;
 			} 
-			else if( arrToken.arrProperty.propertyType == "jaadi" ){
+			else if( arrToken.arrProperty == "jaadi" ){
 				return "KOOTAM";
 			}
 			return nullopt;
@@ -228,7 +228,7 @@ class FunctionHandler: public VAR_VMAP {
 
 		VarDtype 
 		handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
-			if( tok.arrProperty.propertyType == "jaadi" ){
+			if( tok.arrProperty == "jaadi" ){
 				if( holds_alternative<VarDtype> (Vdata) ){
 					auto data = get<VarDtype>( Vdata );
 					
@@ -254,7 +254,7 @@ class FunctionHandler: public VAR_VMAP {
 				
 				else return "ARILA";
 			}
-			else if( tok.arrProperty.propertyType == "kanam" ){
+			else if( tok.arrProperty == "kanam" ){
 				if( holds_alternative<VarDtype>(Vdata) ){
 					auto data = get<VarDtype>(Vdata);
 					
@@ -271,7 +271,7 @@ class FunctionHandler: public VAR_VMAP {
 						return (long) sizeof(bool);
 				}
 			}
-			else if( tok.arrProperty.propertyType == "THA_ASCII" ){
+			else if( tok.arrProperty == "THA_ASCII" ){
 				if( !holds_alternative<VarDtype>( Vdata ) )
 					throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
 
@@ -286,7 +286,7 @@ class FunctionHandler: public VAR_VMAP {
 
 				return (long) str[0];
 			}
-			else if( tok.arrProperty.propertyType == "PO_ASCII" ){
+			else if( tok.arrProperty == "PO_ASCII" ){
 				if( !holds_alternative<VarDtype>( Vdata ) )
 					throw InvalidSyntaxError("PO_ASCII is only for INT");
 

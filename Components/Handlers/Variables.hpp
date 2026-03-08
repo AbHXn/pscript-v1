@@ -15,8 +15,6 @@
 #include "../../Headers/Dtypes.hpp"
 #include "../../Headers/Tokenizer.hpp"
 
-using namespace std;
-
 enum class VALUE_TOKENS{
 	ARRAY_OPEN 	,
 	ARRAY_VALUE ,
@@ -35,7 +33,7 @@ enum class VARIABLE_TOKENS{
 	VAR_ENDS	
 };
 
-const unordered_set<string> REGISTERED_TOKENS  = { 
+const std::unordered_set<std::string> REGISTERED_TOKENS  = { 
 		"pidi", 
 		"kootam", 
 		"=", 
@@ -46,7 +44,7 @@ const unordered_set<string> REGISTERED_TOKENS  = {
 };
 
 // variable LHS graph (variable declare)
-unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
+std::unordered_map <VARIABLE_TOKENS, std::vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
 	{ VARIABLE_TOKENS::VAR_START, 	{ VARIABLE_TOKENS::NAME } 								  },
 	{ VARIABLE_TOKENS::NAME,		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
 					  				  VARIABLE_TOKENS::ARRAY, VARIABLE_TOKENS::VAR_ENDS }     },
@@ -56,7 +54,7 @@ unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH 
 };
 
 // variable RHS graph (value assign)
-unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
+std::unordered_map <VALUE_TOKENS, std::vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 	{ VALUE_TOKENS::NORMAL_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END } 			},
 	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE,
 								   VALUE_TOKENS::ARRAY_CLOSE } 								},
@@ -67,21 +65,67 @@ unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 								   VALUE_TOKENS::ARRAY_CLOSE }		   						}
 };
 
-bool isRegisteredVariableToken( const string& token ){
+bool isRegisteredVariableToken( const std::string& token ){
 	return REGISTERED_TOKENS.find( token ) != REGISTERED_TOKENS.end();
 }
+struct VariableTokens{
+	vector<VARIABLE_TOKENS> varTokens; 	 // LHS Token
+	vector<VALUE_TOKENS> 	valueTokens; // RHS Token
+	vector<vector<Token>>	valueVector;
+	queue<Token> 			VarQueue;
+
+	// constructor
+	VariableTokens(
+		vector<VARIABLE_TOKENS> varTokens,
+		vector<VALUE_TOKENS> 	valueTokens,
+		vector<vector<Token>>	valueVector,
+		queue<Token>			VarQueue
+	){
+		this->varTokens   = varTokens;
+		this->valueTokens = valueTokens;
+		this->valueVector = valueVector;
+		this->VarQueue 	  = VarQueue;
+	}
+};
+
+enum class ARRAY_ACCESS{
+	NOTHING 		,  // 0
+	VAR_NAME 		,  // 1
+	BRACK_OPEN 		,  // 2
+	INDEX_VECTOR 	,  // 3
+	BRACK_CLOSE	 	,  // 4
+	PROPERTY_ACCESS ,  // 5
+	PROPERTY_NAME	,  // 6
+	END 			   // 7
+};
+
+struct ArrayAccessTokens{
+	std::vector<ARRAY_ACCESS> tokens;
+	std::string arrayName;
+	std::vector<std::vector<Token>> indexVector;
+	bool isTouchedArrayProperty = false;
+	std::string arrProperty;
+
+	ArrayAccessTokens( 
+		std::vector<ARRAY_ACCESS> tokens,
+		std::string arrayName,
+		std::vector<std::vector<Token>> indexVector
+	){
+		this->tokens 	  = tokens;
+		this->arrayName   = arrayName;
+		this->indexVector = indexVector;
+	}
+
+	void setArrayProperty( std::string arrProp ){
+		this->isTouchedArrayProperty = true;
+		this->arrProperty = arrProp;
+	}
+};
 
 template <typename ARRAY_SUPPORT_TYPES>
 class ArrayList{
 	public:
-		std::vector< 
-			std::variant< 
-				ARRAY_SUPPORT_TYPES,
-				ArrayList<ARRAY_SUPPORT_TYPES>*,
-				unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
-				>
-			> arrayList;
-	
+		std::vector< std::variant< ARRAY_SUPPORT_TYPES,ArrayList<ARRAY_SUPPORT_TYPES>*,unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>> arrayList;
 		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated = 0;
 		
@@ -114,8 +158,7 @@ class ArrayList{
 		template <typename DEEP_VALUE>
 		static unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, std::queue<DEEP_VALUE>& ValueQueue ){
-			unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = \
-					 ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
+			unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
 			return arrayResult;
 		}
 
@@ -167,53 +210,27 @@ class ArrayList{
 		}
 };
 
+template <typename ARRAY_SUPPORT_TYPES>
+struct VARIABLE_HOLDER{
+	std::string key;
+	bool isTypeArray;
+	std::variant<VarDtype,unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> value;
+};
 struct VAR_INFO{
-	string varName;
+	std::string varName;
 	bool isTypeArray;
 
-	VAR_INFO( string varName, bool isTypeArray ){
+	VAR_INFO( std::string varName, bool isTypeArray ){
 		this->varName 	  = varName;
 		this->isTypeArray = isTypeArray;
 	}
 };
 
-template <typename ARRAY_SUPPORT_TYPES>
-struct VARIABLE_HOLDER{
-	std::string key;
-	bool isTypeArray;
-
-	std::variant<
-		VarDtype,
-		unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
-	> value;
-};
-
-struct VariableTokens{
-	vector<VARIABLE_TOKENS> varTokens; 	 // LHS Token
-	vector<VALUE_TOKENS> 	valueTokens; // RHS Token
-	vector<vector<Token>>	valueVector;
-	queue<Token> 			VarQueue;
-
-	// constructor
-	VariableTokens(
-		vector<VARIABLE_TOKENS> varTokens,
-		vector<VALUE_TOKENS> 	valueTokens,
-		vector<vector<Token>>	valueVector,
-		queue<Token>			VarQueue
-	){
-		this->varTokens   = varTokens;
-		this->valueTokens = valueTokens;
-		this->valueVector = valueVector;
-		this->VarQueue 	  = VarQueue;
-	}
-};
-
-
-VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& startCurPtr ){
-	vector<VARIABLE_TOKENS> varTokens;
-	vector<VALUE_TOKENS> 	valueToken;
-	vector<vector<Token>> 	valueVector;
-	queue<Token> VarQueue;
+VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t& startCurPtr ){
+	std::vector<VARIABLE_TOKENS> 	varTokens;
+	std::vector<VALUE_TOKENS> 		valueToken;
+	std::vector<std::vector<Token>> valueVector;
+	std::queue<Token> VarQueue;
 
 	bool isVariableTurn 	= true;
 	int arrayOpenedCount 	= 0;
@@ -253,7 +270,7 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 				varTokens.push_back( VARIABLE_TOKENS::NAME );
 			}
 			else{
-				vector<Token> curValueVector;
+				std::vector<Token> curValueVector;
 				int openBrack = 0;
 
 				while( startCurPtr < tokens.size() ){
@@ -276,7 +293,7 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 }
 
 void 
-passValidVarDeclaration( vector<VARIABLE_TOKENS>& varTokens, vector<VAR_INFO>& variableStack , queue<Token>& VarQueue ){
+passValidVarDeclaration( std::vector<VARIABLE_TOKENS>& varTokens, std::vector<VAR_INFO>& variableStack , std::queue<Token>& VarQueue ){
 	if( !varTokens.size() ) 
 		throw runtime_error("Variable token is empty");
 
@@ -312,7 +329,7 @@ passValidVarDeclaration( vector<VARIABLE_TOKENS>& varTokens, vector<VAR_INFO>& v
 		if(currentPointer + 1 >= varTokens.size() )
 			break;
 
-		vector<VARIABLE_TOKENS> nextPossibleTokens = VARIABLE_DECLARE_GRAPH[ varTokens[ currentPointer++ ] ];
+		std::vector<VARIABLE_TOKENS> nextPossibleTokens = VARIABLE_DECLARE_GRAPH[ varTokens[ currentPointer++ ] ];
 		
 		bool continueChecking = false;
 		for( int x = 0; x < nextPossibleTokens.size(); x++ ){
@@ -330,7 +347,7 @@ passValidVarDeclaration( vector<VARIABLE_TOKENS>& varTokens, vector<VAR_INFO>& v
 }
 
 void
-passValidValueTokens( vector<VALUE_TOKENS>& valueTokens ){
+passValidValueTokens( std::vector<VALUE_TOKENS>& valueTokens ){
 	if( !valueTokens.size() )
 		throw runtime_error("Value tokens empty");
 
@@ -364,96 +381,14 @@ passValidValueTokens( vector<VALUE_TOKENS>& valueTokens ){
 		throw InvalidSyntaxError("Occures Syntax error in Variable initialization");
 }
 
-enum class ARRAY_ACCESS{
-	NOTHING 		,  // 0
-	VAR_NAME 		,  // 1
-	BRACK_OPEN 		,  // 2
-	INDEX_VECTOR 	,  // 3
-	BRACK_CLOSE	 	,  // 4
-	PROPERTY_ACCESS ,  // 5
-	PROPERTY_VECTORS,  // 6
-	PROPERTY_NAME	,  // 7
-	END 			   // 8
-};
-
-struct ArrayPropertyAccess{
-	string propertyType;
-	vector<vector<Token>> propertyValueVector;
-
-	ArrayPropertyAccess() = default;
-
-	ArrayPropertyAccess(
-		string propertyType,
-		vector<vector<Token>> propertyValueVector
-	){
-		this->propertyType = propertyType;
-		this->propertyValueVector = propertyValueVector;
-	}
-};
-
-struct ArrayAccessTokens{
-	vector<ARRAY_ACCESS> tokens;
-	string arrayName;
-	vector<vector<Token>> indexVector;
-	bool isTouchedArrayProperty = false;
-	ArrayPropertyAccess arrProperty;
-
-	ArrayAccessTokens( 
-		vector<ARRAY_ACCESS> tokens,
-		string arrayName,
-		vector<vector<Token>> indexVector
-	){
-		this->tokens 	  = tokens;
-		this->arrayName   = arrayName;
-		this->indexVector = indexVector;
-	}
-
-	void setArrayProperty( ArrayPropertyAccess arrProp ){
-		this->isTouchedArrayProperty = true;
-		this->arrProperty = arrProp;
-	}
-
-};
-
-void fill_property_vector( const vector<Token>& tokens, 
-		vector<vector<Token>>&vec, size_t& currentPtr ){
-
-	vector<Token> curVector;
-	currentPtr++;
-		
-	int openCnts = 1;
-	while( currentPtr < tokens.size() ){
-		const Token& curToken = tokens[ currentPtr ];
-		currentPtr++;
-
-		if( curToken.token == "(" )
-			openCnts++;
-		else if( curToken.token == ")" )
-			openCnts--;
-
-		if( curToken.token == "," && openCnts == 1 ){
-			vec.push_back( curVector );
-			curVector.clear();
-			continue;
-		}
-		if( !openCnts ){
-			if( !curVector.empty() ){
-				vec.push_back( curVector );
-			}
-		}
-		curVector.push_back( curToken );
-	}
-}
-
 ArrayAccessTokens
-stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
-	vector<vector<Token>> indexVector;
-	vector<ARRAY_ACCESS>  arrAccessTokens;
-	string 				  arrName;
+stringToArrayAccesToken( const std::vector<Token>&tokens, size_t& currentPtr ){
+	std::vector<std::vector<Token>> indexVector;
+	std::vector<ARRAY_ACCESS> 		arrAccessTokens;
+	std::string 				  	arrName;
 	ARRAY_ACCESS prev = ARRAY_ACCESS::NOTHING;
 
-	string propertyName;
-	vector<vector<Token>> propertyArgs;
+	std::string propertyName;
 	bool isTouchedArrayProperty = false;
 
 	while( currentPtr < tokens.size() ){
@@ -477,21 +412,19 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 			}
 			else if( prev == ARRAY_ACCESS::BRACK_OPEN ){
 				arrAccessTokens.push_back( ARRAY_ACCESS::INDEX_VECTOR );
-				vector<Token> curIndexVec;
+				std::vector<Token> curIndexVec;
 				
 				int openCnts = 1;
 
 				while( currentPtr < tokens.size() ){
 					const Token& tok = tokens[ currentPtr ];
 					if( tok.token == "[" ){
-						openCnts++;
-						currentPtr++;
+						openCnts++; currentPtr++;
 						curIndexVec.push_back( tok );
 						continue;
 					}
 					if( tok.token == "]" ){
-						openCnts--;
-						if( openCnts == 0 ){
+						if( --openCnts == 0 ){
 							currentPtr--;
 							break;
 						}
@@ -509,52 +442,37 @@ stringToArrayAccesToken( const vector<Token>&tokens, size_t& currentPtr ){
 				propertyName = curToken;
 				arrAccessTokens.push_back( ARRAY_ACCESS::PROPERTY_NAME );
 			}
-			else {
-				arrAccessTokens.push_back( ARRAY_ACCESS::END );
-				ArrayAccessTokens newArrToken( arrAccessTokens, arrName, indexVector );
-				newArrToken.isTouchedArrayProperty = isTouchedArrayProperty;
-				if( isTouchedArrayProperty )
-					newArrToken.setArrayProperty( ArrayPropertyAccess( propertyName, propertyArgs ) );
-				return newArrToken;
-			}
+			else goto FINAL;
 		}
 		currentPtr++;
 		prev = arrAccessTokens.empty() ? prev : arrAccessTokens.back();
 	}
-	arrAccessTokens.push_back( ARRAY_ACCESS::END );
-	ArrayAccessTokens newArrToken( arrAccessTokens, arrName, indexVector );
-	newArrToken.isTouchedArrayProperty = isTouchedArrayProperty;
+	FINAL:
+		arrAccessTokens.push_back( ARRAY_ACCESS::END );
+		ArrayAccessTokens newArrToken( arrAccessTokens, arrName, indexVector );
+		newArrToken.isTouchedArrayProperty = isTouchedArrayProperty;
 
-	if( isTouchedArrayProperty )
-		newArrToken.setArrayProperty( ArrayPropertyAccess( propertyName, propertyArgs ) );
+		if( isTouchedArrayProperty )
+			newArrToken.setArrayProperty( propertyName );
 
-	return newArrToken;
+		return newArrToken;
 }
 
 unordered_map<ARRAY_ACCESS, vector<ARRAY_ACCESS>> ARRAY_ACCESS_GRAPH = {
-	{ ARRAY_ACCESS::VAR_NAME, 		  { 
-										ARRAY_ACCESS::PROPERTY_ACCESS,
+	{ ARRAY_ACCESS::VAR_NAME, 		  { ARRAY_ACCESS::PROPERTY_ACCESS,
 										ARRAY_ACCESS::BRACK_OPEN, 
 									    ARRAY_ACCESS::END } 			},
-	
 	{ ARRAY_ACCESS::BRACK_OPEN, 	  { ARRAY_ACCESS::INDEX_VECTOR }  	},
-	
 	{ ARRAY_ACCESS::INDEX_VECTOR, 	  { ARRAY_ACCESS::BRACK_CLOSE } 	},
-	
 	{ ARRAY_ACCESS::BRACK_CLOSE, 	  { ARRAY_ACCESS::END, 
 										ARRAY_ACCESS::PROPERTY_ACCESS,
 										ARRAY_ACCESS::BRACK_OPEN } },
-
 	{ ARRAY_ACCESS::PROPERTY_ACCESS,  { ARRAY_ACCESS::PROPERTY_NAME }   },
-	
-	{ ARRAY_ACCESS::PROPERTY_NAME,    { ARRAY_ACCESS::PROPERTY_VECTORS, 
-										ARRAY_ACCESS::END } 			},
-	
-	{ ARRAY_ACCESS::PROPERTY_VECTORS, { ARRAY_ACCESS::END } 			}
+	{ ARRAY_ACCESS::PROPERTY_NAME,    { ARRAY_ACCESS::END } 			},
 };
 
-bool 
-isValidArrayAccess( vector<ARRAY_ACCESS>& tokens ){
+void 
+passArrayAccessToken( std::vector<ARRAY_ACCESS>& tokens ){
 	size_t startIndex = 0;
 	ARRAY_ACCESS currentStage = ARRAY_ACCESS::VAR_NAME;
 
@@ -562,13 +480,13 @@ isValidArrayAccess( vector<ARRAY_ACCESS>& tokens ){
 		ARRAY_ACCESS newTok = tokens[ startIndex ];
 		
 		if( newTok == ARRAY_ACCESS::END )
-			return true;
+			return ;
 		
 		if( startIndex + 1 >= tokens.size() )
-			return false;
+			break;
 
 		ARRAY_ACCESS nextExpected = tokens[ ++startIndex ];
-		vector<ARRAY_ACCESS>& nextExpectedTokens = ARRAY_ACCESS_GRAPH[ currentStage ];
+		std::vector<ARRAY_ACCESS>& nextExpectedTokens = ARRAY_ACCESS_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
 		for( ARRAY_ACCESS nextToks: nextExpectedTokens ){
@@ -577,10 +495,11 @@ isValidArrayAccess( vector<ARRAY_ACCESS>& tokens ){
 				break;
 			}
 		}
-		if( !continueNext ) return false;
+		if( !continueNext )
+			throw InvalidSyntaxError("Invalid access method");
 		currentStage = nextExpected;
 	}
-	return false;
+	throw InvalidSyntaxError("Failed to reach token end for array access syntax");
 }
 
 #endif
