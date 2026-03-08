@@ -141,30 +141,23 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 				currentState = TOKEN_TYPE::NUMBER;
 				currentWord.push_back(cCode);
 			}
-			else if(currentState == TOKEN_TYPE::OPERATOR && 
-					(currentWord == "-" || currentWord == "+")){
-
+			else if(currentState == TOKEN_TYPE::OPERATOR && (currentWord == "-" || currentWord == "+")){
 				currentState = TOKEN_TYPE::NUMBER;
 				currentWord.push_back(cCode);
 			}
-			else
-				throw runtime_error("Invalid token at line: " + to_string(lineNumber) + 
-									 " Column: " + to_string(colNumber));
+			else throw runtime_error("Invalid token at line: " + to_string(lineNumber) + " Column: " + to_string(colNumber));
 		}
 		else if(isalpha((unsigned char)cCode) || cCode == '_'){
 			if(currentState == TOKEN_TYPE::IDENTIFIER)
 				currentWord.push_back(cCode);
 
 			else if(currentState == TOKEN_TYPE::NOTHING){
-
 				currentState = TOKEN_TYPE::IDENTIFIER;
 				currentWord.push_back(cCode);
 			}
 			else if(currentState == TOKEN_TYPE::OPERATOR){
-
 				Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
 				colNumber++;
-
 				currentWord = string(1, cCode);
 				currentState = TOKEN_TYPE::IDENTIFIER;
 			}			
@@ -203,24 +196,14 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 			if(cCode == '='){
 				if(isOptr(currentWord)){
 					currentWord.push_back(cCode);
-					Tokens.push_back(Token(
-						TOKEN_TYPE::OPERATOR,
-						currentWord,
-						lineNumber,
-						colNumber
-					));
+					Tokens.push_back(Token(TOKEN_TYPE::OPERATOR,currentWord,lineNumber,colNumber));
 					currentWord = "";
 					currentState = TOKEN_TYPE::NOTHING;
 					colNumber++;
 				}
 				else{
 					if(currentState != TOKEN_TYPE::NOTHING){
-						Tokens.push_back(Token(
-							currentState,
-							currentWord,
-							lineNumber,
-							colNumber
-						));
+						Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
 						colNumber++;
 					}
 					currentState = TOKEN_TYPE::OPERATOR;
@@ -229,12 +212,7 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 			}
 			else if(isOptr(string(1, cCode))){
 				if(currentState != TOKEN_TYPE::NOTHING){
-					Tokens.push_back(Token(
-						currentState,
-						currentWord,
-						lineNumber,
-						colNumber
-					));
+					Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
 					currentWord = string(1, cCode);
 					currentState = TOKEN_TYPE::OPERATOR;
 					colNumber++;
@@ -255,22 +233,12 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 						if(currentWord == "sheri" || currentWord == "thettu")
 							currentState = TOKEN_TYPE::BOOLEAN;
 					}
-					Tokens.push_back(Token(
-						currentState,
-						currentWord,
-						lineNumber,
-						colNumber
-					));
+					Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
 					currentWord = "";
 					currentState = TOKEN_TYPE::NOTHING;
 					colNumber++;
 				}
-				Tokens.push_back(Token(
-					TOKEN_TYPE::SPEC_CHAR,
-					string(1, cCode),
-					lineNumber,
-					colNumber
-				));
+				Tokens.push_back(Token(TOKEN_TYPE::SPEC_CHAR,string(1, cCode),lineNumber,colNumber));
 				colNumber++;
 			}
 		}
