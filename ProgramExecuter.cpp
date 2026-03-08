@@ -2,6 +2,8 @@
 
 using namespace std;
 
+size_t LastRecoverErrorList = 0;
+
 template <typename PARENT_CLASS>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
 ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, PARENT_CLASS* prntClass, size_t endPtr ){
@@ -20,7 +22,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				prntClass->VarHandlerRunner( tokens, currentPtr );
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
+				cout << "pidi Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 		}
@@ -40,7 +42,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
+				cout << "nok Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 		}
@@ -54,7 +56,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				prntClass->IOHandlerRunner( tokens, currentPtr );
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
+				cout << "para Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 		}
@@ -67,7 +69,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
+				cout << "pari Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 			
@@ -84,7 +86,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
+				cout << "ittuthiri Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 		}
@@ -99,7 +101,13 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			}
 			auto [func, rPT] = prntClass->getFromVmap( tokens[ currentPtr ].token );
 			if( func && ( func->mapType == MAPTYPE::FUNCTION || func->mapType == MAPTYPE::FUNC_PTR) ){
-				prntClass->handleFunctionCall( func, tokens, currentPtr, rPT );
+				try{
+					prntClass->handleFunctionCall( func, tokens, currentPtr, rPT );
+				}
+				catch(...){
+					cout << "pari call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
+					throw;
+				}
 			}
 			else{
 				try{
@@ -108,10 +116,11 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				}
 				catch( const RecoverError& err ){
 					currentPtr = backUpPtr;
+					LastRecoverErrorList = tokens[currentPtr].row;
 					throw err;			
 				}
 				catch( ... ){
-					cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
+					cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 					throw;
 				}
 			}
@@ -143,7 +152,7 @@ int main( int argc, char *argv[] ){
 		cout << err.what() << endl;
 	}
 	catch( const RecoverError& err ){
-		throw runtime_error("Error occured at line: " + to_string( pointer + 1 ));
+		throw runtime_error("Some Error occured at line: " + to_string(LastRecoverErrorList + 1));
 	}
 	return 0;
 }

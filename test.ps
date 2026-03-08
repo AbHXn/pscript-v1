@@ -1,0 +1,41 @@
+pari int_input(pidi msg){
+	para msg;
+	pidi int_data = edukku;
+	int_data := INT;
+	poda int_data;
+}
+
+pari array_input(pidi size){
+	pidi arr kootam = {0};
+	pidi index = 0;
+	ittuthiri index < size {
+		arr[index] = int_input("Enter array value: ");
+		index = index + 1;		
+	}
+	poda arr;
+}
+
+pari binary_search(pidi arr kootam, pidi left, pidi right, pidi search){
+	pidi res = -1;
+	nok left > right {
+		poda res;
+	};
+
+	pidi mid = (left + right) / 2;
+	mid := INT;
+	nok arr[mid] > search {
+		res = binary_search(arr, left, mid - 1, search);
+	}: nok arr[mid] < search {
+		res = binary_search(arr, mid + 1, right, search);
+	}: umbi {
+		res = mid;
+	};
+	poda res;
+}
+
+pidi arr_size = int_input("Enter array size: ");
+pidi arr kootam = array_input(arr_size);
+para arr koode "\n";
+
+pidi index = binary_search(arr, 0, arr_size - 1, 2);
+para index koode "\n";

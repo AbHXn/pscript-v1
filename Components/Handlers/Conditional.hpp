@@ -95,6 +95,8 @@ stringToCondTokens( const std::vector<Token>& tokens, size_t& start, size_t& end
 				// else is always true
 				conditions.push_back( { {Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 )}, start + 1 } );
 			}
+			else if(curToken == "}")
+				break;
 			else{
 				std::vector<Token> condVector;
 				while( start < tokens.size() ){
