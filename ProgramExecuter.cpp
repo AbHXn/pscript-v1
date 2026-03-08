@@ -124,6 +124,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 int main( int argc, char *argv[] ){
 	try{
 		string filename = argv[1];
+		if (filename.size() <= 3)
+			throw runtime_error("Invalid file format");
+
+		if( filename.substr(filename.size() - 3) != ".ps" )
+			throw runtime_error("Invalid file format");
+
 		getTheTokens( filename, fullTokens );
 
 		unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
