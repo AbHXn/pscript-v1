@@ -67,6 +67,7 @@ class FunctionHandler: public VAR_VMAP {
 		resolve variables, function call, array calls etc */
 		pair<queue<DEEP_VALUE_DATA>, vector<string>>
 		vectorResolver( const vector<Token>& tokens ){
+
 			queue<DEEP_VALUE_DATA> resolvedVector;       
 			vector<string> 		   simpleVector;
 
@@ -88,7 +89,7 @@ class FunctionHandler: public VAR_VMAP {
 
 					// if identifier is not there in VMAP
 					if (VMAPData == nullptr)
-						throw InvalidSyntaxError( "Unknown identifier at line: " + to_string(tok.row) + " " + curToken );
+						throw InvalidSyntaxError( "Unknown identifier " + curToken );
 
 					// Resolve if it is variable
 					if( VMAPData->mapType == MAPTYPE::VARIABLE ){
@@ -613,14 +614,10 @@ class FunctionHandler: public VAR_VMAP {
 					Token& top = castInfo.back();
 
 					if( mapData == nullptr )
-						throw InvalidSyntaxError(
-								"Unknown token: " + varsAndVals[x].token + " at line: " + to_string( varsAndVals[x].row ) 
-							);
+						throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token   );
 
 					if( mapData->mapType != MAPTYPE::VARIABLE ){
-						throw InvalidSyntaxError(
-							"Only variables are allowed for TYPE_CASTING\n Error at line: " + to_string( varsAndVals[x].row )
-						);
+						throw InvalidSyntaxError("Only variables are allowed for TYPE_CASTING");
 					}
 					if( top.token == "INT" ){
 						mapData->typeCastToInt();
@@ -645,15 +642,10 @@ class FunctionHandler: public VAR_VMAP {
 				auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
 				
 				if( mapData == nullptr )
-					throw InvalidSyntaxError(
-							"Unknown token: " + varsAndVals[x].token + " at line: " + to_string( varsAndVals[x].row ) 
-						);
+					throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token );
 
-				if( mapData->mapType != MAPTYPE::VARIABLE && mapData->mapType != MAPTYPE::ARRAY_PTR ){
-					throw InvalidSyntaxError(
-						"Only variables are allowed for updation\n Error at line: " + to_string( varsAndVals[x].row )
-					);
-				}
+				if( mapData->mapType != MAPTYPE::VARIABLE && mapData->mapType != MAPTYPE::ARRAY_PTR )
+					throw InvalidSyntaxError("Only variables are allowed for updation");
 
 				DEEP_VALUE_DATA topValue = finalValueQueue.front();
 				finalValueQueue.pop();
@@ -753,9 +745,7 @@ class FunctionHandler: public VAR_VMAP {
 						propHolderTemp.push_back( move( mapData.second ) );
 					return  move( mapData.value() ) ;
 				}
-				throw InvalidSyntaxError(
-					"no variable found line:  " + to_string(returnStatementData.back().row) + " " + returnStatementData.back().token
-				);
+				throw InvalidSyntaxError("no variable foun " + returnStatementData.back().token );
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
 

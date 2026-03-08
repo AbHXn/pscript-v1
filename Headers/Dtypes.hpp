@@ -24,7 +24,11 @@ class DtypeHelper{
 		}
 
 		static double toDouble(const std::string& value){
-			return std::stod( value );
+			try{
+				return std::stod( value );
+			} catch( ... ){
+				throw std::invalid_argument("Invalid Double: " + value);
+			}
 		}
 };
 

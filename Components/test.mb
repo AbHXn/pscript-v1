@@ -1,2 +1,2 @@
-pidi test = "admin";
-para test[0][0];
+pidi x kootam = {1,2,3};
+para x[13];

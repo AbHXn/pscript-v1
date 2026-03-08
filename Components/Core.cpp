@@ -14,7 +14,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			return nullopt;
 
 		if( curToken == "pidi" ){
-			prntClass->VarHandlerRunner( tokens, currentPtr );
+			try{
+				prntClass->VarHandlerRunner( tokens, currentPtr );
+			}
+			catch( const InvalidSyntaxError& err ){
+				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+			}
 		}
 		else if( curToken == "nok" ){
 			try{
@@ -32,7 +37,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( const InvalidSyntaxError& err ){
-				cout << err.what() << endl;
+				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
 				continue;
 			}
 		}
@@ -42,11 +47,24 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			return nullopt;
 		}
 		else if( curToken == "para" ){
-			prntClass->IOHandlerRunner( tokens, currentPtr );
+			try{
+				prntClass->IOHandlerRunner( tokens, currentPtr );
+			}
+			catch( const InvalidSyntaxError& err ){
+				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+			}
 		}
 		else if( curToken == "thenga" ){
-			prntClass->functionDefHandlerRunner( tokens, currentPtr );
-			currentPtr--;
+			try{
+				prntClass->functionDefHandlerRunner( tokens, currentPtr );
+				currentPtr--;
+			} 
+			catch( const InvalidSyntaxError& err ){
+				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+			}
+			catch( const RecoverError& err ){
+				continue;
+			}
 		}
 		else if( curToken == "ittuthiri" ){
 			try{
@@ -58,6 +76,9 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			}
 			catch( const RecoverError& err ){
 				continue;
+			}
+			catch( const InvalidSyntaxError& err ){
+				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
 			}
 		}
 		else{
@@ -83,7 +104,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 					throw err;			
 				}
 				catch( const InvalidSyntaxError& err ){
-					cout << err.what() << endl;
+					cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
 				}
 			}
 		}
@@ -97,7 +118,6 @@ int main( int argc, char *argv[] ){
 		string filename = argv[1];
 		getTheTokens( filename, fullTokens );
 
-		size_t start = 0;
 		unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
 		shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
 
@@ -106,7 +126,11 @@ int main( int argc, char *argv[] ){
 		auto dd = move(ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, func.get() ));
 	}
 	catch( InvalidSyntaxError& err ){
+		cout << "asdf" << endl;
 		cout << err.what() << endl;
+	}
+	catch( const RecoverError& err ){
+		throw runtime_error("Error occured at line: " + to_string( pointer ));
 	}
 	return 0;
 }
