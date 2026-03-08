@@ -1,2 +1,3 @@
-pidi str = 255 + 66;
-para str:PO_ASCII koode "\n";
+pidi x = 3;
+pidi y = x +x;
+para y koode "\n";

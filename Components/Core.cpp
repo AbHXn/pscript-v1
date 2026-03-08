@@ -17,8 +17,9 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			try{
 				prntClass->VarHandlerRunner( tokens, currentPtr );
 			}
-			catch( const InvalidSyntaxError& err ){
-				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+			catch( ... ){
+				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				throw;
 			}
 		}
 		else if( curToken == "nok" ){
@@ -36,9 +37,9 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			catch( const RecoverError& err ){
 				continue;
 			}
-			catch( const InvalidSyntaxError& err ){
-				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
-				continue;
+			catch( ... ){
+				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				throw;
 			}
 		}
 		else if( curToken == "}" ){
@@ -50,8 +51,9 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			try{
 				prntClass->IOHandlerRunner( tokens, currentPtr );
 			}
-			catch( const InvalidSyntaxError& err ){
-				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+			catch( ... ){
+				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				throw;
 			}
 		}
 		else if( curToken == "thenga" ){
@@ -59,12 +61,14 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				prntClass->functionDefHandlerRunner( tokens, currentPtr );
 				currentPtr--;
 			} 
-			catch( const InvalidSyntaxError& err ){
-				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
-			}
 			catch( const RecoverError& err ){
 				continue;
 			}
+			catch( ... ){
+				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				throw;
+			}
+			
 		}
 		else if( curToken == "ittuthiri" ){
 			try{
@@ -77,8 +81,9 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			catch( const RecoverError& err ){
 				continue;
 			}
-			catch( const InvalidSyntaxError& err ){
-				cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+			catch( ... ){
+				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				throw;
 			}
 		}
 		else{
@@ -103,8 +108,9 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 					currentPtr = backUpPtr;
 					throw err;			
 				}
-				catch( const InvalidSyntaxError& err ){
-					cout << "Line " + to_string(tokens[backUpPtr].row) + ": " + err.what() << endl;
+				catch( ... ){
+					cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+					throw;
 				}
 			}
 		}
@@ -126,7 +132,6 @@ int main( int argc, char *argv[] ){
 		auto dd = move(ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, func.get() ));
 	}
 	catch( InvalidSyntaxError& err ){
-		cout << "asdf" << endl;
 		cout << err.what() << endl;
 	}
 	catch( const RecoverError& err ){

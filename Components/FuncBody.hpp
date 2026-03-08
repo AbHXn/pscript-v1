@@ -115,40 +115,35 @@ class FunctionHandler: public VAR_VMAP {
 					}
 					// Resolve if it is function call
 					else if( VMAPData->mapType == MAPTYPE::FUNCTION || VMAPData->mapType == MAPTYPE::FUNC_PTR ){
-						try{
-							auto varHolder = get<FUNCTION_MAP_DATA*>( VMAPData->var );
+						auto varHolder = get<FUNCTION_MAP_DATA*>( VMAPData->var );
 
-							FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
+						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
-							if( isFuncPtr( pt.callTokens ) ){
-								simpleVector.push_back("FUNC_PTR");
-								resolvedVector.push( varHolder );
-							}
-							else{
-								auto data = this->handleFunctionCall( VMAPData, fullTokens, x, rPT, pt);
-								if( data.has_value() ){	
-									if( holds_alternative<VarDtype>( data.value() ) ){
-										VarDtype returnedData = get<VarDtype>( data.value() );
-										
-										simpleVector.push_back("VAR");
-										resolvedVector.push( returnedData );
-									}
-									else if( holds_alternative<unique_ptr<MapItem>>( data.value() ) ){
-										auto returnedData = move( get<unique_ptr<MapItem>>( data.value() ) );
-										DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
-										this->pushCache( move( returnedData ) );
-										
-										simpleVector.push_back("CACHE");
-										resolvedVector.push( final );
-									}
-									else throw runtime_error("unknown typed pushed to queue");
+						if( isFuncPtr( pt.callTokens ) ){
+							simpleVector.push_back("FUNC_PTR");
+							resolvedVector.push( varHolder );
+						}
+						else{
+							auto data = this->handleFunctionCall( VMAPData, fullTokens, x, rPT, pt);
+							if( data.has_value() ){	
+								if( holds_alternative<VarDtype>( data.value() ) ){
+									VarDtype returnedData = get<VarDtype>( data.value() );
+									
+									simpleVector.push_back("VAR");
+									resolvedVector.push( returnedData );
 								}
+								else if( holds_alternative<unique_ptr<MapItem>>( data.value() ) ){
+									auto returnedData = move( get<unique_ptr<MapItem>>( data.value() ) );
+									DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
+									this->pushCache( move( returnedData ) );
+									
+									simpleVector.push_back("CACHE");
+									resolvedVector.push( final );
+								}
+								else throw runtime_error("unknown typed pushed to queue");
 							}
-							x--; // stringfuncalltokens it hits then unknown token get that token back
 						}
-						catch ( const InvalidSyntaxError& err ){
-							cout << err.what() << endl;
-						}
+						x--; // stringfuncalltokens it hits then unknown token get that token back
 					}
 					else if( VMAPData->mapType == MAPTYPE::ARRAY_PTR ){
 						auto arryListPtr = get<ArrayList<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
@@ -862,13 +857,9 @@ class Conditional: public FunctionHandler{
 							start = data.second + 1;
 							runTheCondition = true;
 							
-							try{
-								ProgramExecutor( tokens, start, CALLER::CONDITIONAL, this );
-								start = endOfNOK;
-								return;
-							} catch( const InvalidSyntaxError& err ){
-								cout << err.what() << endl;
-							}
+							ProgramExecutor( tokens, start, CALLER::CONDITIONAL, this );
+							start = endOfNOK;
+							return;
 						}
 					}
 				}
@@ -920,9 +911,6 @@ class LoopHandler: public FunctionHandler{
 					else if( expTok == "pinnava" )
 						currentPtr = beginCopy;
 					else throw err; 
-			}
-				catch( const InvalidSyntaxError& err ){
-					cout << err.what() << endl;
 				}
 			}
 			currentPtr = lpTokens.endPtr;
