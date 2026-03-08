@@ -1,4 +1,4 @@
-#include "FuncBody.hpp"
+#include "Components/FuncBody.hpp"
 
 template <typename PARENT_CLASS>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
