@@ -19,7 +19,8 @@ bool isRegisteredIoTokens( const string& token ){
 
 unordered_map<IO_TOKENS, vector<IO_TOKENS>> IO_GRAPH = {
 	{ IO_TOKENS::PRINT, 		{ IO_TOKENS::PRINT_VALUE } },
-	{ IO_TOKENS::PRINT_VALUE,   { IO_TOKENS::END, IO_TOKENS::CONCAT, IO_TOKENS::PRINT } },
+	{ IO_TOKENS::PRINT_VALUE,   { IO_TOKENS::END, IO_TOKENS::CONCAT, 
+								  IO_TOKENS::PRINT } },
 	{ IO_TOKENS::CONCAT, 		{ IO_TOKENS::PRINT_VALUE } },
 };
 
@@ -32,13 +33,13 @@ isValidIoTokens( vector<IO_TOKENS>& IOTokens ){
 	size_t startIndex = 0;
 
 	while( startIndex < IOTokens.size() ){
-		if( IOTokens[ startIndex ] == IO_TOKENS::END ){
+		if( IOTokens[ startIndex ] == IO_TOKENS::END )
 			return true;
-		}
-		if( startIndex + 1 < IOTokens.size() )
-			startIndex++;
-		else break;
-		IO_TOKENS nextExpected = IOTokens[ startIndex ];
+
+		if( startIndex + 1 >= IOTokens.size() )
+			break;
+
+		IO_TOKENS nextExpected = IOTokens[ ++startIndex ];
 		vector<IO_TOKENS>& nextExpectedTokens = IO_GRAPH[ currentStage ];
 
 		bool continueNext = false;
@@ -85,7 +86,7 @@ stringToIoTokens( const vector<Token>& tokens, size_t& startIndex ){
 			IOTokens.push_back( IO_TOKENS::PRINT_VALUE );
 		}
 	}
-	throw InvalidSyntaxError("Faild to find the end of token ;");
+	throw InvalidSyntaxError("Failed to find the end of token ;");
 }
 
 #endif

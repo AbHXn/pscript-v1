@@ -594,7 +594,7 @@ class FunctionHandler: public VAR_VMAP {
 			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
 			if( !isValidInstructionSet( InsTokensAndData.insToken) )
-				throw InvalidSyntaxError( "Invalid Instruction set" );
+				throw RecoverError();
 
 			queue<DEEP_VALUE_DATA> finalValueQueue;
 			vector<Token>& varsAndVals = InsTokensAndData.leftVector;

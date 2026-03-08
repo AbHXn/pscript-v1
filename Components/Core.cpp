@@ -78,13 +78,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 					backUpPtr = currentPtr;
 					prntClass->InstructionHandlerRunner( tokens, currentPtr );
 				}
-				catch( const InvalidSyntaxError& err ){
+				catch( const RecoverError& err ){
 					currentPtr = backUpPtr;
-					throw RecoverError();
-					// throw InvalidSyntaxError(
-					// 		"Encounter error in function at line:  " + 
-					// 			to_string( tokens[currentPtr].row + 1) + " col " +  to_string( tokens[ currentPtr ].col )
-					// 		);
+					throw err;			
+				}
+				catch( const InvalidSyntaxError& err ){
+					cout << err.what() << endl;
 				}
 			}
 		}
