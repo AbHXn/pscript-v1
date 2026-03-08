@@ -12,11 +12,7 @@ class VAR_VMAP{
 		string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
 		
-		unordered_map<
-			string, 
-			unique_ptr<MapItem>
-		> VMAP;
-		
+		unordered_map< string, unique_ptr<MapItem>> VMAP;
 		unordered_map<string, MapItem*> VMAP_COPY;
 
 		unordered_map<string, MapItem*>
@@ -30,7 +26,6 @@ class VAR_VMAP{
 				
 				for( auto value: currentDir->VMAP_COPY )
 					copyData[value.first] = value.second;
-				
 				currentDir = currentDir->parent;
 			}
 			return copyData;
@@ -42,10 +37,8 @@ class VAR_VMAP{
  		    
  		    while (currentEnv != nullptr) {
 		        auto it_2 = currentEnv->VMAP_COPY.find(key);
-		        
 		        if( it_2 != currentEnv->VMAP_COPY.end() )
 		        	return make_pair( it_2->second, currentEnv );
- 		        
  		        currentEnv = currentEnv->parent;
 		    }
 		    return make_pair(nullptr, nullptr);
@@ -56,10 +49,8 @@ class VAR_VMAP{
 	        auto cur = this;
 	        while( cur && cur->runnerBody == this->runnerBody ){
 	        	auto it = cur->VMAP.find(key);
-
 	       		if (it != cur->VMAP.end())
 	            	return make_pair( it->second.get(), cur );
-	            
 	            cur = cur->parent;
 	        }
 		    return getFromVmapCopy(key);
@@ -75,11 +66,9 @@ class VAR_VMAP{
 		    auto result = std::move(it->second);
 		    VMAP.erase(it);
 
-		    if( result->mapType == MAPTYPE::FUNCTION ){
-		    	for( auto& test: this->VMAP ){
+		    if( result->mapType == MAPTYPE::FUNCTION )
+		    	for( auto& test: this->VMAP )
 		    		propHolderTemp.push_back( move(test.second) );
-		    	}
-		    }
 		    return result;
 		}
 
