@@ -374,8 +374,8 @@ class FunctionHandler: public VAR_VMAP {
 			size_t start = 0;
 			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start );
 			
-			if( !isValidValueSyntax( funcVars.valueTokens ) )
-				throw InvalidSyntaxError("Invalid args initalization in thenga");
+			// pass value syntax tokens			
+			passValidValueTokens( funcVars.valueTokens );
 
 			for( auto& ArgsInfo: funcFromMap->argsInfo ){
 				if( resolvedArgs.empty() )
@@ -446,93 +446,91 @@ class FunctionHandler: public VAR_VMAP {
 				}
 			}
 			vector<VAR_INFO> varInfos;
+			// pass the validity test for variable declaration
+			passValidVarDeclaration( tokens.varTokens, varInfos, tokens.VarQueue );
 
-			if( isValidVariableSyntax( tokens.varTokens, varInfos, tokens.VarQueue ) ){
-				for( auto& varVerification: varInfos ){
-					auto [data, rPT] = this->getFromVmap( varVerification.varName );	
-					// check if variable is already existsed
-					if( data ) throw VariableAlreayExists( varVerification.varName );
-				}
-				// if syntax is not correct
-				if( !isValidValueSyntax( tokens.valueTokens ) )
-					throw InvalidSyntaxError("Invalid Value Initialization Syntax");
+			for( auto& varVerification: varInfos ){
+				auto [data, rPT] = this->getFromVmap( varVerification.varName );	
+				// check if variable is already existsed
+				if( data ) throw VariableAlreayExists( varVerification.varName );
+			}
+			// if syntax is not correct
+			passValidValueTokens( tokens.valueTokens );
 
-				for( size_t x = 0, i = 0; x < tokens.valueTokens.size(); x++ ){
-					if( i >= varInfos.size() && resolvedValueVector.empty() )
-						break;
+			for( size_t x = 0, i = 0; x < tokens.valueTokens.size(); x++ ){
+				if( i >= varInfos.size() && resolvedValueVector.empty() )
+					break;
 
-					auto curValueToken = tokens.valueTokens[x];
+				auto curValueToken = tokens.valueTokens[x];
 
-					if( curValueToken != VALUE_TOKENS::NORMAL_VALUE && curValueToken != \
-						VALUE_TOKENS::ARRAY_VALUE && curValueToken != VALUE_TOKENS::ARRAY_OPEN )
-						continue;
+				if( curValueToken != VALUE_TOKENS::NORMAL_VALUE && curValueToken != \
+					VALUE_TOKENS::ARRAY_VALUE && curValueToken != VALUE_TOKENS::ARRAY_OPEN )
+					continue;
 
-					if( i < varInfos.size() && resolvedValueVector.empty() )
-						throw InvalidSyntaxError("more variables to initialize");
+				if( i < varInfos.size() && resolvedValueVector.empty() )
+					throw InvalidSyntaxError("more variables to initialize");
 
-					if( i >= varInfos.size() && !resolvedValueVector.empty() )
-						throw InvalidSyntaxError("No variable to initialize the value");
+				if( i >= varInfos.size() && !resolvedValueVector.empty() )
+					throw InvalidSyntaxError("No variable to initialize the value");
 
-					VAR_INFO curVarInfo = varInfos[ i++ ];
+				VAR_INFO curVarInfo = varInfos[ i++ ];
 
-					if( curValueToken == VALUE_TOKENS::NORMAL_VALUE ){
-						auto curValue = resolvedValueVector.front();
-						resolvedValueVector.pop();
+				if( curValueToken == VALUE_TOKENS::NORMAL_VALUE ){
+					auto curValue = resolvedValueVector.front();
+					resolvedValueVector.pop();
 
-						if( curVarInfo.isTypeArray && !holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ) )
-							throw InvalidSyntaxError("Assigning value to array type is invalid");
+					if( curVarInfo.isTypeArray && !holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ) )
+						throw InvalidSyntaxError("Assigning value to array type is invalid");
 
-						if( holds_alternative<VarDtype> ( curValue ) ){
-							unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
-							newVariable->key 		 = curVarInfo.varName;
-							newVariable->isTypeArray = false;
-							newVariable->value 		 = get<VarDtype>( curValue );
-
-							auto newMapVar 		= make_unique<MapItem>( );
-							newMapVar->mapType 	= MAPTYPE::VARIABLE;
-							newMapVar->var 	  	= newVariable.get() ;
-							
-							_CACHE_VARS.push_back( move( newVariable ) );
-							this->addToMap( curVarInfo.varName, move(newMapVar) );
-						}
-						else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( curValue )){
-							string& key    		= curVarInfo.varName;
-							auto newMapVar 		= make_unique<MapItem>( );
-							newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
-							newMapVar->var 		= get<ArrayList<ARRAY_SUPPORT_TYPES>*>(curValue) ;
-							
-							this->addToMap( key, move( newMapVar ) );
-						}
-						else if( holds_alternative<FUNCTION_MAP_DATA*>( curValue ) ){
-							string& key    		= curVarInfo.varName;
-							auto newMapVar 		= make_unique<MapItem>( );
-							newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-							newMapVar->var 		= get<FUNCTION_MAP_DATA*>(curValue);
-							
-							this->addToMap( key, move( newMapVar ) );
-						}
-						else throw runtime_error("Type not defined");
-					}
-					else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
-						x++;
-
-						auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.valueTokens,  x, resolvedValueVector );
-
+					if( holds_alternative<VarDtype> ( curValue ) ){
 						unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 						newVariable->key 		 = curVarInfo.varName;
-						newVariable->isTypeArray = true;
-						newVariable->value 		 = move( newArray );
+						newVariable->isTypeArray = false;
+						newVariable->value 		 = get<VarDtype>( curValue );
 
 						auto newMapVar 		= make_unique<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::VARIABLE;
-						newMapVar->var 		= newVariable.get();
-
+						newMapVar->var 	  	= newVariable.get() ;
+						
 						_CACHE_VARS.push_back( move( newVariable ) );
 						this->addToMap( curVarInfo.varName, move(newMapVar) );
 					}
+					else if(holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( curValue )){
+						string& key    		= curVarInfo.varName;
+						auto newMapVar 		= make_unique<MapItem>( );
+						newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
+						newMapVar->var 		= get<ArrayList<ARRAY_SUPPORT_TYPES>*>(curValue) ;
+						
+						this->addToMap( key, move( newMapVar ) );
+					}
+					else if( holds_alternative<FUNCTION_MAP_DATA*>( curValue ) ){
+						string& key    		= curVarInfo.varName;
+						auto newMapVar 		= make_unique<MapItem>( );
+						newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
+						newMapVar->var 		= get<FUNCTION_MAP_DATA*>(curValue);
+						
+						this->addToMap( key, move( newMapVar ) );
+					}
+					else throw runtime_error("Type not defined");
+				}
+				else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
+					x++;
+
+					auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.valueTokens,  x, resolvedValueVector );
+
+					unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					newVariable->key 		 = curVarInfo.varName;
+					newVariable->isTypeArray = true;
+					newVariable->value 		 = move( newArray );
+
+					auto newMapVar 		= make_unique<MapItem>( );
+					newMapVar->mapType 	= MAPTYPE::VARIABLE;
+					newMapVar->var 		= newVariable.get();
+
+					_CACHE_VARS.push_back( move( newVariable ) );
+					this->addToMap( curVarInfo.varName, move(newMapVar) );
 				}
 			}
-			else throw InvalidDTypeError( "Invalid Syntax occured in variable declaration" );
 		}
 
 		void updateString( string& strToUpdate, long int index, DEEP_VALUE_DATA updata ){

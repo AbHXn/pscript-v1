@@ -45,6 +45,7 @@ const unordered_set<string> REGISTERED_TOKENS  = {
 		"}" 
 };
 
+// variable LHS graph (variable declare)
 unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH = {
 	{ VARIABLE_TOKENS::VAR_START, 	{ VARIABLE_TOKENS::NAME } 								  },
 	{ VARIABLE_TOKENS::NAME,		{ VARIABLE_TOKENS::COMMA, VARIABLE_TOKENS::VALUE_ASSIGN, 
@@ -54,6 +55,7 @@ unordered_map <VARIABLE_TOKENS, vector<VARIABLE_TOKENS>> VARIABLE_DECLARE_GRAPH 
 	{ VARIABLE_TOKENS::COMMA, 		{ VARIABLE_TOKENS::NAME } 						  		  }	
 };
 
+// variable RHS graph (value assign)
 unordered_map <VALUE_TOKENS, vector<VALUE_TOKENS>> VALUE_ASSIGN_GRAPH = {
 	{ VALUE_TOKENS::NORMAL_VALUE, { VALUE_TOKENS::COMMA, VALUE_TOKENS::VALUE_END } 			},
 	{ VALUE_TOKENS::ARRAY_OPEN,  { VALUE_TOKENS::ARRAY_OPEN, VALUE_TOKENS::ARRAY_VALUE,
@@ -85,11 +87,7 @@ class ArrayList{
 		
 		template <typename DEEP_VALUE>
 		static unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
-		_arrayListBuilder( 
-						std::vector<VALUE_TOKENS>& arrayTokenList, 
-						size_t& curIndex, 
-						std::queue<DEEP_VALUE>& valueQueue
-					){
+		_arrayListBuilder( std::vector<VALUE_TOKENS>& arrayTokenList, size_t& curIndex, std::queue<DEEP_VALUE>& valueQueue ){
 			auto newArrayList = make_unique< ArrayList<ARRAY_SUPPORT_TYPES> >();
 			while( curIndex < arrayTokenList.size() ){
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
@@ -124,9 +122,7 @@ class ArrayList{
 		template <typename DEEP_VALUE>
 		void push_SingleElement( DEEP_VALUE singleElement ){
 			this->totalElementsAllocated++;
-			visit( [&]( auto&& data ){
-				this->arrayList.push_back( data );
-			}, singleElement );
+			visit( [&]( auto&& data ){ this->arrayList.push_back( data ); }, singleElement );
 		}
 		
 		variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*>
@@ -174,6 +170,11 @@ class ArrayList{
 struct VAR_INFO{
 	string varName;
 	bool isTypeArray;
+
+	VAR_INFO( string varName, bool isTypeArray ){
+		this->varName 	  = varName;
+		this->isTypeArray = isTypeArray;
+	}
 };
 
 template <typename ARRAY_SUPPORT_TYPES>
@@ -188,8 +189,8 @@ struct VARIABLE_HOLDER{
 };
 
 struct VariableTokens{
-	vector<VARIABLE_TOKENS> varTokens;
-	vector<VALUE_TOKENS> 	valueTokens;
+	vector<VARIABLE_TOKENS> varTokens; 	 // LHS Token
+	vector<VALUE_TOKENS> 	valueTokens; // RHS Token
 	vector<vector<Token>>	valueVector;
 	queue<Token> 			VarQueue;
 
@@ -221,35 +222,33 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 		const Token& tok = tokens[ startCurPtr ];
 		const string& curToken = tok.token;
 
-		if( curToken == "pidi"  && tok.type == TOKEN_TYPE::RESERVED ){
+		if( curToken == "pidi" ){
 			varTokens.push_back( VARIABLE_TOKENS::VAR_START );
 		}
-		else if( curToken == "," && tok.type == TOKEN_TYPE::SPEC_CHAR ){
-			( isVariableTurn ) ?  varTokens.push_back( VARIABLE_TOKENS::COMMA )
-							   : valueToken.push_back( VALUE_TOKENS::COMMA );
+		else if( curToken == "," ){
+			( isVariableTurn ) ?  varTokens.push_back( VARIABLE_TOKENS::COMMA ): valueToken.push_back( VALUE_TOKENS::COMMA );
 		}
 		else if( curToken == "kootam" )
 			varTokens.push_back( VARIABLE_TOKENS::ARRAY );
 
-		else if ( curToken == "{"  && tok.type == TOKEN_TYPE::SPEC_CHAR){
+		else if ( curToken == "{" ){
 			arrayOpenedCount++;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_OPEN );
 		}
-		else if( curToken == "=" && tok.type == TOKEN_TYPE::OPERATOR ){
+		else if( curToken == "=" ){
 			varTokens.push_back( VARIABLE_TOKENS::VALUE_ASSIGN );
 			isVariableTurn = false;
 		}
-		else if(curToken == "}" && tok.type == TOKEN_TYPE::SPEC_CHAR){
+		else if(curToken == "}" ){
 			arrayOpenedCount--;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_CLOSE );
 		}
-		else if(curToken == ";" && tok.type == TOKEN_TYPE::SPEC_CHAR){
-			( isVariableTurn ) ? varTokens.push_back( VARIABLE_TOKENS::VAR_ENDS )
-				 			   : valueToken.push_back( VALUE_TOKENS::VALUE_END );
+		else if(curToken == ";" ){
+			( isVariableTurn ) ? varTokens.push_back( VARIABLE_TOKENS::VAR_ENDS ) : valueToken.push_back( VALUE_TOKENS::VALUE_END );
 			return VariableTokens( varTokens, valueToken, valueVector, VarQueue );
 		}
 		else{
-			if( isVariableTurn && tok.type == TOKEN_TYPE::IDENTIFIER ){
+			if( isVariableTurn ){
 				VarQueue.push( tok );
 				varTokens.push_back( VARIABLE_TOKENS::NAME );
 			}
@@ -268,94 +267,72 @@ VariableTokens stringToVariableTokens( const vector<Token>& tokens, size_t& star
 					}					 
 					curValueVector.push_back( tokens[ startCurPtr++ ] );
 				}
-				if( curValueVector.size() > 1 )
-					valueVector.push_back( curValueVector );
-				else  valueVector.push_back( curValueVector );
-				
-				if( arrayOpenedCount > 0 )
-					valueToken.push_back( VALUE_TOKENS::ARRAY_VALUE );
-				else valueToken.push_back( VALUE_TOKENS::NORMAL_VALUE );
+				( curValueVector.size() > 1 ) ? valueVector.push_back( curValueVector ): valueVector.push_back( curValueVector );
+				( arrayOpenedCount > 0 ) ? valueToken.push_back( VALUE_TOKENS::ARRAY_VALUE ): valueToken.push_back( VALUE_TOKENS::NORMAL_VALUE );
 			}
 		}	
 	}
 	throw InvalidSyntaxError( "; didn't hit this token, hope its an erro :) " );
 }
 
-bool 
-isValidVariableSyntax( 
-					vector<VARIABLE_TOKENS>& varTokens, 
-					vector<VAR_INFO>& variableStack ,
-					queue<Token>& VarQueue
-	){
-	if( !varTokens.size() ) return false;
+void 
+passValidVarDeclaration( vector<VARIABLE_TOKENS>& varTokens, vector<VAR_INFO>& variableStack , queue<Token>& VarQueue ){
+	if( !varTokens.size() ) 
+		throw runtime_error("Variable token is empty");
 
 	VARIABLE_TOKENS currentStage = VARIABLE_TOKENS::VAR_START;
 	size_t currentPointer = 0;
-	try{
-		while( currentStage == varTokens[ currentPointer ] ){		
-			if( currentStage == VARIABLE_TOKENS::VALUE_ASSIGN ) 
+	while( currentStage == varTokens[ currentPointer ] ){		
+		if( currentStage == VARIABLE_TOKENS::VALUE_ASSIGN ) 
+			break;
+		switch( varTokens[ currentPointer ] ){
+			case VARIABLE_TOKENS::NAME: {
+				if( VarQueue.empty() )
+					throw runtime_error("variable queue is empty");
+				else{
+					Token variableName = VarQueue.front();
+					VarQueue.pop( );
+					
+					if( variableName.type != TOKEN_TYPE::IDENTIFIER )
+						throw InvalidSyntaxError("Invalid Variable Name");
+					
+					VAR_INFO newVariable( variableName.token, false );					
+					variableStack.push_back( newVariable );
+				}
 				break;
-			switch( varTokens[ currentPointer ] ){
-				case VARIABLE_TOKENS::NAME: {
-					if( VarQueue.empty() )
-						return false;
-					else{
-						Token variableName = VarQueue.front();
-						VarQueue.pop( );
-						
-						if( variableName.type != TOKEN_TYPE::IDENTIFIER )
-							throw InvalidSyntaxError(
-								"Invalid Variable Name at line:  " + to_string(variableName.row) );
-						
-						VAR_INFO newVariable;
-						
-						newVariable.varName = variableName.token;
-						newVariable.isTypeArray = false;
-						variableStack.push_back( newVariable );
-					}
-					break;
-				}
-				case VARIABLE_TOKENS::ARRAY: {
-					if( variableStack.empty() )
-						return false;
-					else variableStack.back().isTypeArray = true;
-					break;
-				}
-				default: break;
 			}
-			if(currentPointer + 1 >= varTokens.size() )
+			case VARIABLE_TOKENS::ARRAY: {
+				if( variableStack.empty() )
+					throw InvalidSyntaxError("Array property without variable");
+				variableStack.back().isTypeArray = true;
 				break;
-
-			currentPointer++;
-			vector<VARIABLE_TOKENS> nextPossibleTokens = VARIABLE_DECLARE_GRAPH[ varTokens[ currentPointer - 1 ] ];
-			bool continueChecking = false;
-			for( int x = 0; x < nextPossibleTokens.size(); x++ ){
-				if( nextPossibleTokens[ x ] == varTokens[ currentPointer ] ){
-					currentStage = varTokens[ currentPointer ];
-					continueChecking = true;
-					break;
-				}
 			}
-			if( !continueChecking )
-				break;
+			default: break;
 		}
-		if( currentStage != VARIABLE_TOKENS::VALUE_ASSIGN || currentPointer != varTokens.size() - 1 )
-			throw InvalidSyntaxError( "Occures Syntax error in Variable declaration" );
-		return true;
-	} 
-	catch ( const InvalidNameError& err ){
-		cout << err.what() << endl;
-		return false;
+		if(currentPointer + 1 >= varTokens.size() )
+			break;
+
+		vector<VARIABLE_TOKENS> nextPossibleTokens = VARIABLE_DECLARE_GRAPH[ varTokens[ currentPointer++ ] ];
+		
+		bool continueChecking = false;
+		for( int x = 0; x < nextPossibleTokens.size(); x++ ){
+			if( nextPossibleTokens[ x ] == varTokens[ currentPointer ] ){
+				currentStage = varTokens[ currentPointer ];
+				continueChecking = true;
+				break;
+			}
+		}
+		if( !continueChecking )
+			break;
 	}
-	catch ( const InvalidSyntaxError& err ){
-		cout << err.what() << endl;
-		return false;
-	}
+	if( currentStage != VARIABLE_TOKENS::VALUE_ASSIGN || currentPointer != varTokens.size() - 1 )
+		throw InvalidSyntaxError( "Occures Syntax error in Variable declaration" );
 }
 
-bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens ){
+void
+passValidValueTokens( vector<VALUE_TOKENS>& valueTokens ){
 	if( !valueTokens.size() )
-		return false;
+		throw runtime_error("Value tokens empty");
 
 	VALUE_TOKENS currentStage = VALUE_TOKENS::NORMAL_VALUE;
 	size_t currentPointer 	  = 0;
@@ -366,14 +343,13 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens ){
 	
 	while( valueTokens[ currentPointer ] == currentStage ){
 		if( currentStage == VALUE_TOKENS::VALUE_END )
-			break;
+			return ;
 
 		if( currentPointer + 1 >= valueTokens.size() )
 			break;
 
-		currentPointer++;
 		bool continueChecking = false;
-		vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer - 1 ] ];
+		vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer++ ] ];
 
 		for(int x = 0; x < graph.size(); x++ ){
 			if( valueTokens[ currentPointer ] == graph[ x ] ){
@@ -381,14 +357,11 @@ bool isValidValueSyntax( vector<VALUE_TOKENS>& valueTokens ){
 				continueChecking = true;
 			}
 		}
-		if( !continueChecking ){
+		if( !continueChecking )
 			break;
-		}
 	}
 	if( currentStage != VALUE_TOKENS::VALUE_END)
 		throw InvalidSyntaxError("Occures Syntax error in Variable initialization");
-	return true;
-	
 }
 
 enum class ARRAY_ACCESS{

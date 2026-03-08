@@ -6,13 +6,11 @@
 #include <vector>
 #include <unordered_map>
 
-using namespace std;
-
 unordered_set<string> REG_INS_TOKEN = {
 	"=", "+=", "-=", "/=", "*=", ":=", "%=", ",", ";"
 };
 
-bool isRegisteredInsTokens( const string& tok ){
+bool isRegisteredInsTokens( const std::string& tok ){
 	return REG_INS_TOKEN.find( tok ) != REG_INS_TOKEN.end();
 }
 
@@ -31,7 +29,7 @@ enum class INS_TOKEN{
 	INS_END,
 };
 
-unordered_map<INS_TOKEN, vector<INS_TOKEN>> INS_GRAPH = {
+std::unordered_map<INS_TOKEN, std::vector<INS_TOKEN>> INS_GRAPH = {
 	{ INS_TOKEN::LHS_VALUE, { INS_TOKEN::LHS_VALUE,
 							  INS_TOKEN::COMMA,
 							  INS_TOKEN::ADD_REPLACE, 
@@ -54,7 +52,7 @@ unordered_map<INS_TOKEN, vector<INS_TOKEN>> INS_GRAPH = {
 	{ INS_TOKEN::COMMA, { INS_TOKEN::LHS_VALUE, INS_TOKEN::RHS_VALUE } },
 };
 
-bool MainToken( const string& curToken, INS_TOKEN& Optr ){
+bool MainToken( const std::string& curToken, INS_TOKEN& Optr ){
 	if( curToken == "=" ){
 		Optr = INS_TOKEN::REPLACE;
 		return true;
@@ -87,16 +85,16 @@ bool MainToken( const string& curToken, INS_TOKEN& Optr ){
 }
 
 struct InstructionTokens{
-	vector<INS_TOKEN> insToken;
+	std::vector<INS_TOKEN> insToken;
 	INS_TOKEN optr;
-	vector<vector<Token>> rightVector;
-	vector<Token> leftVector;
+	std::vector<vector<Token>> rightVector;
+	std::vector<Token> leftVector;
 
 	InstructionTokens(
-		vector<INS_TOKEN> insToken,
+		std::vector<INS_TOKEN> insToken,
 		INS_TOKEN optr,
-		vector<vector<Token>> rightVector,
-		vector<Token> leftVector
+		std::vector<std::vector<Token>> rightVector,
+		std::vector<Token> leftVector
 	){
 		this->insToken 	  = insToken;
 		this->optr 		  = optr;
@@ -107,17 +105,17 @@ struct InstructionTokens{
 };
 
 InstructionTokens
-stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
+stringToInsToken(const std::vector<Token>& tokens, size_t& startIndex ){
 	INS_TOKEN Optr = INS_TOKEN::NOT_DEFINED;
-	bool isLhs = true;
+	bool isLhs 	   = true;
 	
-	vector<vector<Token>> rightVector;
-	vector<Token> 		   leftValue;
-	vector<INS_TOKEN> 	   insTokens;
+	std::vector<std::vector<Token>> rightVector;
+	std::vector<Token> 		   		leftValue;
+	std::vector<INS_TOKEN> 	   		insTokens;
 
 	while( startIndex < tokens.size() ){
 		const Token& tok = tokens[ startIndex ];
-		const string& curToken = tok.token;
+		const std::string& curToken = tok.token;
 			
 		if( curToken == "," )
 			insTokens.push_back( INS_TOKEN::COMMA );
@@ -136,8 +134,9 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 				insTokens.push_back( INS_TOKEN::LHS_VALUE );
 			}
 			else{
-				vector<Token> valueVector;
+				std::vector<Token> valueVector;
 				int openBrackCnts = 0;
+
 				while( startIndex < tokens.size() ){
 					if( tokens[ startIndex ].token == "(" )
 						openBrackCnts++;
@@ -148,7 +147,6 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 						startIndex--;
 						break;
 					}
-					
 					valueVector.push_back( tokens[ startIndex++ ] );
 				}
 				rightVector.push_back( valueVector );
@@ -162,7 +160,7 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 }
 
 void 
-passValidInstructionTokens( vector<INS_TOKEN>& tokens ){
+passValidInstructionTokens( std::vector<INS_TOKEN>& tokens ){
 	size_t startIndex = 0;
 	INS_TOKEN currentStage = INS_TOKEN::LHS_VALUE;
 
@@ -175,7 +173,7 @@ passValidInstructionTokens( vector<INS_TOKEN>& tokens ){
 			break;
 
 		INS_TOKEN nextExpected = tokens[ ++startIndex ];
-		vector<INS_TOKEN>& nextExpectedTokens = INS_GRAPH[ currentStage ];
+		std::vector<INS_TOKEN>& nextExpectedTokens = INS_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
 		for( INS_TOKEN nextToks: nextExpectedTokens ){

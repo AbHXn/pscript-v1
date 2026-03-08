@@ -5,10 +5,8 @@
 #include <string>
 #include <unordered_map>
 
-using namespace std;
-
-unordered_set<string> REG_LOOP_TOKENS = { "ittuthiri", "{", "}" };
-unordered_set<string> REG_LOOP_BODY_TOKENS = { "pinnava", "theku" };
+std::unordered_set<std::string> REG_LOOP_TOKENS      = { "ittuthiri", "{", "}" };
+std::unordered_set<std::string> REG_LOOP_BODY_TOKENS = { "pinnava", "theku" };
 
 enum class LOOP_TOKENS{
 	LOOP_START 	,
@@ -20,44 +18,47 @@ enum class LOOP_TOKENS{
 	BODY_CLOSE
 };
 
-unordered_map<LOOP_TOKENS, vector<LOOP_TOKENS>> LOOP_GRAPH = {
+std::unordered_map<LOOP_TOKENS, std::vector<LOOP_TOKENS>> LOOP_GRAPH = {
 	{ LOOP_TOKENS::LOOP_START,  { LOOP_TOKENS::CONDITION, LOOP_TOKENS::BODY_OPEN } },
 	{ LOOP_TOKENS::CONDITION,   { LOOP_TOKENS::BODY_OPEN } },
 	{ LOOP_TOKENS::BODY_OPEN, 	{ LOOP_TOKENS::BODY } },
 	{ LOOP_TOKENS::BODY, 		{ LOOP_TOKENS::BODY_CLOSE } }
 };
 
-bool isRegisteredLoopBodyTokens( const string& tok ){
+bool isRegisteredLoopBodyTokens( const std::string& tok ){
 	return REG_LOOP_BODY_TOKENS.find( tok ) != REG_LOOP_BODY_TOKENS.end();
 }
 
-bool isRegisteredLoopTokens( const string& tok ){
+bool isRegisteredLoopTokens( const std::string& tok ){
 	return REG_LOOP_TOKENS.find( tok ) != REG_LOOP_TOKENS.end() || isRegisteredLoopBodyTokens( tok );
 }
 
-size_t getEndPointer( const vector<Token>& tokens, size_t startPtr ){
+size_t getEndPointer( const std::vector<Token>& tokens, size_t startPtr ){
 	int bodyOpenCount = 0;
 	while( startPtr < tokens.size() ){
 		if( tokens[startPtr].token == "{" )
 			bodyOpenCount++;
+
 		else if( tokens[ startPtr ].token == "}" )
 			bodyOpenCount--;
+
 		if( bodyOpenCount == 0 )
 			return startPtr + 1;
+		
 		startPtr++;
 	}
 	throw InvalidSyntaxError( "forget to close '}' ? " );
 }
 
 struct LoopTokens{
-	vector<LOOP_TOKENS> lpTokens;
-	vector<Token> conditions;
+	std::vector<LOOP_TOKENS> lpTokens;
+	std::vector<Token> conditions;
 	size_t startPtr;
 	size_t endPtr;
 
 	LoopTokens(
-		vector<LOOP_TOKENS> lpTokens,
-		vector<Token> conditions,
+		std::vector<LOOP_TOKENS> lpTokens,
+		std::vector<Token> conditions,
 		size_t startPtr,
 		size_t endPtr
 	){
@@ -69,9 +70,9 @@ struct LoopTokens{
 };
 
 LoopTokens
-stringToLoopTokens( const vector<Token>& tokens, size_t& startIndex ){
-	vector<LOOP_TOKENS> lpTokens;
-	vector<Token> conditions;
+stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
+	std::vector<LOOP_TOKENS> lpTokens;
+	std::vector<Token> conditions;
 
 	while( startIndex < tokens.size() ){
 		const string& curToken = tokens[ startIndex ].token;
@@ -85,11 +86,13 @@ stringToLoopTokens( const vector<Token>& tokens, size_t& startIndex ){
 				conditions.push_back( Token( TOKEN_TYPE::RESERVED, "sheri", 0, 0 ) );
 			}
 			lpTokens.push_back( LOOP_TOKENS::BODY_OPEN );
+
 			size_t startPtr = startIndex + 1;
-			size_t endPtr = getEndPointer( tokens, startIndex );
+			size_t endPtr 	= getEndPointer( tokens, startIndex );
 
 			lpTokens.push_back( LOOP_TOKENS::BODY );
 			lpTokens.push_back( LOOP_TOKENS::BODY_CLOSE );
+			
 			return LoopTokens( lpTokens, conditions, startPtr, endPtr );
 		}
 		else{
@@ -106,11 +109,11 @@ stringToLoopTokens( const vector<Token>& tokens, size_t& startIndex ){
 		}
 		startIndex++;
 	}
-	throw InvalidSyntaxError( "Syntax error occured in loop" );
+	throw InvalidSyntaxError( "Syntax error occured in ittuthiri statement" );
 }
 
 void 
-passValidLoopTokens( vector<LOOP_TOKENS>& tokens ){
+passValidLoopTokens( std::vector<LOOP_TOKENS>& tokens ){
 	size_t startIndex = 0;
 	LOOP_TOKENS currentStage = LOOP_TOKENS::LOOP_START;
 
