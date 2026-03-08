@@ -1,0 +1,19 @@
+thenga max_value(pidi num1, pidi num2){
+	nok num1 > num2 {
+		poda num1;
+	}: umbi {
+		poda num2;
+	};
+}
+
+pidi arr kootam = {-1, 2, -1, 2, -3, 6, 4, -5};
+pidi cur_sum, max_sum, index = 0, -100000000, 0;
+
+ittuthiri index < arr:valupam {
+	cur_sum = cur_sum + arr[index];
+	cur_sum = max_value(cur_sum, arr[index]);
+	max_sum = max_value(cur_sum, max_sum);
+	index = index + 1;
+}
+
+para "Max sum is:" koode max_sum koode "\n";

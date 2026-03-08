@@ -1,17 +1,2 @@
-pidi arr kootam = {0};
-
-thenga INT_INPUT(pidi statement){
-	para statement;
-	pidi int_data = edukku;
-	int_data := INT;
-	poda int_data;
-}
-
-pidi size = INT_INPUT("Enter array size: ");
-pidi index = 0;
-
-ittuthiri index < size {
-	arr[index] = INT_INPUT("Enter value for " + (index + 1) + ": ");
-	index = index + 1;
-}
-para arr koode "\n";
+pidi test = "admin";
+para test[0][0];

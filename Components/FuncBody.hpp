@@ -230,37 +230,47 @@ class FunctionHandler: public VAR_VMAP {
 			}	
 		}
 
-		// return the size of 
 		VarDtype 
 		handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
 			if( tok.arrProperty.propertyType == "jaadi" ){
 				if( holds_alternative<VarDtype> (Vdata) ){
 					auto data = get<VarDtype>( Vdata );
+					
 					if( holds_alternative<string> ( data ) )
 						return "STR";
+					
 					else if( holds_alternative<double> (data) )
 						return "THULA";
+					
 					else if( holds_alternative<long> (data) )
 						return "INT";
+					
 					else if( holds_alternative<bool> (data) )
 						return "BOOL";
+					
 					else return "ARILA";
 				}
 				else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( Vdata ) )
 					return "ARRAY_PTR";
+				
 				else if( holds_alternative<FUNCTION_MAP_DATA*>( Vdata ) )
 					return "FUNC_PTR";
+				
 				else return "ARILA";
 			}
 			else if( tok.arrProperty.propertyType == "kanam" ){
 				if( holds_alternative<VarDtype>(Vdata) ){
 					auto data = get<VarDtype>(Vdata);
+					
 					if( holds_alternative<string> ( data ) )
 						return (long) get<string>(data).size();
+					
 					else if( holds_alternative<double> (data) )
 						return (long) sizeof(double);
+					
 					else if( holds_alternative<long> (data) )
 						return (long) sizeof(long);
+
 					else if( holds_alternative<bool> (data) )
 						return (long) sizeof(bool);
 				}
@@ -271,27 +281,14 @@ class FunctionHandler: public VAR_VMAP {
 		DEEP_VALUE_DATA 
 		handleRawVariables( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder ){
 			DEEP_VALUE_DATA HandlingDtype = varHolder;
-			if( arrToken.indexVector.size() ){
-				if( !holds_alternative<VarDtype> ( varHolder ) 
-					|| !holds_alternative<string> ( get<VarDtype>( varHolder ) ) )
-					throw runtime_error("indexing invalid dtype");
+			if( arrToken.indexVector.size() > 0 ){
+				if( !holds_alternative<VarDtype> ( varHolder ) || !holds_alternative<string> ( get<VarDtype>( varHolder ) ) )
+					throw runtime_error("Indexing Invalid DType");
 
 				if( arrToken.indexVector.size() > 1 )
-					throw runtime_error("indexing error");
+					throw runtime_error("Indexing ND on 1D type");
 
-				DEEP_VALUE_DATA val = evaluateVector( arrToken.indexVector.back() );
-				if( !holds_alternative<VarDtype>( val ) )
-					throw InvalidSyntaxError("Array Index Expects numbesdfr");
-				
-				VarDtype vDtypeIndex = get<VarDtype>( val );
-				if( !holds_alternative<long int> ( vDtypeIndex ) &&
-								 !holds_alternative<double> ( vDtypeIndex ))
-					throw InvalidSyntaxError("Array Index Expects 99number");
-
-				long int index;
-				if( holds_alternative<long int>(vDtypeIndex) )
-					index = get<long int>(vDtypeIndex);
-				else index = (long int) get<double>( vDtypeIndex );
+				long int index = getResolvedIndexVectors( arrToken.indexVector ).back();
 
 				string& stringVarHolder = get<string>( get<VarDtype>( varHolder ) );
 
@@ -299,7 +296,8 @@ class FunctionHandler: public VAR_VMAP {
 					HandlingDtype =  DEEP_VALUE_DATA { string(1, stringVarHolder[ index ]) };
 			}
 			if( arrToken.isTouchedArrayProperty )
-				return handleVarDefinedProperties( HandlingDtype, arrToken );		
+				return handleVarDefinedProperties( HandlingDtype, arrToken );	
+
 			return HandlingDtype;
 		}
 
