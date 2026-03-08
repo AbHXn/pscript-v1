@@ -8,39 +8,37 @@
 
 #include "../../Headers/MBExceptions.hpp"
 
-using namespace std;
-
-unordered_set<string> REGISTERED_IO_TOKENS = { "koode", "para", ";" };
+std::unordered_set<std::string> REGISTERED_IO_TOKENS = { "koode", "para", ";" };
 enum class IO_TOKENS { PRINT, CONCAT, PRINT_VALUE, END };
 
-bool isRegisteredIoTokens( const string& token ){
+bool isRegisteredIoTokens( const std::string& token ){
 	return REGISTERED_IO_TOKENS.find( token ) != REGISTERED_IO_TOKENS.end();
 }
 
-unordered_map<IO_TOKENS, vector<IO_TOKENS>> IO_GRAPH = {
+std::unordered_map<IO_TOKENS, std::vector<IO_TOKENS>> IO_GRAPH = {
 	{ IO_TOKENS::PRINT, 		{ IO_TOKENS::PRINT_VALUE } },
 	{ IO_TOKENS::PRINT_VALUE,   { IO_TOKENS::END, IO_TOKENS::CONCAT, 
 								  IO_TOKENS::PRINT } },
 	{ IO_TOKENS::CONCAT, 		{ IO_TOKENS::PRINT_VALUE } },
 };
 
-bool
-isValidIoTokens( vector<IO_TOKENS>& IOTokens ){
+void
+passValidIOTokens( std::vector<IO_TOKENS>& IOTokens ){
 	if( IOTokens.empty() )
-		return false;
+		throw InvalidSyntaxError("Empty IO tokens error");
 
 	IO_TOKENS currentStage = IO_TOKENS::PRINT;
 	size_t startIndex = 0;
 
 	while( startIndex < IOTokens.size() ){
 		if( IOTokens[ startIndex ] == IO_TOKENS::END )
-			return true;
+			return ;
 
 		if( startIndex + 1 >= IOTokens.size() )
 			break;
 
 		IO_TOKENS nextExpected = IOTokens[ ++startIndex ];
-		vector<IO_TOKENS>& nextExpectedTokens = IO_GRAPH[ currentStage ];
+		std::vector<IO_TOKENS>& nextExpectedTokens = IO_GRAPH[ currentStage ];
 
 		bool continueNext = false;
 		for( IO_TOKENS nextToks: nextExpectedTokens ){
@@ -56,13 +54,13 @@ isValidIoTokens( vector<IO_TOKENS>& IOTokens ){
 	throw InvalidSyntaxError( "Do dont encounter end ; token in para" );
 }
 
-pair<vector<IO_TOKENS>, vector<vector<Token>>>
-stringToIoTokens( const vector<Token>& tokens, size_t& startIndex ){
-	vector<IO_TOKENS> IOTokens;
-	vector<vector<Token>> printValues;
+std::pair<std::vector<IO_TOKENS>, std::vector<std::vector<Token>>>
+stringToIoTokens( const std::vector<Token>& tokens, size_t& startIndex ){
+	std::vector<IO_TOKENS> IOTokens;
+	std::vector<std::vector<Token>> printValues;
 
 	for(; startIndex < tokens.size(); startIndex++){
-		const string& curToken = tokens[ startIndex ].token;
+		const std::string& curToken = tokens[ startIndex ].token;
 		if( curToken == "para" )
 			IOTokens.push_back( IO_TOKENS::PRINT );
 		
@@ -74,7 +72,7 @@ stringToIoTokens( const vector<Token>& tokens, size_t& startIndex ){
 			return { IOTokens, printValues };
 		}
 		else{
-			vector<Token> valueVector;
+			std::vector<Token> valueVector;
 			while( startIndex < tokens.size() ){
 				if( isRegisteredIoTokens( tokens[ startIndex ].token ) ){
 					startIndex--;

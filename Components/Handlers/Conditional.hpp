@@ -24,8 +24,8 @@ std::unordered_map<COND_TOKENS, std::vector<COND_TOKENS>> CONDITIONAL_GRAPH = {
 	{ COND_TOKENS::ELSE, 		{ COND_TOKENS::BODY_OPEN } }
 };
 
-bool 
-isValidCondToken( std::vector<COND_TOKENS>& tokens ){
+void 
+passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 	COND_TOKENS curStage = COND_TOKENS::IF;
 	int startIndex 	  = 0;
 	bool hitElseStage = false;
@@ -35,7 +35,7 @@ isValidCondToken( std::vector<COND_TOKENS>& tokens ){
 			// checking if end tokens hits bofore finishing the entire tokens
 			if( startIndex < tokens.size() - 1 )
 				throw InvalidSyntaxError( "Invalid Syntax encounter in nok statements" );
-			return true;
+			return ;
 		}
 		// checking else hits more than one 
 		if( curStage == COND_TOKENS::ELSE ){

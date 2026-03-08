@@ -616,8 +616,8 @@ class FunctionHandler: public VAR_VMAP {
 		void InstructionHandlerRunner( const vector<Token>& tokens, size_t& currentPtr ){
 			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
-			if( !isValidInstructionSet( InsTokensAndData.insToken) )
-				throw RecoverError();
+			// check instruction token validation
+			passValidInstructionTokens( InsTokensAndData.insToken );
 
 			queue<DEEP_VALUE_DATA> finalValueQueue;
 			vector<Token>& varsAndVals = InsTokensAndData.leftVector;
@@ -718,31 +718,30 @@ class FunctionHandler: public VAR_VMAP {
 		void 
 		functionDefHandlerRunner( const vector<Token>&token, size_t& start ){
 			FunctionTokenReturn funcTokens = stringToFuncTokens( token, start );
+			// pass the validation to move forward
+			passValidFuncToken( funcTokens.tokens );
 
-			if( isValidFunction( funcTokens.tokens ) ){ 
-				if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
-					throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
-				
-				unique_ptr<FUNCTION_MAP_DATA> funcMapData = make_unique<FUNCTION_MAP_DATA>();
-				funcMapData->funcName 		= funcTokens.funcName;
-				funcMapData->argsSize 		= funcTokens.args.size();
-				funcMapData->bodyStartPtr 	= funcTokens.funcStartPtr;
-				funcMapData->bodyEndPtr 	= funcTokens.funcEndPtr;
-				funcMapData->argsInfo 		= move( funcTokens.args );
-				
-				auto vmapCopy = this->getDeepCopyOfVMAP();
+			if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
+				throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
+			
+			unique_ptr<FUNCTION_MAP_DATA> funcMapData = make_unique<FUNCTION_MAP_DATA>();
+			funcMapData->funcName 		= funcTokens.funcName;
+			funcMapData->argsSize 		= funcTokens.args.size();
+			funcMapData->bodyStartPtr 	= funcTokens.funcStartPtr;
+			funcMapData->bodyEndPtr 	= funcTokens.funcEndPtr;
+			funcMapData->argsInfo 		= move( funcTokens.args );
+			
+			auto vmapCopy = this->getDeepCopyOfVMAP();
 
-				funcMapData->varMapCopy		= make_pair(vmapCopy, this->parent);
+			funcMapData->varMapCopy		= make_pair(vmapCopy, this->parent);
 
-				unique_ptr<MapItem> funcMapItem = make_unique<MapItem>();
-				funcMapItem->mapType = MAPTYPE::FUNCTION;
-				funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem.get();
-				funcMapItem->var 	 = funcMapData.get();
-				_CACHE_VARS.push_back( move(funcMapData) );					
-				this->addToMap( funcTokens.funcName, move( funcMapItem ) );
+			unique_ptr<MapItem> funcMapItem = make_unique<MapItem>();
+			funcMapItem->mapType = MAPTYPE::FUNCTION;
+			funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem.get();
+			funcMapItem->var 	 = funcMapData.get();
+			_CACHE_VARS.push_back( move(funcMapData) );					
+			this->addToMap( funcTokens.funcName, move( funcMapItem ) );
 
-			}
-			else throw InvalidSyntaxError( "Syntax Error occured in thenga" );
 		}
 
 		optional<variant<VarDtype, unique_ptr<MapItem>>>
@@ -779,9 +778,8 @@ class FunctionHandler: public VAR_VMAP {
 
 		void IOHandlerRunner( const vector<Token>& tokens, size_t& start ){
 				auto tokensAndData = stringToIoTokens( tokens, start );
-				
-				if( !isValidIoTokens( tokensAndData.first ) )
-					return;
+				// pass the validation test for iotokens
+				passValidIOTokens( tokensAndData.first );
 
 				queue<DEEP_VALUE_DATA> finalQueue;
 				
@@ -838,7 +836,7 @@ class Conditional: public FunctionHandler{
 			size_t endOfNOK = 0;
 			auto ctokens = stringToCondTokens( tokens, start, endOfNOK );
 			// pass the validation
-			isValidCondToken( ctokens.first );
+			passCondTokenValidation( ctokens.first );
 
 			bool runTheCondition = false;
 
@@ -875,10 +873,10 @@ class LoopHandler: public FunctionHandler{
 		LoopHandlerRunner ( const vector<Token>& tokens, size_t& currentPtr ){
 			size_t beginCopy = currentPtr;
 		 	LoopTokens lpTokens = stringToLoopTokens( tokens, currentPtr );
-			
-			if( !isValidLoopTokens( lpTokens.lpTokens ) )
-				throw InvalidSyntaxError("Invalid Syntax error in loop");
 
+		 	// pass the loop validation test
+		 	passValidLoopTokens( lpTokens.lpTokens );
+			
 			// run loop until its condition fails
 			while( true ){
 				DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );

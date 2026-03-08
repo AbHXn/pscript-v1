@@ -109,21 +109,20 @@ stringToLoopTokens( const vector<Token>& tokens, size_t& startIndex ){
 	throw InvalidSyntaxError( "Syntax error occured in loop" );
 }
 
-bool 
-isValidLoopTokens( vector<LOOP_TOKENS>& tokens ){
+void 
+passValidLoopTokens( vector<LOOP_TOKENS>& tokens ){
 	size_t startIndex = 0;
 	LOOP_TOKENS currentStage = LOOP_TOKENS::LOOP_START;
 
 	while( startIndex < tokens.size() ){
 		LOOP_TOKENS newTok = tokens[ startIndex ];
 		if( newTok == LOOP_TOKENS::BODY_CLOSE )
-			return true;
+			return ;
 
-		if( startIndex + 1 < tokens.size() )
-			startIndex++;
-		else break;
+		if( startIndex + 1 >= tokens.size() )
+			break;
 
-		LOOP_TOKENS nextExpected = tokens[ startIndex ];
+		LOOP_TOKENS nextExpected = tokens[ ++startIndex ];
 		vector<LOOP_TOKENS>& nextExpectedTokens = LOOP_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
@@ -134,10 +133,10 @@ isValidLoopTokens( vector<LOOP_TOKENS>& tokens ){
 			}
 		}
 		if( !continueNext )
-			throw InvalidSyntaxError("Invalid Instruction");
+			throw InvalidSyntaxError("Invalid Instruction in ittuthiri syntax");
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter end ; token in para" );
+	throw InvalidSyntaxError( "Do dont encounter end ; token in ittuthiri" );
 }
 
 #endif

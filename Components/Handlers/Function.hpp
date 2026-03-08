@@ -78,8 +78,8 @@ unordered_map<FUNC_TOKENS, vector<FUNC_TOKENS>> FUNC_GRAPH = {
     { FUNC_TOKENS::FUNC_BODY,   { FUNC_TOKENS::BODY_CLOSE } },
 };
 
-bool 
-isValidFunction( vector<FUNC_TOKENS>& tokens ){
+void 
+passValidFuncToken( vector<FUNC_TOKENS>& tokens ){
 	size_t startIndex = 0;
 	FUNC_TOKENS currentStage = FUNC_TOKENS::FUNC_START;
 
@@ -88,7 +88,7 @@ isValidFunction( vector<FUNC_TOKENS>& tokens ){
 		
 		// return if function hits its end without breaking the graph
 		if( newTok == FUNC_TOKENS::BODY_CLOSE )
-			return true;
+			return ;
 		
 		if( startIndex + 1 >= tokens.size() )
 			throw InvalidSyntaxError("Function doesnot hit closing body } ");

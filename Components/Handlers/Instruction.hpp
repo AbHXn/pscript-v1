@@ -161,21 +161,20 @@ stringToInsToken(const vector<Token>& tokens, size_t& startIndex ){
 	throw InvalidSyntaxError( "Do dont encounter end ; token in para" );
 }
 
-bool 
-isValidInstructionSet( vector<INS_TOKEN>& tokens ){
+void 
+passValidInstructionTokens( vector<INS_TOKEN>& tokens ){
 	size_t startIndex = 0;
 	INS_TOKEN currentStage = INS_TOKEN::LHS_VALUE;
 
 	while( startIndex < tokens.size() ){
 		INS_TOKEN newTok = tokens[ startIndex ];
 		if( newTok == INS_TOKEN::INS_END )
-			return true;
+			return ;
 
-		if( startIndex + 1 < tokens.size() )
-			startIndex++;
-		else break;
+		if( startIndex + 1 >= tokens.size() )
+			break;
 
-		INS_TOKEN nextExpected = tokens[ startIndex ];
+		INS_TOKEN nextExpected = tokens[ ++startIndex ];
 		vector<INS_TOKEN>& nextExpectedTokens = INS_GRAPH[ currentStage ];
 	
 		bool continueNext = false;
@@ -186,10 +185,10 @@ isValidInstructionSet( vector<INS_TOKEN>& tokens ){
 			}
 		}
 		if( !continueNext )
-			return false;
+			throw RecoverError(); // some instruction failure can recover
 		currentStage = nextExpected;
 	}
-	return false;
+	throw InvalidSyntaxError("Do dont encounter end ; token in para");
 }
 
 #endif
