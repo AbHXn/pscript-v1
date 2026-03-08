@@ -69,17 +69,17 @@ bool isRegisteredVariableToken( const std::string& token ){
 	return REGISTERED_TOKENS.find( token ) != REGISTERED_TOKENS.end();
 }
 struct VariableTokens{
-	vector<VARIABLE_TOKENS> varTokens; 	 // LHS Token
-	vector<VALUE_TOKENS> 	valueTokens; // RHS Token
-	vector<vector<Token>>	valueVector;
-	queue<Token> 			VarQueue;
+	std::vector<VARIABLE_TOKENS> varTokens; 	 // LHS Token
+	std::vector<VALUE_TOKENS> 	valueTokens; // RHS Token
+	std::vector<std::vector<Token>>	valueVector;
+	std::queue<Token> 			VarQueue;
 
 	// constructor
 	VariableTokens(
-		vector<VARIABLE_TOKENS> varTokens,
-		vector<VALUE_TOKENS> 	valueTokens,
-		vector<vector<Token>>	valueVector,
-		queue<Token>			VarQueue
+		std::vector<VARIABLE_TOKENS> varTokens,
+		std::vector<VALUE_TOKENS> 	valueTokens,
+		std::vector<std::vector<Token>>	valueVector,
+		std::queue<Token>			VarQueue
 	){
 		this->varTokens   = varTokens;
 		this->valueTokens = valueTokens;
@@ -125,14 +125,14 @@ struct ArrayAccessTokens{
 template <typename ARRAY_SUPPORT_TYPES>
 class ArrayList{
 	public:
-		std::vector< std::variant< ARRAY_SUPPORT_TYPES,ArrayList<ARRAY_SUPPORT_TYPES>*,unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>> arrayList;
+		std::vector< std::variant< ARRAY_SUPPORT_TYPES,ArrayList<ARRAY_SUPPORT_TYPES>*,std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>> arrayList;
 		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated = 0;
 		
 		template <typename DEEP_VALUE>
-		static unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
+		static std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 		_arrayListBuilder( std::vector<VALUE_TOKENS>& arrayTokenList, size_t& curIndex, std::queue<DEEP_VALUE>& valueQueue ){
-			auto newArrayList = make_unique< ArrayList<ARRAY_SUPPORT_TYPES> >();
+			auto newArrayList = std::make_unique< ArrayList<ARRAY_SUPPORT_TYPES> >();
 			while( curIndex < arrayTokenList.size() ){
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
 					curIndex++;
@@ -140,7 +140,7 @@ class ArrayList{
 				}
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
 					curIndex++ 	  ; 
-					unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
+					std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
 					newArrayList->push_ArrayList( move( array ) );
 				}
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_VALUE ){
@@ -156,9 +156,9 @@ class ArrayList{
 		}
 
 		template <typename DEEP_VALUE>
-		static unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
+		static std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, std::queue<DEEP_VALUE>& ValueQueue ){
-			unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
+			std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
 			return arrayResult;
 		}
 
@@ -168,8 +168,8 @@ class ArrayList{
 			visit( [&]( auto&& data ){ this->arrayList.push_back( data ); }, singleElement );
 		}
 		
-		variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*>
-		getElementAtIndex(vector<long int>& dimensions, size_t index = 0){
+		std::variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*>
+		getElementAtIndex(std::vector<long int>& dimensions, size_t index = 0){
 			if( dimensions.empty() )
 				return this;
 
@@ -178,33 +178,33 @@ class ArrayList{
 				auto& test = this->arrayList[ curIndex ];
 
 				if( index == dimensions.size() - 1 ){
-					if ( holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
-						return &get<ARRAY_SUPPORT_TYPES>( test );
+					if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
+						return &std::get<ARRAY_SUPPORT_TYPES>( test );
 
-					else if( holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(test) )
-						return get<ArrayList<ARRAY_SUPPORT_TYPES>*>( test );
+					else if( std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(test) )
+						return std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( test );
 					
-					auto& finalData = get<unique_ptr<ArrayList>>(test);
+					auto& finalData = std::get<std::unique_ptr<ArrayList>>(test);
 					return finalData.get();
 				}
 
-				if ( holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
+				if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
 					throw InvalidSyntaxError("Only Array Can Access Using Index");
 
-				if( holds_alternative<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test) ){
-					auto& finalData = get<unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
+				if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test) ){
+					auto& finalData = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
 					return finalData->getElementAtIndex( dimensions, index+1 );
 				}
 				else{
-					auto finalData = get<ArrayList<ARRAY_SUPPORT_TYPES>*>(test);
+					auto finalData = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(test);
 					return finalData->getElementAtIndex( dimensions, index+1 );
 				}
 				
 			} 
-			else throw ArrayOutOfBound(to_string(curIndex));
+			else throw ArrayOutOfBound(std::to_string(curIndex));
 		}
 
-		void push_ArrayList( unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
+		void push_ArrayList( std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
 			this->totalElementsAllocated++;
 			this->arrayList.push_back( move( arrayListElement ) );	
 		}
@@ -214,7 +214,7 @@ template <typename ARRAY_SUPPORT_TYPES>
 struct VARIABLE_HOLDER{
 	std::string key;
 	bool isTypeArray;
-	std::variant<VarDtype,unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> value;
+	std::variant<VarDtype,std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> value;
 };
 struct VAR_INFO{
 	std::string varName;
@@ -237,7 +237,7 @@ VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t&
 
 	for( ; startCurPtr < tokens.size(); ++startCurPtr ) {
 		const Token& tok = tokens[ startCurPtr ];
-		const string& curToken = tok.token;
+		const std::string& curToken = tok.token;
 
 		if( curToken == "pidi" ){
 			varTokens.push_back( VARIABLE_TOKENS::VAR_START );
@@ -295,7 +295,7 @@ VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t&
 void 
 passValidVarDeclaration( std::vector<VARIABLE_TOKENS>& varTokens, std::vector<VAR_INFO>& variableStack , std::queue<Token>& VarQueue ){
 	if( !varTokens.size() ) 
-		throw runtime_error("Variable token is empty");
+		throw std::runtime_error("Variable token is empty");
 
 	VARIABLE_TOKENS currentStage = VARIABLE_TOKENS::VAR_START;
 	size_t currentPointer = 0;
@@ -305,7 +305,7 @@ passValidVarDeclaration( std::vector<VARIABLE_TOKENS>& varTokens, std::vector<VA
 		switch( varTokens[ currentPointer ] ){
 			case VARIABLE_TOKENS::NAME: {
 				if( VarQueue.empty() )
-					throw runtime_error("variable queue is empty");
+					throw std::runtime_error("variable queue is empty");
 				else{
 					Token variableName = VarQueue.front();
 					VarQueue.pop( );
@@ -349,7 +349,7 @@ passValidVarDeclaration( std::vector<VARIABLE_TOKENS>& varTokens, std::vector<VA
 void
 passValidValueTokens( std::vector<VALUE_TOKENS>& valueTokens ){
 	if( !valueTokens.size() )
-		throw runtime_error("Value tokens empty");
+		throw std::runtime_error("Value tokens empty");
 
 	VALUE_TOKENS currentStage = VALUE_TOKENS::NORMAL_VALUE;
 	size_t currentPointer 	  = 0;
@@ -366,7 +366,7 @@ passValidValueTokens( std::vector<VALUE_TOKENS>& valueTokens ){
 			break;
 
 		bool continueChecking = false;
-		vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer++ ] ];
+		std::vector<VALUE_TOKENS> graph = VALUE_ASSIGN_GRAPH[ valueTokens[ currentPointer++ ] ];
 
 		for(int x = 0; x < graph.size(); x++ ){
 			if( valueTokens[ currentPointer ] == graph[ x ] ){
@@ -393,7 +393,7 @@ stringToArrayAccesToken( const std::vector<Token>&tokens, size_t& currentPtr ){
 
 	while( currentPtr < tokens.size() ){
 		const Token& tok = tokens[ currentPtr ];
-		const string& curToken = tok.token;
+		const std::string& curToken = tok.token;
 
 		if( curToken == "[" )
 			arrAccessTokens.push_back( ARRAY_ACCESS::BRACK_OPEN );
@@ -458,7 +458,7 @@ stringToArrayAccesToken( const std::vector<Token>&tokens, size_t& currentPtr ){
 		return newArrToken;
 }
 
-unordered_map<ARRAY_ACCESS, vector<ARRAY_ACCESS>> ARRAY_ACCESS_GRAPH = {
+std::unordered_map<ARRAY_ACCESS, std::vector<ARRAY_ACCESS>> ARRAY_ACCESS_GRAPH = {
 	{ ARRAY_ACCESS::VAR_NAME, 		  { ARRAY_ACCESS::PROPERTY_ACCESS,
 										ARRAY_ACCESS::BRACK_OPEN, 
 									    ARRAY_ACCESS::END } 			},

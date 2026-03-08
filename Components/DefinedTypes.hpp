@@ -22,8 +22,6 @@
 #include "../Headers/MBExceptions.hpp"
 #include "../Headers/Tokenizer.hpp"
 
-using namespace std;
-
 enum class MAPTYPE{ VARIABLE, FUNCTION, ARRAY_PTR, NULL_PTR, FUNC_PTR };
 
 template<typename T>

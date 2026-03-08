@@ -9,35 +9,33 @@
 #include <stdexcept>
 #include <cctype>
 
-using namespace std;
-
-unordered_set<string> RESERVED_KEYS = {
+std::unordered_set<std::string> RESERVED_KEYS = {
 	"thenga", "pidi", "sheri", "thettu", "poda", "pinnava",
 	"theku", "ittuthiri", "nok", "umbi", "onnula", "para", 
 	"koode", "um", "yo", "kootam", "edukku"
 };
 
-unordered_set<string> SCHARS = {
+std::unordered_set<std::string> SCHARS = {
 	":", "(", ")", "[", "]", "{", "}", ",", ".", ";"
 };
 
-unordered_set<string> OPTR{
+std::unordered_set<std::string> OPTR{
 	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":"
 };
 
-bool isReservedKey(const string& tok){
+bool isReservedKey(const std::string& tok){
 	return RESERVED_KEYS.find(tok) != RESERVED_KEYS.end();
 }
 
-bool isOptr(const string& tok){
+bool isOptr(const std::string& tok){
 	return OPTR.find(tok) != OPTR.end();
 }
 
-bool isSpec(const string& tok){
+bool isSpec(const std::string& tok){
 	return SCHARS.find(tok) != SCHARS.end();
 }
 
-vector<string> debug_string = { 
+std::vector<std::string> debug_string = { 
 	"NOTHING", "NUMBER", "FLOATING", 
 	"STRING", "BOOLEAN", "IDENTIFIER", 
 	"RESERVED", "SPEC_CHAR", "OPTR" 
@@ -62,13 +60,13 @@ bool isValueType(TOKEN_TYPE type){
 
 struct Token{
 	TOKEN_TYPE type;
-	string token;
+	std::string token;
 	size_t row;
 	size_t col;
 
 	Token(
 		TOKEN_TYPE type,
-		string token,
+		std::string token,
 		size_t row,
 		size_t col
 	){
@@ -79,15 +77,15 @@ struct Token{
 	}
 };
 
-void getTheTokens(const string& filename, vector<Token>& Tokens){
+void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 
-	ifstream codeFile(filename);
+	std::ifstream codeFile(filename);
 
 	if(!codeFile.is_open())
-		throw runtime_error("Cannot open file: " + filename);
+		throw std::runtime_error("Cannot open file: " + filename);
 
 	char cCode;
-	string currentWord = "";
+	std::string currentWord = "";
 	TOKEN_TYPE currentState = TOKEN_TYPE::NOTHING;
 
 	size_t lineNumber = 0, colNumber = 0;
@@ -96,8 +94,7 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 	while(codeFile.get(cCode)){
 		if(cCode == '"' && currentState != TOKEN_TYPE::STRING){
 			if(currentState != TOKEN_TYPE::NOTHING)
-				throw runtime_error("Invalid token at line: " + to_string(lineNumber) + 
-									 " Column: " + to_string(colNumber));
+				throw std::runtime_error("Invalid token at line: " + std::to_string(lineNumber) + " Column: " + std::to_string(colNumber));
 
 			currentState = TOKEN_TYPE::STRING;
 			continue;
@@ -130,14 +127,10 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 			continue;
 		}
 		if(isdigit((unsigned char)cCode)){
-			if(currentState == TOKEN_TYPE::NUMBER || 
-			   currentState == TOKEN_TYPE::IDENTIFIER || 
-			   currentState == TOKEN_TYPE::FLOATING){
-
+			if(currentState == TOKEN_TYPE::NUMBER || currentState == TOKEN_TYPE::IDENTIFIER || currentState == TOKEN_TYPE::FLOATING){
 				currentWord.push_back(cCode);
 			} 
 			else if(currentState == TOKEN_TYPE::NOTHING){
-
 				currentState = TOKEN_TYPE::NUMBER;
 				currentWord.push_back(cCode);
 			}
@@ -145,7 +138,7 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 				currentState = TOKEN_TYPE::NUMBER;
 				currentWord.push_back(cCode);
 			}
-			else throw runtime_error("Invalid token at line: " + to_string(lineNumber) + " Column: " + to_string(colNumber));
+			else throw std::runtime_error("Invalid token at line: " + std::to_string(lineNumber) + " Column: " + std::to_string(colNumber));
 		}
 		else if(isalpha((unsigned char)cCode) || cCode == '_'){
 			if(currentState == TOKEN_TYPE::IDENTIFIER)
@@ -158,7 +151,7 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 			else if(currentState == TOKEN_TYPE::OPERATOR){
 				Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
 				colNumber++;
-				currentWord = string(1, cCode);
+				currentWord = std::string(1, cCode);
 				currentState = TOKEN_TYPE::IDENTIFIER;
 			}			
 		}
@@ -207,13 +200,13 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 						colNumber++;
 					}
 					currentState = TOKEN_TYPE::OPERATOR;
-					currentWord = string(1, cCode);
+					currentWord = std::string(1, cCode);
 				}
 			}
-			else if(isOptr(string(1, cCode))){
+			else if(isOptr(std::string(1, cCode))){
 				if(currentState != TOKEN_TYPE::NOTHING){
 					Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
-					currentWord = string(1, cCode);
+					currentWord = std::string(1, cCode);
 					currentState = TOKEN_TYPE::OPERATOR;
 					colNumber++;
 				}
@@ -226,7 +219,7 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 				currentWord.push_back(cCode);
 				currentState = TOKEN_TYPE::FLOATING;
 			}
-			else if(isSpec(string(1, cCode))){
+			else if(isSpec(std::string(1, cCode))){
 				if(currentState != TOKEN_TYPE::NOTHING){
 					if(isReservedKey(currentWord)){
 						currentState = TOKEN_TYPE::RESERVED;
@@ -238,7 +231,7 @@ void getTheTokens(const string& filename, vector<Token>& Tokens){
 					currentState = TOKEN_TYPE::NOTHING;
 					colNumber++;
 				}
-				Tokens.push_back(Token(TOKEN_TYPE::SPEC_CHAR,string(1, cCode),lineNumber,colNumber));
+				Tokens.push_back(Token(TOKEN_TYPE::SPEC_CHAR,std::string(1, cCode),lineNumber,colNumber));
 				colNumber++;
 			}
 		}

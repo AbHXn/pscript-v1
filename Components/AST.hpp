@@ -13,8 +13,6 @@
 
 #include <cassert>
 
-using namespace std;
-
 enum class AST_TOKENS { 
 		NONE,
 		//mathematical
@@ -28,13 +26,13 @@ enum class AST_TOKENS {
 
 enum class CODE_TOKENS{ OPEN, CLOSE, VALUE };
 
-unordered_set<string> EXPR_CONSTANTS = {
+std::unordered_set<string> EXPR_CONSTANTS = {
 	"+", "-", "/", "%", "*",
 	">", "<", "==", "!=", "<=", ">=",
 	"um", "yo"
 };
 
-unordered_map<AST_TOKENS, short unsigned int> PRIORITY = {
+std::unordered_map<AST_TOKENS, short unsigned int> PRIORITY = {
 	{ AST_TOKENS::OR, 1 },
 	
 	{ AST_TOKENS::AND, 2 },
@@ -63,7 +61,7 @@ struct AST_NODE{
 	unique_ptr<AST_NODE> right;
 };
 
-AST_TOKENS getExprToken( const string& curTokens ) {
+AST_TOKENS getExprToken( const std::string& curTokens ) {
 	// mathematical 
 	if 	   ( curTokens == "+" ) return AST_TOKENS::ADD;
 	else if( curTokens == "-" ) return AST_TOKENS::SUB;
@@ -84,16 +82,16 @@ AST_TOKENS getExprToken( const string& curTokens ) {
 	return AST_TOKENS::NONE;
 }
 
-bool isRegisteredASTExprTokens( const string& tok ){
+bool isRegisteredASTExprTokens( const std::string& tok ){
 	return EXPR_CONSTANTS.find( tok ) != EXPR_CONSTANTS.end();
 }
 
-vector<variant<CODE_TOKENS, AST_TOKENS>>
-stringToASTTokens( const vector<string>& tokens ){
-	vector<variant<CODE_TOKENS, AST_TOKENS>> resultTokens;
+std::vector<std::variant<CODE_TOKENS, AST_TOKENS>>
+stringToASTTokens( const std::vector<std::string>& tokens ){
+	std::vector<std::variant<CODE_TOKENS, AST_TOKENS>> resultTokens;
 
 	for( int startIndex = 0; startIndex < tokens.size(); startIndex++ ){
-		const string& curToken = tokens[ startIndex ];
+		const std::string& curToken = tokens[ startIndex ];
 
 		if( isRegisteredASTExprTokens(curToken) ){
 			AST_TOKENS getToken = getExprToken( curToken );
@@ -109,25 +107,25 @@ stringToASTTokens( const vector<string>& tokens ){
 } 
 
 template <typename AST_NODE_TYPE>
-optional<unique_ptr<AST_NODE<AST_NODE_TYPE>>> 
-finishTheASTTree( vector<unique_ptr<AST_NODE<AST_NODE_TYPE>>>&nodes, vector<unique_ptr<AST_NODE<AST_NODE_TYPE>>>&optrs ){
+std::optional<std::unique_ptr<AST_NODE<AST_NODE_TYPE>>> 
+finishTheASTTree( std::vector<unique_ptr<AST_NODE<AST_NODE_TYPE>>>&nodes, std::vector<unique_ptr<AST_NODE<AST_NODE_TYPE>>>&optrs ){
 	while( !optrs.empty() ){
-		unique_ptr<AST_NODE<AST_NODE_TYPE>> topOptr = move( optrs.back() );
+		unique_ptr<AST_NODE<AST_NODE_TYPE>> topOptr = std::move( optrs.back() );
 		optrs.pop_back();
 	
 		if( nodes.size() < 2 ) return nullopt;
 
-		unique_ptr<AST_NODE<AST_NODE_TYPE>> right = move( nodes.back() );
+		unique_ptr<AST_NODE<AST_NODE_TYPE>> right = std::move( nodes.back() );
 		nodes.pop_back();
-		unique_ptr<AST_NODE<AST_NODE_TYPE>> left = move( nodes.back() );
+		unique_ptr<AST_NODE<AST_NODE_TYPE>> left = std::move( nodes.back() );
 		nodes.pop_back();
 
-		topOptr->left 	= move( left );
-		topOptr->right  = move( right);
-		nodes.push_back( move( topOptr ) );
+		topOptr->left 	= std::move( left );
+		topOptr->right  = std::move( right);
+		nodes.push_back( std::move( topOptr ) );
 	}
 	if( !nodes.size() ) return nullopt;
-	return move( nodes.back() );
+	return std::move( nodes.back() );
 }
 
 // AST_TREE BUILDER

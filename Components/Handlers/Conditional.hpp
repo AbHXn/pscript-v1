@@ -7,7 +7,7 @@
 
 #include "../../Headers/MBExceptions.hpp"
 
-unordered_set<string> REG_COND_TOKENS = { "nok", "{", "}", "umbi" };
+std::unordered_set<std::string> REG_COND_TOKENS = { "nok", "{", "}", "umbi" };
 
 enum class COND_TOKENS{ IF, ELSE, CONDITION, BODY_OPEN, BODY_CLOSE, CHAIN, END };
 
@@ -48,7 +48,7 @@ passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 			break;
 
 		COND_TOKENS nextExpected = tokens[ ++startIndex ];
-		vector<COND_TOKENS>& nextExpectedTokens = CONDITIONAL_GRAPH[ curStage ];
+		std::vector<COND_TOKENS>& nextExpectedTokens = CONDITIONAL_GRAPH[ curStage ];
 
 		bool continueNext = false;
 		for( COND_TOKENS nextToks: nextExpectedTokens ){

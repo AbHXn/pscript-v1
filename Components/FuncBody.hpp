@@ -4,8 +4,6 @@
 #include "DefinedTypes.hpp"
 #include "VMAP.hpp"
 
-using namespace std;
-
 class LoopHandler;
 
 vector<Token> fullTokens;
