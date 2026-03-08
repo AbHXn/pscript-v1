@@ -20,7 +20,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				prntClass->VarHandlerRunner( tokens, currentPtr );
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
 				throw;
 			}
 		}
@@ -40,7 +40,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
 				throw;
 			}
 		}
@@ -54,7 +54,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				prntClass->IOHandlerRunner( tokens, currentPtr );
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
 				throw;
 			}
 		}
@@ -67,7 +67,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
 				throw;
 			}
 			
@@ -84,7 +84,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+				cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
 				throw;
 			}
 		}
@@ -111,7 +111,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 					throw err;			
 				}
 				catch( ... ){
-					cout << "Line " + to_string( tokens[backUpPtr].row ) << ": ";
+					cout << "Line " + to_string( tokens[backUpPtr].row + 1 ) << ": ";
 					throw;
 				}
 			}
@@ -143,7 +143,7 @@ int main( int argc, char *argv[] ){
 		cout << err.what() << endl;
 	}
 	catch( const RecoverError& err ){
-		throw runtime_error("Error occured at line: " + to_string( pointer ));
+		throw runtime_error("Error occured at line: " + to_string( pointer + 1 ));
 	}
 	return 0;
 }

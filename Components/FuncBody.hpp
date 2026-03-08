@@ -477,7 +477,10 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedValueVector.pop();
 
 					if( curVarInfo.isTypeArray && !std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ) )
-						throw InvalidSyntaxError("Assigning value to array type is invalid");
+						throw InvalidSyntaxError("Assigning value to kootam type is invalid");
+
+					if( !curVarInfo.isTypeArray && std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ))
+						throw InvalidSyntaxError("Trying to Assign kootam type to non kootam type");
 
 					if( std::holds_alternative<VarDtype> ( curValue ) ){
 						std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
