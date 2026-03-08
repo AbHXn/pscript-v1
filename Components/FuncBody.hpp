@@ -276,6 +276,34 @@ class FunctionHandler: public VAR_VMAP {
 						return (long) sizeof(bool);
 				}
 			}
+			else if( tok.arrProperty.propertyType == "THA_ASCII" ){
+				if( !holds_alternative<VarDtype>( Vdata ) )
+					throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
+
+				VarDtype data = get<VarDtype>( Vdata );
+
+				if( !holds_alternative<string> ( data ) )
+					throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
+
+				string str = get<string> (data);
+				if( str.size() != 1 )
+					throw InvalidSyntaxError("ASCII is only for size 1");
+
+				return (long) str[0];
+			}
+			else if( tok.arrProperty.propertyType == "PO_ASCII" ){
+				if( !holds_alternative<VarDtype>( Vdata ) )
+					throw InvalidSyntaxError("PO_ASCII is only for INT");
+
+				VarDtype data = get<VarDtype>( Vdata );
+
+				if( !holds_alternative<long int> ( data ) )
+					throw InvalidSyntaxError("PO_ASCII is only for INT");
+
+				long str = get<long int> (data);
+				return string(1, (char) str);
+			}
+
 			throw InvalidSyntaxError("Invalid property");
 		}
 
@@ -558,8 +586,7 @@ class FunctionHandler: public VAR_VMAP {
 				long int updationIndex = resolvedIndexVector.back();
 				resolvedIndexVector.pop_back();
 
-				if( updationIndex < 0 )
-					throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
+				if( updationIndex < 0 )throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
 
 				variant< ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
 

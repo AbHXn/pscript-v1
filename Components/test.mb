@@ -1,2 +1,2 @@
-pidi x kootam = {1,2,3};
-para x[13];
+pidi str = 255 + 66;
+para str:PO_ASCII koode "\n";
