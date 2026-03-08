@@ -1,3 +1,0 @@
-pidi x = 3;
-pidi y = x +x;
-para y koode "\n";
