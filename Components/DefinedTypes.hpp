@@ -43,8 +43,7 @@ struct FUNCTION_MAP_DATA{
 
 using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, FUNCTION_MAP_DATA*>;
 using DEEP_VALUE_DATA  		= std::variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
-using AST_NODE_DATA 		= std::variant<AST_TOKENS, DEEP_VALUE_DATA>;
-
+using REAL_AST_NODE_DATA 	= 	std::variant<AST_TOKENS, VarDtype, std::pair<ArrayAccessTokens, MapItem*>, std::pair<FunctionCallReturns, MapItem*>>;
 
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;
@@ -256,118 +255,27 @@ class ValueHelper{
 	    else
 	        return std::to_string(v);
 	}
+	static bool toBool(const VarDtype& value){
+        return std::visit([](auto&& v) -> bool {
+            using T = std::decay_t<decltype(v)>;
 
-	static VarDtype 
-	evaluate_AST_NODE( std::unique_ptr<AST_NODE<AST_NODE_DATA>>& astNode ){
-		auto& astNodeData = astNode->AST_DATA;
-
-		if( std::holds_alternative<DEEP_VALUE_DATA>( astNodeData ) ){
-			auto& valueData = std::get<DEEP_VALUE_DATA>( astNodeData );
-			if( std::holds_alternative<VarDtype>( valueData ) ){
-				return std::get<VarDtype>( valueData );
-			}
-			throw InvalidSyntaxError("Invalid dtype for operation");
-		}
-		else{
-			if( !astNode->left || !astNode->right )
-				throw InvalidSyntaxError("Invalid Expression");
-
-			VarDtype leftData  = ValueHelper::evaluate_AST_NODE( astNode->left );
-			VarDtype rightData = ValueHelper::evaluate_AST_NODE( astNode->right );
-
-			return std::visit(
-				[&](const auto& x, const auto& y) -> VarDtype {
-					using X = std::decay_t<decltype(x)>;
-					using Y = std::decay_t<decltype(y)>;
-
-					if constexpr (is_number_v<X> && is_number_v<Y>) {
-					    switch (astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
-
-						    case AST_TOKENS::ADD:
-						        if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
-						            return x + y;
-						        else
-						            return static_cast<double>(x) + static_cast<double>(y);
-
-						    case AST_TOKENS::SUB:
-						        if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
-						            return x - y;
-						        else
-						            return static_cast<double>(x) - static_cast<double>(y);
-
-						    case AST_TOKENS::MUL:
-						        if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
-						            return x * y;
-						        else
-						            return static_cast<double>(x) * static_cast<double>(y);
-
-						    case AST_TOKENS::DIV:
-						        return static_cast<double>(x) / static_cast<double>(y);
-
-						    case AST_TOKENS::MOD:
-						        return static_cast<long>(x) % static_cast<long>(y);
-
-						    case AST_TOKENS::AND:
-						        return static_cast<bool>(x) && static_cast<bool>(y);
-
-						    case AST_TOKENS::OR:
-						        return static_cast<bool>(x) || static_cast<bool>(y);
-
-						    case AST_TOKENS::LS_THAN:
-						        return static_cast<double>(x) < static_cast<double>(y);
-
-						    case AST_TOKENS::GT_THAN:
-						        return static_cast<double>(x) > static_cast<double>(y);
-
-						    case AST_TOKENS::LS_THAN_EQ:
-						        return static_cast<double>(x) <= static_cast<double>(y);
-
-						    case AST_TOKENS::GT_THAN_EQ:
-						        return static_cast<double>(x) >= static_cast<double>(y);
-
-						    case AST_TOKENS::D_EQUAL_TO:
-						        return static_cast<double>(x) == static_cast<double>(y);
-
-						    case AST_TOKENS::NOT_EQUAL_TO:
-						        return static_cast<double>(x) != static_cast<double>(y);
-
-						    default:
-						        throw std::runtime_error("Unknown operator for numbers");
-						}
-					}
-					else if constexpr (std::is_same_v<X, std::string> && std::is_same_v<Y, std::string>) {
-
-					    switch (astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
-
-					        case AST_TOKENS::ADD:  return x + y;
-
-					        case AST_TOKENS::LS_THAN:      return x <  y;
-					        case AST_TOKENS::GT_THAN:      return x >  y;
-					        case AST_TOKENS::LS_THAN_EQ:   return x <= y;
-					        case AST_TOKENS::GT_THAN_EQ:   return x >= y;
-					        case AST_TOKENS::D_EQUAL_TO:   return x == y;
-					        case AST_TOKENS::NOT_EQUAL_TO: return x != y;
-
-					        default:
-					            throw InvalidSyntaxError("Invalid operator for strings");
-					    }
-					}
-					else if constexpr (
-					    (std::is_same_v<X, std::string> || std::is_same_v<Y, std::string>)
-					) {
-					    switch (astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD) {
-					        case AST_TOKENS::ADD:
-					            return toString(x) + toString(y);
-					        default:
-					            throw InvalidSyntaxError("Invalid operator involving string");
-					    }
-					} 
-					else throw InvalidSyntaxError("Invalid operation between VarDtype types");
-					
-				}, leftData, rightData
-			);
-		}
-	}
+            if constexpr (std::is_same_v<T, bool>){
+                return v;
+            }
+            else if constexpr (std::is_same_v<T, long>){
+                return v != 0;
+            }
+            else if constexpr (std::is_same_v<T, double>){
+                return v != 0.0;
+            }
+            else if constexpr (std::is_same_v<T, std::string>){
+                return !v.empty();
+            }
+            else{
+                return false;
+            }
+        }, value);
+    }
 };
 
 #endif

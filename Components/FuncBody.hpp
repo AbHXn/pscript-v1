@@ -5,6 +5,7 @@
 #include "VMAP.hpp"
 
 class LoopHandler;
+class FunctionHandler;
 
 std::vector<Token> fullTokens;
 size_t 		   pointer = 0;
@@ -13,9 +14,23 @@ enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
 template <typename T> std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
 ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, T* prntClass, size_t endPtr = 0  );
-using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
+DEEP_VALUE_DATA evaluate_AST_NODE( std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
 
+using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
 std::vector<BUCKET_TYPE> _CACHE_VARS;
+
+struct RESOLVER_TYPE{
+	std::queue<REAL_AST_NODE_DATA> 		resolvedAstNodeData;
+	std::vector<std::string> 			simpleVector;
+
+	RESOLVER_TYPE(
+		std::queue<REAL_AST_NODE_DATA> 		resolvedAstNodeData,
+		std::vector<std::string> 			simpleVector
+	){
+		this->resolvedAstNodeData = resolvedAstNodeData;
+		this->simpleVector 		  = simpleVector;
+	}
+};
 
 class FunctionHandler: public VAR_VMAP {
 	public:
@@ -40,32 +55,25 @@ class FunctionHandler: public VAR_VMAP {
 
 		DEEP_VALUE_DATA 
 		evaluateVector( std::vector<Token>& vtr ){
-			auto [resolvedQeueu, strVector] = vectorResolver( vtr );
-			auto astTokenAndData 			= stringToASTTokens( strVector );
-			size_t startAST 				= 0;
+			auto resolvedType 		= vectorResolver( vtr );
+			auto astTokenAndData 	= stringToASTTokens( resolvedType.simpleVector );
+			size_t startAST 		= 0;
 
 			// built AST Tree
-			auto newAstNode = BUILD_AST<DEEP_VALUE_DATA, AST_NODE_DATA>( astTokenAndData, resolvedQeueu, startAST );
+			auto newAstNode = BUILD_AST<REAL_AST_NODE_DATA, REAL_AST_NODE_DATA>( astTokenAndData, resolvedType.resolvedAstNodeData, startAST );
 
 			if( newAstNode.has_value() ){
 				auto AST_NODE = std::move( newAstNode.value() );
-
-				// if Tree has only one node and that holds DEEP_VALUE_DATA
-				if( !AST_NODE->left && !AST_NODE->right && std::holds_alternative<DEEP_VALUE_DATA> ( AST_NODE->AST_DATA ))
-					return std::get<DEEP_VALUE_DATA>( AST_NODE->AST_DATA );
-
-				// else we will evaluate tree ( AFTER EVALUATION IT WILL BE EITHER, string, long, double, boolean )
-				return ValueHelper::evaluate_AST_NODE( AST_NODE );
+				return evaluate_AST_NODE( AST_NODE, this );
 			}
 			throw InvalidDTypeError("Failed to resolve the vector\n");
 		}
 
 		/* this function is to convert to pure vector
 		resolve variables, function call, array calls etc */
-		std::pair<std::queue<DEEP_VALUE_DATA>, std::vector<std::string>>
+		RESOLVER_TYPE
 		vectorResolver( const std::vector<Token>& tokens ){
-
-			std::queue<DEEP_VALUE_DATA> resolvedVector;       
+			std::queue<REAL_AST_NODE_DATA> resolvedAstNodeData;
 			std::vector<std::string> 	simpleVector;
 
 			for( size_t x = 0; x < tokens.size(); x++ ){
@@ -76,87 +84,53 @@ class FunctionHandler: public VAR_VMAP {
 					simpleVector.push_back( curToken );
 					continue;
 				}
+				
 				if( isValueType( tok.type ) ){
 					VarDtype value = this->getValueFromToken( tok );
+					resolvedAstNodeData.push( value );
 					simpleVector.push_back("NUM");
-					resolvedVector.push( value );
 				}
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
-					auto [VMAPData, rPT] = this->getFromVmap( curToken );
-
+					auto VmapData = this->getFromVmap( curToken );
+					auto mainVmapData = VmapData.first;
 					// if identifier is not there in VMAP
-					if (VMAPData == nullptr)
+					if (mainVmapData == nullptr)
 						throw InvalidSyntaxError( "Unknown identifier " + curToken );
 
 					// Resolve if it is variable
-					if( VMAPData->mapType == MAPTYPE::VARIABLE ){
-						auto varHolder = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
-						
+					if( mainVmapData->mapType == MAPTYPE::VARIABLE ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-
 						// pass array access validity
 						passArrayAccessToken( arrToken.tokens );
 
-						if( !varHolder->isTypeArray ){
-							DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
-							auto datan = handleRawVariables( arrToken,  tdata );
-							
-							resolvedVector.push( datan ); 
-							simpleVector.push_back( "VAR" );
-						}
-						else {
-							auto& arrayData = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
-							handleArrayCases( arrayData.get(), arrToken, resolvedVector, simpleVector );
-						}
+						resolvedAstNodeData.push( std::make_pair(arrToken, mainVmapData) );
+						simpleVector.push_back("VAR");
 						x--;
 					}
 					// Resolve if it is function call
-					else if( VMAPData->mapType == MAPTYPE::FUNCTION || VMAPData->mapType == MAPTYPE::FUNC_PTR ){
-						auto varHolder = std::get<FUNCTION_MAP_DATA*>( VMAPData->var );
-
+					else if( mainVmapData->mapType == MAPTYPE::FUNCTION || mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
-						if( isFuncPtr( pt.callTokens ) ){
-							simpleVector.push_back("FUNC_PTR");
-							resolvedVector.push( varHolder );
-						}
-						else{
-							auto data = this->handleFunctionCall( VMAPData, fullTokens, x, rPT, pt);
-							if( data.has_value() ){	
-								if( std::holds_alternative<VarDtype>( data.value() ) ){
-									VarDtype returnedData = std::get<VarDtype>( data.value() );
-									
-									simpleVector.push_back("VAR");
-									resolvedVector.push( returnedData );
-								}
-								else if( std::holds_alternative<std::unique_ptr<MapItem>>( data.value() ) ){
-									auto returnedData = std::move( std::get<std::unique_ptr<MapItem>>( data.value() ) );
-									DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
-									this->pushCache( std::move( returnedData ) );
-									
-									simpleVector.push_back("CACHE");
-									resolvedVector.push( final );
-								}
-								else throw std::runtime_error("unknown typed pushed to queue");
-							}
-						}
+						resolvedAstNodeData.push( std::make_pair(pt, mainVmapData) );
+						simpleVector.push_back("CACHE");
 						x--; // stringfuncalltokens it hits then unknown token get that token back
 					}
-					else if( VMAPData->mapType == MAPTYPE::ARRAY_PTR ){
-						auto arryListPtr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( VMAPData->var );
+					else if( mainVmapData->mapType == MAPTYPE::ARRAY_PTR ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-						handleArrayCases( arryListPtr, arrToken, resolvedVector, simpleVector );
+
+						resolvedAstNodeData.push( std::make_pair(arrToken, mainVmapData) );
+						simpleVector.push_back("ARRAY_PTR");
 						x--;
 					}
 				}
 				else if( tok.type == TOKEN_TYPE::RESERVED && curToken == "edukku" ){
 					std::string inputValue; std::cin >> inputValue;
+					resolvedAstNodeData.push( inputValue );
 					simpleVector.push_back("NUM");
-					resolvedVector.push( inputValue );
 				}
 				else throw InvalidSyntaxError( "Unknown Token " + curToken );
 			}
-			return { std::move(resolvedVector), simpleVector };
+			return RESOLVER_TYPE( resolvedAstNodeData, simpleVector );
 		}
 
 		std::optional<VarDtype>
@@ -170,10 +144,10 @@ class FunctionHandler: public VAR_VMAP {
 			return std::nullopt;
 		}
 
-		void handleArrayCases( ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, ArrayAccessTokens& arrToken, std::queue<DEEP_VALUE_DATA>& resolvedVector, std::vector<std::string>& simpleVector ){
+		DEEP_VALUE_DATA
+		handleArrayCases( ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, ArrayAccessTokens& arrToken ){
 			if( arrToken.indexVector.size() ){
 				std::vector<long int> resolvedIndexVector;
-
 				// Resolve the index vector to the final value
 				for( auto& vec: arrToken.indexVector ){
 					DEEP_VALUE_DATA val = evaluateVector( vec );
@@ -187,18 +161,17 @@ class FunctionHandler: public VAR_VMAP {
 					long int index = std::holds_alternative<long int> ( vDtypeIndex ) ? std::get<long int> ( vDtypeIndex ) : std::get<double> (vDtypeIndex);
 					resolvedIndexVector.push_back( index );
 				}
-
 				std::variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
 				// resolve if it touch property functions (:)
 				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
 					auto spData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
-					std::visit( [&]( auto&& data ) {
+					return std::visit( [&]( auto&& data ) {
+
 					    if (arrToken.isTouchedArrayProperty) {
-					        DEEP_VALUE_DATA dv = data;
-					        resolvedVector.push( handleVarDefinedProperties(dv, arrToken) );
+					    	DEEP_VALUE_DATA dv = data;
+					        return DEEP_VALUE_DATA{handleVarDefinedProperties(dv, arrToken)};
 					    } 
-					    else resolvedVector.push(data);
-					    simpleVector.push_back("VAR");
+					    return DEEP_VALUE_DATA{data};
 					}, *spData);
 				}
 				else{
@@ -206,21 +179,20 @@ class FunctionHandler: public VAR_VMAP {
 					if( arrToken.isTouchedArrayProperty ){
 						auto data = handleArrayProperties( arrList, arrToken );
 						if( data.has_value() ) 
-							resolvedVector.push( data.value() );
+							return data.value();
 					}
-					else resolvedVector.push( arrList );
-					simpleVector.push_back("VAR");
+					return arrList;
 				}
 			}
 			else {
 				if( arrToken.isTouchedArrayProperty ){
 					auto data = handleArrayProperties( arrayData, arrToken );
 					if( data.has_value() )
-						resolvedVector.push( data.value() );
+						return data.value();
 				}
-				else resolvedVector.push( arrayData );
-				simpleVector.push_back("VAR");	
-			}	
+				return arrayData;
+			}
+			throw;
 		}
 
 		VarDtype 
@@ -911,5 +883,4 @@ class LoopHandler: public FunctionHandler{
 			currentPtr = lpTokens.endPtr;
 		}
 };
-
 #endif
