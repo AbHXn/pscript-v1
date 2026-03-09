@@ -1,41 +1,75 @@
-pari int_input(pidi msg){
-	para msg;
-	pidi int_data = edukku;
-	int_data := INT;
-	poda int_data;
-}
+pari createHashMap(pidi size){
+    pidi buckets kootam = {0};
 
-pari array_input(pidi size){
-	pidi arr kootam = {0};
-	pidi index = 0;
-	ittuthiri index < size {
-		arr[index] = int_input("Enter array value: ");
-		index = index + 1;		
+    pari hash(pidi key){
+        pidi h = 0;
+		pidi index = 0;
+        ittuthiri index < key:kanam {
+            h = h + key[index]:THA_ASCII;
+			index = index + 1;
+		}
+        poda h % size;
 	}
-	poda arr;
+	
+	pari add_or_update(pidi key){
+		pidi hash_key = hash(key);
+		nok hash_key >= buckets:valupam yo buckets[hash_key]:jaadi != "KOOTAM" {
+			pidi pair kootam = {key, 1};
+			buckets[hash_key] = pair;
+		}: umbi {
+			nok key == buckets[hash_key][0] {
+				buckets[hash_key][1] = buckets[hash_key][1] + 1;
+			}: umbi {
+				pidi cur = hash_key;
+				ittuthiri buckets[cur]:jaadi != "INT" {
+					cur = (cur + 1) % size;
+				}
+				pidi pair kootam = {key, 1};
+				buckets[cur] = pair;
+			};
+		};
+	}
+
+	pari para_buckets(){
+		para buckets koode "\n";
+	}
+	
+	pidi output kootam = { add_or_update, para_buckets };	
+	poda output;
 }
 
-pari binary_search(pidi arr kootam, pidi left, pidi right, pidi search){
-	pidi res = -1;
-	nok left > right {
-		poda res;
+pari get_word_list(pidi statement){
+	pidi x, y = 0, 0;
+	pidi word = "";
+	pidi words_list kootam = {0};
+	
+	ittuthiri x < statement:kanam {
+		nok statement[x] != " " {
+			word = word + statement[x];
+		}: umbi {
+			words_list[y] = word;
+			word = "";
+			y = y + 1;		
+		};
+		x = x + 1;
+	}
+	nok word:kanam != 0 {
+		words_list[y] = word;
 	};
-
-	pidi mid = (left + right) / 2;
-	mid := INT;
-	nok arr[mid] > search {
-		res = binary_search(arr, left, mid - 1, search);
-	}: nok arr[mid] < search {
-		res = binary_search(arr, mid + 1, right, search);
-	}: umbi {
-		res = mid;
-	};
-	poda res;
+	poda words_list;
 }
 
-pidi arr_size = int_input("Enter array size: ");
-pidi arr kootam = array_input(arr_size);
-para arr koode "\n";
+pidi statement = edukku;
 
-pidi index = binary_search(arr, 0, arr_size - 1, 2);
-para index koode "\n";
+pidi lists kootam = get_word_list(statement);
+pidi hashMapRes kootam = createHashMap(lists:valupam);
+pidi add, print = hashMapRes[0], hashMapRes[1];
+
+pidi x = 0;
+ittuthiri x < lists:valupam {
+	pidi word = lists[x];
+	add(word);
+	x = x + 1;
+};
+
+print();
