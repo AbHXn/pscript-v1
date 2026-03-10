@@ -20,7 +20,7 @@ std::unordered_set<std::string> SCHARS = {
 };
 
 std::unordered_set<std::string> OPTR{
-	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":"
+	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":", "?"
 };
 
 bool isReservedKey(const std::string& tok){
