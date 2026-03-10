@@ -219,6 +219,10 @@ class ValueHelper{
 		else if( mapData->mapType == MAPTYPE::FUNC_PTR ){
 			return std::get<FUNCTION_MAP_DATA*>( mapData->var );
 		}
+		else if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
+			auto VariableData = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+			return VariableData;
+		}
 		throw std::runtime_error("DTYPE not defined in MAP");
 	}
 
