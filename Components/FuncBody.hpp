@@ -437,9 +437,6 @@ class FunctionHandler: public VAR_VMAP {
 					VALUE_TOKENS::ARRAY_VALUE && curValueToken != VALUE_TOKENS::ARRAY_OPEN )
 					continue;
 
-				if( i < varInfos.size() && resolvedValueVector.empty() )
-					throw InvalidSyntaxError("more variables to initialize");
-
 				if( i >= varInfos.size() && !resolvedValueVector.empty() )
 					throw InvalidSyntaxError("No variable to initialize the value");
 

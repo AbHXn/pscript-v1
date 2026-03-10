@@ -1,11 +1,11 @@
 pari createHashMap(pidi size){
-    pidi buckets kootam = {0};
+    pidi buckets kootam = {};
 
     pari hash(pidi key){
         pidi h = 0;
 		pidi index = 0;
         ittuthiri index < key:kanam {
-            h = h + key[index]:THA_ASCII;
+            h = h + key[index]:THA_ASCII; ??? return ascii values ???
 			index = index + 1;
 		}
         poda h % size;
@@ -38,6 +38,9 @@ pari createHashMap(pidi size){
 	poda output;
 }
 
+???
+	this function is for converting statement to words
+???
 pari get_word_list(pidi statement){
 	pidi x, y = 0, 0;
 	pidi word = "";
