@@ -126,20 +126,24 @@ void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 			colNumber = 0;
 			continue;
 		}
-		if(isdigit((unsigned char)cCode)){
-			if(currentState == TOKEN_TYPE::NUMBER || currentState == TOKEN_TYPE::IDENTIFIER || currentState == TOKEN_TYPE::FLOATING){
-				currentWord.push_back(cCode);
-			} 
-			else if(currentState == TOKEN_TYPE::NOTHING){
-				currentState = TOKEN_TYPE::NUMBER;
-				currentWord.push_back(cCode);
-			}
-			else if(currentState == TOKEN_TYPE::OPERATOR && (currentWord == "-" || currentWord == "+")){
-				currentState = TOKEN_TYPE::NUMBER;
-				currentWord.push_back(cCode);
-			}
-			else throw std::runtime_error("Invalid token at line: " + std::to_string(lineNumber) + " Column: " + std::to_string(colNumber));
+		if(isdigit(static_cast<unsigned char>(cCode))){
+		    if(currentState == TOKEN_TYPE::NUMBER || 
+		       currentState == TOKEN_TYPE::IDENTIFIER || 
+		       currentState == TOKEN_TYPE::FLOATING){
+
+		        currentWord.push_back(cCode);
+		    }
+		    else if(currentState == TOKEN_TYPE::NOTHING){
+		        currentState = TOKEN_TYPE::NUMBER;
+		        currentWord.push_back(cCode);
+		    }
+		    else{
+		        Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
+		        currentWord = std::string(1, cCode);
+		        currentState = TOKEN_TYPE::NUMBER;
+		    }
 		}
+
 		else if(isalpha((unsigned char)cCode) || cCode == '_'){
 			if(currentState == TOKEN_TYPE::IDENTIFIER)
 				currentWord.push_back(cCode);
@@ -204,17 +208,45 @@ void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 				}
 			}
 			else if(isOptr(std::string(1, cCode))){
-				if(currentState != TOKEN_TYPE::NOTHING){
-					Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
-					currentWord = std::string(1, cCode);
-					currentState = TOKEN_TYPE::OPERATOR;
-					colNumber++;
-				}
-				else{
-					currentWord.push_back(cCode);
-					currentState = TOKEN_TYPE::OPERATOR;
-				}
+
+			    if((cCode == '-' || cCode == '+') && currentState == TOKEN_TYPE::NOTHING){
+
+			        bool unary = false;
+
+			        if(Tokens.empty())
+			            unary = true;
+			        else{
+			            Token prev = Tokens.back();
+
+			            if(prev.type == TOKEN_TYPE::OPERATOR)
+			                unary = true;
+
+			            else if(prev.type == TOKEN_TYPE::SPEC_CHAR &&
+			               (prev.token == "(" || prev.token == "[" || prev.token == "{" || prev.token == ",")){
+			                unary = true;
+			            }
+			            else if( prev.type == TOKEN_TYPE::RESERVED && prev.token == "para" )
+			            	unary = true;
+			        }
+
+			        if(unary){
+			            currentState = TOKEN_TYPE::NUMBER;
+			            currentWord.push_back(cCode);
+			            continue;
+			        }
+			    }
+
+			    if(currentState != TOKEN_TYPE::NOTHING){
+			        Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
+			        currentWord.clear();
+			    }
+
+			    currentWord = std::string(1, cCode);
+			    currentState = TOKEN_TYPE::OPERATOR;
+			    colNumber++;
 			}
+
+
 			else if(cCode == '.' && currentState == TOKEN_TYPE::NUMBER){
 				currentWord.push_back(cCode);
 				currentState = TOKEN_TYPE::FLOATING;

@@ -83,14 +83,14 @@ poda -> return;
 in function created object or constant can be returned that is defined in function body.
 ex
 
-pari func( args ){
+pari func( pidi args ){
 	pidi num1 = 23;
 	nok condition {
 		poda num1; ? valid because num1 is inside func {} ?
 	};
 }
 
-pari func( args ){
+pari func( pidi args ){
 	nok condition {
 		pidi num1 = 23;
 		poda num1; ? invalid because num1 is inside nok {} not func {} ?
