@@ -239,28 +239,28 @@ VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t&
 		const Token& tok = tokens[ startCurPtr ];
 		const std::string& curToken = tok.token;
 
-		if( curToken == "pidi" ){
+		if( curToken == "pidi" && tok.type == TOKEN_TYPE::RESERVED ){
 			varTokens.push_back( VARIABLE_TOKENS::VAR_START );
 		}
-		else if( curToken == "," ){
+		else if( curToken == "," && tok.type == TOKEN_TYPE::SPEC_CHAR){
 			( isVariableTurn ) ?  varTokens.push_back( VARIABLE_TOKENS::COMMA ): valueToken.push_back( VALUE_TOKENS::COMMA );
 		}
-		else if( curToken == "kootam" )
+		else if( curToken == "kootam" && tok.type == TOKEN_TYPE::RESERVED )
 			varTokens.push_back( VARIABLE_TOKENS::ARRAY );
 
-		else if ( curToken == "{" ){
+		else if ( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 			arrayOpenedCount++;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_OPEN );
 		}
-		else if( curToken == "=" ){
+		else if( curToken == "=" && tok.type == TOKEN_TYPE::OPERATOR ){
 			varTokens.push_back( VARIABLE_TOKENS::VALUE_ASSIGN );
 			isVariableTurn = false;
 		}
-		else if(curToken == "}" ){
+		else if(curToken == "}" && tok.type == TOKEN_TYPE::SPEC_CHAR){
 			arrayOpenedCount--;
 			valueToken.push_back( VALUE_TOKENS::ARRAY_CLOSE );
 		}
-		else if(curToken == ";" ){
+		else if(curToken == ";" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 			( isVariableTurn ) ? varTokens.push_back( VARIABLE_TOKENS::VAR_ENDS ) : valueToken.push_back( VALUE_TOKENS::VALUE_END );
 			return VariableTokens( varTokens, valueToken, valueVector, VarQueue );
 		}
@@ -274,9 +274,9 @@ VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t&
 				int openBrack = 0;
 
 				while( startCurPtr < tokens.size() ){
-					if( tokens[ startCurPtr ].token == "(" )
+					if( tokens[ startCurPtr ].token == "(" && tokens[startCurPtr].type == TOKEN_TYPE::SPEC_CHAR )
 						openBrack++;
-					else if( tokens[startCurPtr].token == ")")
+					else if( tokens[startCurPtr].token == ")" && tokens[startCurPtr].type == TOKEN_TYPE::SPEC_CHAR )
 						openBrack--;
 					if( !isValueType(tokens[startCurPtr].type) && isRegisteredVariableToken( tokens[ startCurPtr ].token )  && openBrack == 0 ){
 						startCurPtr--;

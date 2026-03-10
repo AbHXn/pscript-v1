@@ -80,7 +80,7 @@ class FunctionHandler: public VAR_VMAP {
 				const Token& tok = tokens[ x ];
 				const std::string& curToken = tokens[ x ].token;
 
-				if( !isValueType( tok.type ) && isRegisteredASTExprTokens( curToken ) || curToken == ")" ||  curToken == "(" ){
+				if( !isValueType( tok.type ) && (isRegisteredASTExprTokens( curToken ) || curToken == ")" ||  curToken == "(" )){
 					simpleVector.push_back( curToken );
 					continue;
 				}

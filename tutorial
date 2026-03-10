@@ -1,0 +1,100 @@
+1. printing 
+
+para "hello world!";
+
+2. concat
+
+para "hello" koode "world!";
+
+only works with para ;
+
+3. comments
+? comment ?
+??? comment ??? -> also works (odd number but not even number)
+
+4. variable creation
+
+pidi num1 = 23;
+pidi num2 = 33.34;
+pidi name = "admin";
+
+para name[0]:THA_ASCII; -> return ascii value
+para num1:PO_ASCII; -> convert num to asci
+
+para name:kanam; -> for length of array;
+
+pidi bool = sheri;  -> for true;
+pidi bool = thettu; -> for false;
+
+para num1:jaadi -> print dtype
+para num1:kanam -> print size
+
+5. array creation;
+
+pidi arr kootam = {1, 2, 3, "test", {1, 2}, 43.34};
+
+dynamic array can store any dtypes
+
+para arr:valupam; -> display array
+para arr[0] -> (indexing)
+
+6. conditional statements;
+
+if else
+-------
+nok 1 < 2 {
+	para "condition true";
+}: umbi {
+	para "condition fails";
+}; -> must have ; in and condition should be boolean type
+
+if else if ladder
+--------------
+
+pidi num = 23;
+nok 1 < num um 10 > num {
+	para "between 1 and 10";
+}:nok 10 < num um 20 > num {
+	para "between 10 and 20";
+}: umbi {
+	para "larger number\n";
+};
+
+
+um -> and
+yo -> or
+
+7. Loops;
+
+ittuthiri condition {
+	? statements ? 
+}
+
+pinnava -> continue;
+thekku -> break;
+
+8. Functions 
+pari function_name( args ){
+	poda 23;
+}
+
+poda -> return;
+
+in function created object or constant can be returned that is defined in function body.
+ex
+
+pari func( args ){
+	pidi num1 = 23;
+	nok condition {
+		poda num1; ? valid because num1 is inside func {} ?
+	};
+}
+
+pari func( args ){
+	nok condition {
+		pidi num1 = 23;
+		poda num1; ? invalid because num1 is inside nok {} not func {} ?
+	};
+}
+
+can return functions too;

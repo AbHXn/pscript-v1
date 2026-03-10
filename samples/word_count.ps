@@ -1,5 +1,6 @@
 pari createHashMap(pidi size){
     pidi buckets kootam = {};
+	buckets[size] = 0; ????? this will init array of size to 0 ?????
 
     pari hash(pidi key){
         pidi h = 0;
@@ -21,7 +22,7 @@ pari createHashMap(pidi size){
 				buckets[hash_key][1] = buckets[hash_key][1] + 1;
 			}: umbi {
 				pidi cur = hash_key;
-				ittuthiri buckets[cur]:jaadi != "INT" {
+				ittuthiri cur < size um buckets[cur]:jaadi != "INT" {
 					cur = (cur + 1) % size;
 				}
 				pidi pair kootam = {key, 1};
