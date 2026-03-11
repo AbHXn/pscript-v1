@@ -125,6 +125,27 @@ struct MapItem{
 			}
 		}
 	}
+
+	void typeCastToBool(){
+		if( mapType == MAPTYPE::VARIABLE ){
+			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			
+			if( VHdata->isTypeArray )
+				TypeCastError("Cannot cast array type");
+
+			auto& vardata = std::get<VarDtype>(VHdata->value);
+			
+			if (auto p = std::get_if<long>(&vardata)) {
+				vardata = static_cast<bool>(*p);
+			}
+			else if (auto s = std::get_if<double>(&vardata)) {
+            	vardata = static_cast<bool>(*p);
+        	}
+        	else if (auto p = std::get_if<std::string>(&vardata)) {
+    			vardata = DtypeHelper::toBoolean( *p );
+			}
+		}
+	}
 };
 
 class ValueHelper{

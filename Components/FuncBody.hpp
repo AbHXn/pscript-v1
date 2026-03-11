@@ -618,6 +618,9 @@ class FunctionHandler: public VAR_VMAP {
 					else if( top.token == "STR" ){
 						mapData->typeCastToString();
 					}
+					else if( top.token == "BOOL" ){
+						mapData->typeCastToBool();
+					}
 					else throw TypeCastError("Failed to cast");
 				}
 				return;
