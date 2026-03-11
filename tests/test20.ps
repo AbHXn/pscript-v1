@@ -1,0 +1,70 @@
+pidi N = 4;
+
+pidi board kootam = {
+{0,0,0,0},
+{0,0,0,0},
+{0,0,0,0},
+{0,0,0,0}
+};
+
+pari valid(pidi row, pidi col){
+    pidi i = 0;
+
+    ? check column above ?
+    ittuthiri i < row {
+        nok board[i][col] == 1 {
+            poda thettu;
+        };
+        i = i + 1;
+    }
+
+    ? check left diagonal ?
+
+    pidi r = row - 1;
+    pidi c = col - 1;
+
+    ittuthiri r >= 0 um c >= 0 {
+        nok board[r][c] == 1 {
+            poda thettu;
+        };
+        r = r - 1;
+        c = c - 1;
+    }
+
+    ? check right diagonal ?
+
+    r = row - 1;
+    c = col + 1;
+    ittuthiri r >= 0 um c < N {
+        nok board[r][c] == 1 {
+            poda thettu;
+        };
+        r = r - 1;
+        c = c + 1;
+    }
+    poda sheri;
+}
+
+pari solve(pidi row){
+    nok row == N {
+        poda sheri;
+    };
+    pidi col = 0;
+    ittuthiri col < N {
+        nok valid(row,col) {
+            board[row][col] = 1;
+
+            nok solve(row + 1) {
+                poda sheri;
+            };
+            board[row][col] = 0;
+        };
+        col = col + 1;
+    }
+    poda thettu;
+}
+
+solve(0);
+
+para "Solution\n";
+para board koode "\n";

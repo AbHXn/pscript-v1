@@ -1,42 +1,6 @@
-pari isValid(pidi str){
-    pidi stack kootam = {};
-    pidi isBalanced = sheri;
-    pidi x = 0;
-    pidi s = 0;
-
-    ittuthiri x < str:kanam {
-        nok str[x] == "(" yo str[x] == "[" yo str[x] == "{" {
-            stack[s] = str[x];
-            s = s + 1;
-
-        }: nok s > 0 {
-            pidi top = stack[s - 1];
-            s = s - 1;
-
-            nok (str[x] == ")" um top != "(") yo
-                (str[x] == "]" um top != "[") yo
-                (str[x] == "}" um top != "{") {
-
-                isBalanced = thettu;
-                theku;
-            };
-        }: umbi {
-            isBalanced = thettu;
-            theku;
-
-        };
-        x = x + 1;
-    }
-    poda isBalanced um s == 0;
+pidi sum = 0;
+pidi index = 0;
+ittuthiri index < 10000 {
+	index = index + 1;
 }
-
-pidi test1 = isValid("([])");
-pidi test2 = isValid("([)]");
-pidi test3 = isValid("()[]{}");
-pidi test4 = isValid("()");
-
-para test1 koode "\n";
-para test2 koode "\n";
-para test3 koode "\n";
-para test4 koode "\n";
-
+para index koode "\n";

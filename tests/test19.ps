@@ -1,0 +1,70 @@
+? power function ?
+
+pari power(pidi base, pidi exp){
+    pidi result = 1;
+    pidi i = 0;
+
+    ittuthiri i < exp {
+        result = result * base;
+        i = i + 1;
+    }
+    poda result;
+}
+
+pari generateParenthesis(pidi n){
+    pidi final_result kootam = {};
+    pidi N = power(2, n * 2);
+    pidi i = 0;
+
+    ittuthiri i < N {
+        pidi result_string = "";
+        pidi current_pos = i;
+        pidi j = 0;
+
+        ittuthiri j < n * 2 {
+            nok current_pos % 2 == 1 {
+                result_string = result_string + ")";
+            }: umbi {
+                result_string = result_string + "(";
+            };
+            current_pos = current_pos / 2;
+            j = j + 1;
+        }
+
+        pidi stack kootam = {};
+        pidi s, x = 0, 0;
+        pidi is_balanced = sheri;
+
+        ittuthiri x < result_string:kanam {
+            pidi ch = result_string[x];
+
+            nok ch == ")" um s > 0 {
+                s = s - 1;
+            }: nok ch == "(" {
+                stack[s] = ch;
+                s = s + 1;
+            }: umbi {
+                is_balanced = thettu;
+                theku;
+            };
+            x = x + 1;
+        }
+
+        nok s > 0 {
+            is_balanced = thettu;
+        };
+
+        nok is_balanced {
+            pidi idx = final_result:valupam;
+            final_result[idx] = result_string;
+
+        };
+
+        i = i + 1;
+    }
+    poda final_result;
+}
+
+pidi result kootam = generateParenthesis(3);
+para "Valid Parentheses:" koode "\n";
+para result koode "\n";
