@@ -571,13 +571,7 @@ class FunctionHandler: public VAR_VMAP {
 					for(; cur <= updationIndex; cur++)
 						arrList->push_SingleElement( VarDtype{0} );
 				}
-				auto& elementAtIndex = arrList->arrayList[ updationIndex ];
-
-				if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( elementAtIndex ) ){
-					auto arrData = std::get<ARRAY_SUPPORT_TYPES>( elementAtIndex );
-					std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
-				}
-				else throw InvalidDTypeError("Dtype mismatch in array updation");
+				std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
 			}
 		}
 
