@@ -12,12 +12,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 	while( currentPtr < tokens.size() ){
 		backUpPtr = currentPtr;
 		
-		const string& curToken = tokens[currentPtr].token;
+		const Token& curToken = tokens[currentPtr];
 
 		if( endPtr && currentPtr >= endPtr - 1 )
 			return nullopt;
 
-		if( curToken == "pidi" ){
+		if( curToken.token == "pidi" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				prntClass->VarHandlerRunner( tokens, currentPtr );
 			}
@@ -26,7 +26,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw;
 			}
 		}
-		else if( curToken == "nok" ){
+		else if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
 				lpHandler->runnerBody = prntClass->runnerBody;
@@ -46,12 +46,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw;
 			}
 		}
-		else if( curToken == "}" ){
+		else if( curToken.token == "}" ){
 			if( prntClass->parent == nullptr )
 				throw InvalidSyntaxError( "unknown token }" );
 			return nullopt;
 		}
-		else if( curToken == "para" ){
+		else if( curToken.token == "para" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				prntClass->IOHandlerRunner( tokens, currentPtr );
 			}
@@ -60,7 +60,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw;
 			}
 		}
-		else if( curToken == "pari" ){
+		else if( curToken.token == "pari" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				prntClass->functionDefHandlerRunner( tokens, currentPtr );
 				currentPtr--;
@@ -74,7 +74,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			}
 			
 		}
-		else if( curToken == "ittuthiri" ){
+		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				unique_ptr<LoopHandler> newLpHander = make_unique<LoopHandler>();
 				newLpHander->parent = prntClass;
@@ -93,7 +93,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		else{
 			switch( C_CLASS ){
 				case CALLER::FUNCTION: {
-					if( curToken == "poda" ){
+					if( curToken.token == "poda" && curToken.type == TOKEN_TYPE::RESERVED ){
 						return prntClass->getReturnedData( tokens, currentPtr );
 					}
 				}
