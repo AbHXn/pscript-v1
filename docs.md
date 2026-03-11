@@ -410,7 +410,7 @@ pinnava
 ### Break
 
 ```
-thekku
+theku
 ```
 
 ---
