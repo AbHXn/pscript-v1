@@ -37,8 +37,10 @@ class FunctionHandler: public VAR_VMAP {
 		std::string functionName;
 
 		VarDtype getValueFromToken( const Token& tok ){
-			if( tok.type == TOKEN_TYPE::STRING )
-				return VarDtype{ tok.token };
+			if( tok.type == TOKEN_TYPE::STRING ){
+
+				return VarDtype{ ValueHelper::unescapeString( tok.token ) };
+			}
 			
 			else if( tok.type == TOKEN_TYPE::NUMBER )
 				return VarDtype{  DtypeHelper::toLong( tok.token ) };
