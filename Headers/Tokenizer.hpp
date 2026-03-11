@@ -90,8 +90,16 @@ void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 
 	size_t lineNumber = 0, colNumber = 0;
 	bool isSkip = false;
+	bool comments = false;
 
 	while(codeFile.get(cCode)){
+		if( cCode == '?' ){
+			comments = !comments;
+			continue;
+		}
+		if( comments )
+			continue;
+
 		if(cCode == '"' && currentState != TOKEN_TYPE::STRING){
 			if(currentState != TOKEN_TYPE::NOTHING)
 				throw std::runtime_error("Invalid token at line: " + std::to_string(lineNumber) + " Column: " + std::to_string(colNumber));

@@ -8,23 +8,11 @@ template <typename PARENT_CLASS>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
 ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, PARENT_CLASS* prntClass, size_t endPtr ){
 	size_t backUpPtr = currentPtr;
-	bool comments = false;
 
 	while( currentPtr < tokens.size() ){
 		backUpPtr = currentPtr;
-
-		if( tokens[currentPtr].token == "?" ){
-			comments = !comments;
-			currentPtr++;
-			continue;
-		}
-
+		
 		const string& curToken = tokens[currentPtr].token;
-
-		if( comments ){
-			currentPtr++;
-			continue;
-		}
 
 		if( endPtr && currentPtr >= endPtr - 1 )
 			return nullopt;

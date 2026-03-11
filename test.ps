@@ -1,4 +1,37 @@
-pidi x = "sheri";
-x := BOOL;
-para x koode "\n";
-para x:jaadi koode "\n";
+? Graph using adjacency list ?
+
+pidi graph kootam = {
+    {1,2},        ? node 0 connects to 1,2 ?
+    {0,2,3},      ? node 1 connects to 0,2,3 ?
+    {0,1,4},      ? node 2 connects to 0,1,4 ?
+    {1,4},        ? node 3 connects to 1,4 ?
+    {2,3}         ? node 4 connects to 2,3 ?
+};
+
+pidi visited kootam = {thettu,thettu,thettu,thettu,thettu};
+
+? DFS function ?
+pari dfs(pidi node){
+    nok visited[node] == sheri {
+        poda 0;
+    };
+    visited[node] = sheri;
+
+    para "Visited Node: " koode "\n";
+    para node koode "\n";
+
+    pidi neighbors kootam = graph[node];
+    pidi i = 0;
+    ittuthiri i < neighbors:valupam {
+        pidi next = neighbors[i];
+        nok visited[next] == thettu {
+            dfs(next);
+        };
+        i = i + 1;
+    }
+    poda 0;
+}
+
+? start traversal ?
+para "Starting DFS Traversal" koode "\n";
+dfs(0);
