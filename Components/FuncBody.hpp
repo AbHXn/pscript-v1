@@ -129,6 +129,8 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedAstNodeData.push( inputValue );
 					simpleVector.push_back("NUM");
 				}
+				else if( curToken == "{" )
+					throw InvalidSyntaxError("Array should create in seperate pidi");
 				else throw InvalidSyntaxError( "Unknown Token " + curToken );
 			}
 			return RESOLVER_TYPE( resolvedAstNodeData, simpleVector );
