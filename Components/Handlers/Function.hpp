@@ -144,8 +144,8 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 			int openBody = 1;
 
 			while( startIndex < tokens.size() ){
-				const std::string& curToken = tokens[ startIndex++ ].token;
-				if( curToken == "}" ){
+				const Token& curToken = tokens[ startIndex++ ];
+				if( curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 					if( --openBody == 0 ){
 						funcTokens.push_back( FUNC_TOKENS::BODY_CLOSE );
 						return FunctionTokenReturn(
@@ -153,7 +153,7 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 						);
 					}
 				}
-				else if( curToken == "{" )
+				else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR )
 					++openBody;
 			}
 		}

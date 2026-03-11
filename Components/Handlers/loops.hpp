@@ -36,10 +36,11 @@ bool isRegisteredLoopTokens( const std::string& tok ){
 size_t getEndPointer( const std::vector<Token>& tokens, size_t startPtr ){
 	int bodyOpenCount = 0;
 	while( startPtr < tokens.size() ){
-		if( tokens[startPtr].token == "{" )
+		const Token curToken = tokens[ startPtr ];
+		if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR )
 			bodyOpenCount++;
 
-		else if( tokens[ startPtr ].token == "}" )
+		else if( curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR )
 			bodyOpenCount--;
 
 		if( bodyOpenCount == 0 )
@@ -75,12 +76,12 @@ stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 	std::vector<Token> conditions;
 
 	while( startIndex < tokens.size() ){
-		const std::string& curToken = tokens[ startIndex ].token;
+		const Token& curToken = tokens[ startIndex ];
 		
-		if( curToken == "ittuthiri" )
+		if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED )
 			lpTokens.push_back( LOOP_TOKENS::LOOP_START );
 		
-		else if( curToken == "{" ){
+		else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 			if( conditions.empty() ){
 				lpTokens.push_back( LOOP_TOKENS::CONDITION );
 				conditions.push_back( Token( TOKEN_TYPE::RESERVED, "sheri", 0, 0 ) );
@@ -92,23 +93,26 @@ stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 
 			lpTokens.push_back( LOOP_TOKENS::BODY );
 			lpTokens.push_back( LOOP_TOKENS::BODY_CLOSE );
-			
+
 			return LoopTokens( lpTokens, conditions, startPtr, endPtr );
 		}
 		else{
 			while( startIndex < tokens.size() ){
-				const Token& curToken = tokens[ startIndex ];
-				if( isRegisteredLoopTokens( curToken.token ) ){
+				const Token& curCondToken = tokens[ startIndex ];
+				if( isRegisteredLoopTokens( curCondToken.token ) && (
+						curCondToken.type == TOKEN_TYPE::RESERVED || curCondToken.type == TOKEN_TYPE::SPEC_CHAR
+					)){
 					startIndex--;
 					break;
 				}
-				conditions.push_back( curToken );
+				conditions.push_back( curCondToken );
 				startIndex++;
 			}
 			lpTokens.push_back( LOOP_TOKENS::CONDITION );
 		}
 		startIndex++;
 	}
+
 	throw InvalidSyntaxError( "Syntax error occured in ittuthiri statement" );
 }
 

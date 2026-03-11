@@ -138,12 +138,14 @@ stringToInsToken(const std::vector<Token>& tokens, size_t& startIndex ){
 				int openBrackCnts = 0;
 
 				while( startIndex < tokens.size() ){
-					if( tokens[ startIndex ].token == "(" )
+					if( tokens[ startIndex ].token == "(" && tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR)
 						openBrackCnts++;
-					else if( tokens[ startIndex ].token == ")" )
+					else if( tokens[ startIndex ].token == ")" && tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR)
 						openBrackCnts--;
 
-					if( !openBrackCnts && isRegisteredInsTokens( tokens[ startIndex ].token ) ){
+					if( !openBrackCnts && isRegisteredInsTokens( tokens[ startIndex ].token ) && (
+							tokens[startIndex].type == TOKEN_TYPE::OPERATOR || tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR
+						) ){
 						startIndex--;
 						break;
 					}

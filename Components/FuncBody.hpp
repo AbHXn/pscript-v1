@@ -843,41 +843,41 @@ class LoopHandler: public FunctionHandler{
 		 	// pass the loop validation test
 		 	passValidLoopTokens( lpTokens.lpTokens );
 			
-			// run loop until its condition fails
-			while( true ){
-				DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );
+			DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );
 
-				if( !std::holds_alternative<VarDtype>( finalValue ) )
-					throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
+			if( !std::holds_alternative<VarDtype>( finalValue ) )
+				throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
 
-				VarDtype cdData = std::get<VarDtype>( finalValue );
+			VarDtype cdData = std::get<VarDtype>( finalValue );
 
-				if( !std::holds_alternative<bool>(cdData) )
-					throw InvalidSyntaxError( "loop condition should be boolean or blank" );
+			if( !std::holds_alternative<bool>(cdData) )
+				throw InvalidSyntaxError( "loop condition should be boolean or blank" );
 
-				bool runTheBodyAgain = std::get<bool>( cdData );
-				if( !runTheBodyAgain ) break;
-
-				size_t bodyStart = lpTokens.startPtr;
-				try{
-					ProgramExecutor( tokens, bodyStart, CALLER::LOOP, this );
-					currentPtr = beginCopy;
-					return ;
-				} 
-				// inside loop some statement like break, continue
-				// or may be function statement 
-				catch( const RecoverError& err ){
-					currentPtr = bodyStart;
-					const std::string& expTok = tokens[ bodyStart ].token;
-					
-					if( expTok == "theku" )
-						break;
-					else if( expTok == "pinnava" )
-						currentPtr = beginCopy;
-					else throw err; 
-				}
+			bool runTheBodyAgain = std::get<bool>( cdData );
+			
+			if( !runTheBodyAgain ) {
+				currentPtr = lpTokens.endPtr;
+				return ;
 			}
-			currentPtr = lpTokens.endPtr;
+
+			size_t bodyStart = lpTokens.startPtr;
+			try{
+				ProgramExecutor( tokens, bodyStart, CALLER::LOOP, this );
+				currentPtr = beginCopy;
+			} 
+			// inside loop some statement like break, continue or may be function statement 
+			catch( const RecoverError& err ){
+				currentPtr = bodyStart;
+				const Token& expTok = tokens[ bodyStart ];
+				
+				if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
+					currentPtr = lpTokens.endPtr; return ;
+				}
+				if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
+					currentPtr = beginCopy; return ;
+				}
+				else throw err; 
+			}
 		}
 };
 #endif

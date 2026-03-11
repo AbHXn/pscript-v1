@@ -395,13 +395,13 @@ stringToArrayAccesToken( const std::vector<Token>&tokens, size_t& currentPtr ){
 		const Token& tok = tokens[ currentPtr ];
 		const std::string& curToken = tok.token;
 
-		if( curToken == "[" )
+		if( curToken == "[" && tok.type == TOKEN_TYPE::SPEC_CHAR )
 			arrAccessTokens.push_back( ARRAY_ACCESS::BRACK_OPEN );
 
-		else if( curToken == "]" )
+		else if( curToken == "]" && tok.type == TOKEN_TYPE::SPEC_CHAR )
 			arrAccessTokens.push_back( ARRAY_ACCESS::BRACK_CLOSE );
 
-		else if( curToken == ":" ){
+		else if( curToken == ":" && tok.type == TOKEN_TYPE::OPERATOR ){
 			isTouchedArrayProperty = true;
 			arrAccessTokens.push_back( ARRAY_ACCESS::PROPERTY_ACCESS );
 		}
@@ -418,12 +418,12 @@ stringToArrayAccesToken( const std::vector<Token>&tokens, size_t& currentPtr ){
 
 				while( currentPtr < tokens.size() ){
 					const Token& tok = tokens[ currentPtr ];
-					if( tok.token == "[" ){
+					if( tok.token == "[" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 						openCnts++; currentPtr++;
 						curIndexVec.push_back( tok );
 						continue;
 					}
-					if( tok.token == "]" ){
+					if( tok.token == "]" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 						if( --openCnts == 0 ){
 							currentPtr--;
 							break;

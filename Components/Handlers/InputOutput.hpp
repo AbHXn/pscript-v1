@@ -74,7 +74,9 @@ stringToIoTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 		else{
 			std::vector<Token> valueVector;
 			while( startIndex < tokens.size() ){
-				if( isRegisteredIoTokens( tokens[ startIndex ].token ) ){
+				if( isRegisteredIoTokens( tokens[ startIndex ].token ) 
+						&& (tokens[startIndex].type == TOKEN_TYPE::RESERVED || 
+						tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR) ){
 					startIndex--;
 					break;
 				}

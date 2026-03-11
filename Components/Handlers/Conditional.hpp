@@ -7,7 +7,7 @@
 
 #include "../../Headers/MBExceptions.hpp"
 
-std::unordered_set<std::string> REG_COND_TOKENS = { "nok", "{", "}", "umbi" };
+std::unordered_set<std::string> REG_COND_TOKENS = { "nok", "{", "}", "umbi", ":" };
 
 enum class COND_TOKENS{ IF, ELSE, CONDITION, BODY_OPEN, BODY_CLOSE, CHAIN, END };
 
@@ -72,35 +72,38 @@ stringToCondTokens( const std::vector<Token>& tokens, size_t& start, size_t& end
 	size_t bodyOpenCount = 0;
 
 	for( ; start < tokens.size(); start++ ){
-		const std::string& curToken = tokens[ start ].token;
+		const Token& curToken = tokens[ start ];
 		// if not inside a conditional body
 		if( !bodyOpenCount ){
-			if( curToken == ";" ){
+			if( curToken.token == ";" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 				condTokens.push_back( COND_TOKENS::END );
 				endPtr = start;
 				return { condTokens, conditions };
 			}	
-			if( curToken == "nok" ){
+			if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED){
 				condTokens.push_back( COND_TOKENS::IF );
 			}
-			else if( curToken == "{" ){
+			else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR){
 				condTokens.push_back( COND_TOKENS::BODY_OPEN );
 				bodyOpenCount++;
 			}
-			else if( curToken == ":" ){
+			else if( curToken.token == ":" && curToken.type == TOKEN_TYPE::OPERATOR){
 				condTokens.push_back( COND_TOKENS::CHAIN );
 			}
-			else if( curToken == "umbi" ){
+			else if( curToken.token == "umbi" && curToken.type == TOKEN_TYPE::RESERVED){
 				condTokens.push_back( COND_TOKENS::ELSE );
 				// else is always true
 				conditions.push_back( { {Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 )}, start + 1 } );
 			}
-			else if(curToken == "}")
+			else if(curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR)
 				break;
 			else{
 				std::vector<Token> condVector;
 				while( start < tokens.size() ){
-					if( isRegisteredCondToken( tokens[ start ].token ) ){
+					if( isRegisteredCondToken( tokens[ start ].token ) && (
+						tokens[start].type == TOKEN_TYPE::SPEC_CHAR || 
+						tokens[start].type == TOKEN_TYPE::RESERVED))
+					{
 						start--; break;
 					}
 					condVector.push_back( tokens[ start++ ] );
@@ -109,11 +112,11 @@ stringToCondTokens( const std::vector<Token>& tokens, size_t& start, size_t& end
 				condTokens.push_back( COND_TOKENS::CONDITION );
 			}
 		} 
-		else if( curToken == "{" ){
+		else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR){
 			bodyOpenCount++;
 			continue;
 		}
-		else if( curToken == "}" ){
+		else if( curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 			if( --bodyOpenCount == 0 ) 
 				condTokens.push_back( COND_TOKENS::BODY_CLOSE );
 		}
