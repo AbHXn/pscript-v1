@@ -123,6 +123,29 @@ pidi num2 = 33.34;
 pidi name = "admin";
 ```
 
+## Inputing
+
+```pscript
+para "Enter name: ";
+pidi name = edukku;
+```
+
+Output
+
+```
+Enter name: admin
+```
+
+# Type casting
+
+```pscript
+var := INT;
+var := STR;
+var := THULA; ? floating point ?
+var := BOOL;
+
+```
+
 Variables are dynamically typed.
 
 ---
