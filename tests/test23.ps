@@ -7,10 +7,11 @@ pari min(pidi a, pidi b){
 }
 
 pari editDistance(pidi a, pidi b){
-    pidi n 			= a:kanam;
-    pidi m 			= b:kanam;
-    pidi dp kootam  = {};
-    pidi i 			= 0;
+    pidi n = a:kanam;
+    pidi m = b:kanam;
+
+    pidi dp kootam = {};
+    pidi i = 0;
 
     ittuthiri i <= n {
     	pidi res kootam = {};
@@ -31,6 +32,7 @@ pari editDistance(pidi a, pidi b){
         }
         i = i + 1;
     }
+
     i = 1;
 
     ittuthiri i <= n {

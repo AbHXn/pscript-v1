@@ -1,0 +1,22 @@
+pari search(pidi text, pidi pat){
+    pidi i = 0;
+    ittuthiri i <= text:kanam - pat:kanam {
+        pidi j = 0;
+        pidi match = sheri;
+
+        ittuthiri j < pat:kanam {
+            nok text[i + j] != pat[j] {
+                match = thettu;
+                theku;
+            };
+            j = j + 1;
+        }
+
+        nok match {
+            para "Found at index " koode i koode "\n";
+        };
+        i = i + 1;
+    }
+}
+
+search("hello world","world");
