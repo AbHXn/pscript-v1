@@ -37,10 +37,8 @@ class FunctionHandler: public VAR_VMAP {
 		std::string functionName;
 
 		VarDtype getValueFromToken( const Token& tok ){
-			if( tok.type == TOKEN_TYPE::STRING ){
-
+			if( tok.type == TOKEN_TYPE::STRING )
 				return VarDtype{ ValueHelper::unescapeString( tok.token ) };
-			}
 			
 			else if( tok.type == TOKEN_TYPE::NUMBER )
 				return VarDtype{  DtypeHelper::toLong( tok.token ) };
@@ -86,7 +84,6 @@ class FunctionHandler: public VAR_VMAP {
 					simpleVector.push_back( curToken );
 					continue;
 				}
-				
 				if( isValueType( tok.type ) ){
 					VarDtype value = this->getValueFromToken( tok );
 					resolvedAstNodeData.push( value );
@@ -131,7 +128,7 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedAstNodeData.push( inputValue );
 					simpleVector.push_back("NUM");
 				}
-				else if( curToken == "{" )
+				else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR )
 					throw InvalidSyntaxError("Array should create in seperate pidi");
 				else throw InvalidSyntaxError( "Unknown Token " + curToken );
 			}
@@ -167,11 +164,10 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedIndexVector.push_back( index );
 				}
 				std::variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
-				// resolve if it touch property functions (:)
+
 				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
 					auto spData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
 					return std::visit( [&]( auto&& data ) {
-
 					    if (arrToken.isTouchedArrayProperty) {
 					    	DEEP_VALUE_DATA dv = data;
 					        return DEEP_VALUE_DATA{handleVarDefinedProperties(dv, arrToken)};
@@ -183,8 +179,7 @@ class FunctionHandler: public VAR_VMAP {
 					auto arrList = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
 					if( arrToken.isTouchedArrayProperty ){
 						auto data = handleArrayProperties( arrList, arrToken );
-						if( data.has_value() ) 
-							return data.value();
+						if( data.has_value() )  return data.value();
 					}
 					return arrList;
 				}
@@ -192,8 +187,7 @@ class FunctionHandler: public VAR_VMAP {
 			else {
 				if( arrToken.isTouchedArrayProperty ){
 					auto data = handleArrayProperties( arrayData, arrToken );
-					if( data.has_value() )
-						return data.value();
+					if( data.has_value() ) return data.value();
 				}
 				return arrayData;
 			}
@@ -273,7 +267,7 @@ class FunctionHandler: public VAR_VMAP {
 				return std::string(1, (char) str);
 			}
 
-			throw InvalidSyntaxError("Invalid property");
+			throw InvalidSyntaxError("Invalid variable property");
 		}
 
 		DEEP_VALUE_DATA 
@@ -290,7 +284,7 @@ class FunctionHandler: public VAR_VMAP {
 
 				std::string& stringVarHolder = std::get<std::string>( std::get<VarDtype>( varHolder ) );
 
-				if( index >= 0 && index < stringVarHolder.size())
+				if( index >= 0 && index < stringVarHolder.size() )
 					HandlingDtype =  DEEP_VALUE_DATA { std::string(1, stringVarHolder[ index ]) };
 			}
 			if( arrToken.isTouchedArrayProperty )
@@ -737,7 +731,10 @@ class FunctionHandler: public VAR_VMAP {
 						propHolderTemp.push_back( std::move( mapData.second ) );
 					return  std::move( mapData.value() ) ;
 				}
-				throw InvalidSyntaxError("no variable foun " + returnStatementData.back().token );
+				throw InvalidSyntaxError(
+						"No variable found " + returnStatementData.back().token + 
+						"\nRemember variable should be create inside the function body" 
+						);
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
 

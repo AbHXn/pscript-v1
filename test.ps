@@ -1,59 +1,12 @@
-pari min(pidi a, pidi b){
-    nok a < b {
-        poda a;
-    }: umbi {
-        poda b;
-    };
+pari test(pidi n){
+	nok n % 2 == 0 {
+		pidi x = "admin";
+		poda x;
+	}: umbi {
+		pidi x = "admin";
+		poda x;
+	};
 }
 
-pari editDistance(pidi a, pidi b){
-    pidi n 			= a:kanam;
-    pidi m 			= b:kanam;
-    pidi dp kootam  = {};
-    pidi i 			= 0;
-
-    ittuthiri i <= n {
-    	pidi res kootam = {};
-        dp[i] = res;
-        pidi j = 0;
-
-        ittuthiri j <= m {
-            nok i == 0 {
-                dp[i][j] = j;
-            }
-            :nok j == 0 {
-                dp[i][j] = i;
-            }
-            :umbi{
-                dp[i][j] = 0;
-            };
-            j = j + 1;
-        }
-        i = i + 1;
-    }
-    i = 1;
-
-    ittuthiri i <= n {
-        pidi j = 1;
-
-        ittuthiri j <= m {
-            nok a[i-1] == b[j-1] {
-                dp[i][j] = dp[i-1][j-1];
-            }
-            :umbi{
-                pidi insert = dp[i][j-1];
-                pidi del = dp[i-1][j];
-                pidi replace = dp[i-1][j-1];
-                pidi t = min(insert, del);
-
-                t = min(t, replace);
-                dp[i][j] = t + 1;
-            };
-            j = j + 1;
-        }
-        i = i + 1;
-    }
-    poda dp[n][m];
-}
-
-para editDistance("kitten","sitting") koode "\n";
+pidi x = test(23);
+para x koode "\n";
