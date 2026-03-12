@@ -579,6 +579,42 @@ class FunctionHandler: public VAR_VMAP {
 			}
 		}
 
+		// This function handles type casting ....
+		void typeCastRequest( InstructionTokens& InsTokensAndData, std::vector<Token>& varsAndVals ){
+			for( int x = 0; x < varsAndVals.size(); x++ ){
+				auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
+
+				if( x >= InsTokensAndData.rightVector.size() )
+					throw InvalidSyntaxError("Typecasting error");
+
+				std::vector<Token>castInfo = InsTokensAndData.rightVector[x];
+				if( castInfo.size() != 1 )
+					throw InvalidSyntaxError("Typecasting error");
+
+				Token& top = castInfo.back();
+
+				if( mapData == nullptr )
+					throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token   );
+
+				if( mapData->mapType != MAPTYPE::VARIABLE ){
+					throw InvalidSyntaxError("Only variables are allowed for TYPE_CASTING");
+				}
+				if( top.token == "INT" ){
+					mapData->typeCastToInt();
+				}
+				else if( top.token == "THULA" ){
+					mapData->typeCastToDouble();
+				}
+				else if( top.token == "STR" ){
+					mapData->typeCastToString();
+				}
+				else if( top.token == "BOOL" ){
+					mapData->typeCastToBool();
+				}
+				else throw TypeCastError("Failed to cast");
+			}
+		}
+
 		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr ){
 			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 
@@ -589,38 +625,7 @@ class FunctionHandler: public VAR_VMAP {
 			std::vector<Token>& varsAndVals = InsTokensAndData.leftVector;
 
 			if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
-				for( int x = 0; x < varsAndVals.size(); x++ ){
-					auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
-
-					if( x >= InsTokensAndData.rightVector.size() )
-						throw InvalidSyntaxError("Typecasting error");
-
-					std::vector<Token>castInfo = InsTokensAndData.rightVector[x];
-					if( castInfo.size() != 1 )
-						throw InvalidSyntaxError("Typecasting error");
-
-					Token& top = castInfo.back();
-
-					if( mapData == nullptr )
-						throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token   );
-
-					if( mapData->mapType != MAPTYPE::VARIABLE ){
-						throw InvalidSyntaxError("Only variables are allowed for TYPE_CASTING");
-					}
-					if( top.token == "INT" ){
-						mapData->typeCastToInt();
-					}
-					else if( top.token == "THULA" ){
-						mapData->typeCastToDouble();
-					}
-					else if( top.token == "STR" ){
-						mapData->typeCastToString();
-					}
-					else if( top.token == "BOOL" ){
-						mapData->typeCastToBool();
-					}
-					else throw TypeCastError("Failed to cast");
-				}
+				typeCastRequest( InsTokensAndData, varsAndVals );
 				return;
 			}
 
@@ -638,10 +643,10 @@ class FunctionHandler: public VAR_VMAP {
 				if( mapData->mapType != MAPTYPE::VARIABLE && mapData->mapType != MAPTYPE::ARRAY_PTR )
 					throw InvalidSyntaxError("Only variables are allowed for updation");
 
-				DEEP_VALUE_DATA topValue = finalValueQueue.front();
-				finalValueQueue.pop();
+				DEEP_VALUE_DATA topValue = finalValueQueue.front( );
+				finalValueQueue.pop( );
 
-				if( std::holds_alternative<FUNCTION_MAP_DATA*>(topValue) ){
+				if( std::holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
 					mapData->mapType = MAPTYPE::FUNC_PTR;
 					mapData->var = std::get<FUNCTION_MAP_DATA*>(topValue);
 					continue;
@@ -667,11 +672,9 @@ class FunctionHandler: public VAR_VMAP {
 							throw std::runtime_error("string is a one dimensional");
 
 						std::string& strToUpdate = std::get<std::string> ( varDtypeData );
-						if( !resData.empty() ){
-							long int index = resData.back();
-							updateString( strToUpdate, index, topValue );
-						}
-						else mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
+						
+						( !resData.empty() ) ? updateString( strToUpdate, (long int) resData.back(), topValue ) :
+											 mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
 						return;
 					}
 				}
