@@ -32,6 +32,9 @@ struct RESOLVER_TYPE{
 	}
 };
 
+using CacheData = std::variant<CondReturnToken, LoopTokens>;
+std::unordered_map<std::string, CacheData> TokenCache;
+
 class FunctionHandler: public VAR_VMAP {
 	public:
 		std::string functionName;
@@ -795,16 +798,22 @@ class Conditional: public FunctionHandler{
 		Conditional( std::unique_ptr<LoopHandler> lpRunner ){
 			this->lpRunner = std::move( lpRunner );
 		}
-		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start ){
-			size_t endOfNOK = 0;
-			auto ctokens = stringToCondTokens( tokens, start, endOfNOK );
-			// pass the validation
-			passCondTokenValidation( ctokens.first );
-
+		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string key ){
+			CondReturnToken ctokens;
+			if( TokenCache.find( key ) == TokenCache.end() ){
+				ctokens = stringToCondTokens( tokens, start );
+				// pass the validation
+				passCondTokenValidation( ctokens.tokens );
+				TokenCache[ key ] = ctokens;
+			}
+			else {
+				ctokens = std::get<CondReturnToken>( TokenCache[ key ] );
+				start = ctokens.endOfNok;
+			}
 			bool runTheCondition = false;
 
-			for(int x = 0; x < ctokens.second.size(); x++){
-				auto data = ctokens.second[ x ];
+			for(int x = 0; x < ctokens.conditions.size(); x++){
+				auto data = ctokens.conditions[ x ];
 				DEEP_VALUE_DATA evRes = evaluateVector( data.first );
 
 				if( std::holds_alternative<VarDtype>( evRes ) ){
@@ -816,11 +825,9 @@ class Conditional: public FunctionHandler{
 						// if it is true run the statement
 						if( std::get<bool>( VdtypData ) ){
 							start = data.second + 1;
-							runTheCondition = true;
 							
 							ProgramExecutor( tokens, start, CALLER::CONDITIONAL, this );
-							start = endOfNOK;
-							return;
+							start = ctokens.endOfNok; return;
 						}
 					}
 				}
@@ -833,13 +840,21 @@ class Conditional: public FunctionHandler{
 class LoopHandler: public FunctionHandler{
 	public:		
 		void 
-		LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr ){
+		LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string key ){
 			size_t beginCopy = currentPtr;
-		 	LoopTokens lpTokens = stringToLoopTokens( tokens, currentPtr );
 
-		 	// pass the loop validation test
-		 	passValidLoopTokens( lpTokens.lpTokens );
-			
+			LoopTokens lpTokens;
+			if( TokenCache.find( key ) == TokenCache.end() ){
+				lpTokens = stringToLoopTokens( tokens, currentPtr );
+				// pass the loop validation test
+		 		passValidLoopTokens( lpTokens.lpTokens );
+				TokenCache[ key ] = lpTokens;
+			}
+			else {
+				lpTokens = std::get<LoopTokens>( TokenCache[ key ] );
+				currentPtr = lpTokens.endPtr;
+			}
+
 			DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );
 
 			if( !std::holds_alternative<VarDtype>( finalValue ) )

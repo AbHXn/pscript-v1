@@ -29,6 +29,8 @@ struct CondReturnToken{
 	std::vector<std::pair<std::vector<Token>, size_t>> conditions;
 	size_t endOfNok;
 
+	CondReturnToken() = default;
+
 	CondReturnToken(
 		std::vector<COND_TOKENS> tokens,
 		std::vector<std::pair<std::vector<Token>, size_t>> conditions,

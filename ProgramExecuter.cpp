@@ -3,6 +3,7 @@
 using namespace std;
 
 size_t LastRecoverErrorList = 0;
+string filename;
 
 template <typename PARENT_CLASS>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
@@ -28,6 +29,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		}
 		else if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
+				string key = filename + to_string( tokens[ currentPtr ].row + 1 );
 				unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
 				lpHandler->runnerBody = prntClass->runnerBody;
 				lpHandler->parent = prntClass;
@@ -36,7 +38,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				cdHandler->runnerBody = prntClass->runnerBody;
 				cdHandler->parent = prntClass;
 				
-				cdHandler->CondHandlerRunner( tokens, currentPtr );
+				cdHandler->CondHandlerRunner( tokens, currentPtr, key );
 			}
 			catch( const RecoverError& err ){
 				continue;
@@ -76,10 +78,11 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		}
 		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
+				string key = filename + to_string( tokens[ currentPtr ].row + 1 );
 				unique_ptr<LoopHandler> newLpHander = make_unique<LoopHandler>();
 				newLpHander->parent = prntClass;
 				newLpHander->runnerBody = prntClass->runnerBody;
-				newLpHander->LoopHandlerRunner( tokens, currentPtr );
+				newLpHander->LoopHandlerRunner( tokens, currentPtr, key );
 				currentPtr--;
 			}
 			catch( const RecoverError& err ){
@@ -297,7 +300,7 @@ evaluate_AST_NODE( std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, Funct
 
 int main( int argc, char *argv[] ){
 	try{
-		string filename = argv[1];
+		filename = argv[1];
 		if (filename.size() <= 3)
 			throw runtime_error("Invalid file format");
 

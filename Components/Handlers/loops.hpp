@@ -57,6 +57,8 @@ struct LoopTokens{
 	size_t startPtr;
 	size_t endPtr;
 
+	LoopTokens() = default;
+
 	LoopTokens(
 		std::vector<LOOP_TOKENS> lpTokens,
 		std::vector<Token> conditions,
