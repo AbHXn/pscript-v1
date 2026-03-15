@@ -24,6 +24,22 @@ std::unordered_map<COND_TOKENS, std::vector<COND_TOKENS>> CONDITIONAL_GRAPH = {
 	{ COND_TOKENS::ELSE, 		{ COND_TOKENS::BODY_OPEN } }
 };
 
+struct CondReturnToken{
+	std::vector<COND_TOKENS> tokens;
+	std::vector<std::pair<std::vector<Token>, size_t>> conditions;
+	size_t endOfNok;
+
+	CondReturnToken(
+		std::vector<COND_TOKENS> tokens,
+		std::vector<std::pair<std::vector<Token>, size_t>> conditions,
+		size_t endOfNok
+	){
+		this->tokens = tokens;
+		this->conditions = conditions;
+		this->endOfNok = endOfNok;
+	}
+};
+
 void 
 passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 	COND_TOKENS curStage = COND_TOKENS::IF;
@@ -65,8 +81,8 @@ passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 	throw InvalidSyntaxError( "Do dont encounter ; in nok statement" );
 }
 
-std::pair<std::vector<COND_TOKENS>, std::vector<std::pair<std::vector<Token>, size_t>>>
-stringToCondTokens( const std::vector<Token>& tokens, size_t& start, size_t& endPtr ){
+CondReturnToken
+stringToCondTokens( const std::vector<Token>& tokens, size_t& start ){
 	std::vector<std::pair<std::vector<Token>, size_t>> conditions;
 	std::vector<COND_TOKENS> condTokens;
 	size_t bodyOpenCount = 0;
@@ -77,8 +93,7 @@ stringToCondTokens( const std::vector<Token>& tokens, size_t& start, size_t& end
 		if( !bodyOpenCount ){
 			if( curToken.token == ";" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 				condTokens.push_back( COND_TOKENS::END );
-				endPtr = start;
-				return { condTokens, conditions };
+				return CondReturnToken( condTokens, conditions, start );
 			}	
 			if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED){
 				condTokens.push_back( COND_TOKENS::IF );

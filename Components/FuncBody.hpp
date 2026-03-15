@@ -69,8 +69,7 @@ class FunctionHandler: public VAR_VMAP {
 			throw InvalidDTypeError("Failed to resolve the vector\n");
 		}
 
-		/* this function is to convert to pure vector
-		resolve variables, function call, array calls etc */
+		/* this function is to convert to pure vector resolve variables, function call, array calls etc */
 		RESOLVER_TYPE
 		vectorResolver( const std::vector<Token>& tokens ){
 			std::queue<REAL_AST_NODE_DATA> resolvedAstNodeData;
@@ -782,12 +781,8 @@ class FunctionHandler: public VAR_VMAP {
 							ValueHelper::printDEEP_VALUE_DATA( top );
 							break;
 						}
-						case IO_TOKENS::PRINT_VALUE:
-							continue;
-						
-						case IO_TOKENS::END:
-						default:
-							return;
+						case IO_TOKENS::PRINT_VALUE: continue;
+						case IO_TOKENS::END: default: return;
 					}
 				}
 			}
