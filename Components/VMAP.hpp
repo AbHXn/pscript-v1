@@ -66,9 +66,6 @@ class VAR_VMAP{
 		    auto result = std::move(it->second);
 		    VMAP.erase(it);
 
-		    if( result->mapType == MAPTYPE::FUNCTION )
-		    	for( auto& test: this->VMAP )
-		    		propHolderTemp.push_back( std::move(test.second) );
 		    return result;
 		}
 

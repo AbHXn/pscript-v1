@@ -1,12 +1,12 @@
-pari test(pidi n){
-	nok n % 2 == 0 {
-		pidi x = "admin";
-		poda x;
-	}: umbi {
-		pidi x = "admin";
-		poda x;
-	};
+pari test(){
+    pidi tx = 23;
+    pari func(){
+        para tx koode "\n";
+        poda "admin";
+    }
+    poda func;
 }
 
-pidi x = test(23);
-para x koode "\n";
+pidi x = test();
+
+para x() koode "\n";
