@@ -86,7 +86,7 @@ stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 		else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 			if( conditions.empty() ){
 				lpTokens.push_back( LOOP_TOKENS::CONDITION );
-				conditions.push_back( Token( TOKEN_TYPE::RESERVED, "sheri", 0, 0 ) );
+				conditions.push_back( Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 ) );
 			}
 			lpTokens.push_back( LOOP_TOKENS::BODY_OPEN );
 
