@@ -417,12 +417,12 @@ theku
 
 # Functions
 
-Functions are declared using `pari`.
+Functions are declared using `pindi`.
 
 ### Syntax
 
 ```pscript
-pari function_name(parameters){
+pindi function_name(parameters){
     statements
 }
 ```
@@ -434,7 +434,7 @@ pari function_name(parameters){
 Parameters must use `pidi`.
 
 ```pscript
-pari square(pidi x){
+pindi square(pidi x){
     poda x * x;
 }
 ```
@@ -456,7 +456,7 @@ Output
 # Array Parameters
 
 ```pscript
-pari printArray(pidi arr kootam){
+pindi printArray(pidi arr kootam){
     pidi i = 0;
     ittuthiri i < arr:valupam {
         para arr[i] koode "\n";
@@ -472,7 +472,7 @@ printArray(arr);
 # Multiple Parameters
 
 ```pscript
-pari add(pidi a, pidi b){
+pindi add(pidi a, pidi b){
     poda a + b;
 }
 
@@ -492,7 +492,7 @@ Output
 Return uses `poda`.
 
 ```pscript
-pari test(){
+pindi test(){
     poda 23;
 }
 ```
@@ -506,7 +506,7 @@ Variables defined inside a function can be returned.
 ### Valid
 
 ```pscript
-pari func(){
+pindi func(){
     pidi num = 23;
     poda num;
 }
@@ -515,7 +515,7 @@ pari func(){
 ### Invalid
 
 ```pscript
-pari func(){
+pindi func(){
     nok sheri {
         pidi num = 23;
         poda num;
@@ -530,8 +530,8 @@ pari func(){
 Functions can return other functions.
 
 ```pscript
-pari outer(){
-    pari inner(){
+pindi outer(){
+    pindi inner(){
         poda 10;
     }
     poda inner;
@@ -545,7 +545,7 @@ pari outer(){
 ## Factorial
 
 ```pscript
-pari factorial(pidi n){
+pindi factorial(pidi n){
     pidi result = 1;
     pidi i = 1;
 
@@ -569,7 +569,7 @@ Output
 ## Linear Search
 
 ```pscript
-pari search(pidi arr kootam, pidi key){
+pindi search(pidi arr kootam, pidi key){
     pidi i = 0;
 
     ittuthiri i < arr:valupam {
@@ -588,7 +588,7 @@ pari search(pidi arr kootam, pidi key){
 ## Fibonacci
 
 ```pscript
-pari fib(pidi n){
+pindi fib(pidi n){
     nok n <= 1 {
         poda n;
     };
@@ -615,7 +615,7 @@ para "User Database Loaded" koode "\n";
 para users koode "\n";
 
 ? count digits in string ?
-pari countDigits(pidi text){
+pindi countDigits(pidi text){
     pidi i = 0;
     pidi count = 0;
 
@@ -630,7 +630,7 @@ pari countDigits(pidi text){
 
 
 ? count letters ?
-pari countLetters(pidi text){
+pindi countLetters(pidi text){
     pidi i, count = 0, 0;
 
     ittuthiri i < text:kanam {
@@ -644,7 +644,7 @@ pari countLetters(pidi text){
 
 
 ? password strength check ?
-pari passwordStrength(pidi pass){
+pindi passwordStrength(pidi pass){
     pidi digits = countDigits(pass);
     pidi letters = countLetters(pass);
 
