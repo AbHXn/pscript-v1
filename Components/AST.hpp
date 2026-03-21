@@ -129,9 +129,9 @@ finishTheASTTree( std::vector<std::unique_ptr<AST_NODE<AST_NODE_TYPE>>>&nodes, s
 }
 
 // AST_TREE BUILDER
-template <typename VAR_HOLD_DATA, typename AST_NODE_DATA>
+template <typename AST_NODE_DATA>
 std::optional<std::unique_ptr<AST_NODE<AST_NODE_DATA>>>
-BUILD_AST( std::vector<std::variant<CODE_TOKENS, AST_TOKENS>>& codeTokens, std::queue<VAR_HOLD_DATA>& valueQueue, size_t& start ){	
+BUILD_AST( std::vector<std::variant<CODE_TOKENS, AST_TOKENS>>& codeTokens, std::queue<AST_NODE_DATA>& valueQueue, size_t& start ){	
 	std::vector<std::unique_ptr<AST_NODE<AST_NODE_DATA>>> nodeStack, optrStack;
 
 	for(; start < codeTokens.size(); start++){
@@ -155,7 +155,7 @@ BUILD_AST( std::vector<std::variant<CODE_TOKENS, AST_TOKENS>>& codeTokens, std::
 				}
 				case CODE_TOKENS::OPEN: {
 					++start;
-					auto optCompleteNode = BUILD_AST<VAR_HOLD_DATA, AST_NODE_DATA>( codeTokens, valueQueue, start);
+					auto optCompleteNode = BUILD_AST<AST_NODE_DATA>( codeTokens, valueQueue, start);
 					if( !optCompleteNode.has_value() )
 						return std::nullopt;
 					std::unique_ptr<AST_NODE<AST_NODE_DATA>> completeNode = std::move( optCompleteNode.value() );

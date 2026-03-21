@@ -47,7 +47,7 @@ using REAL_AST_NODE_DATA 	= std::variant<
 								AST_TOKENS, 
 								VarDtype, 
 								std::pair<ArrayAccessTokens, std::string>, 
-								std::pair<FunctionCallReturns, std::string>
+								std::pair<FunctionCallReturns, Token>
 								>;
 
 struct MapItem{

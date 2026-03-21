@@ -15,14 +15,26 @@ struct ExtendedVariableToken;
 struct ExtendedConditionalToken;
 struct ExtendedLoopTokens;
 struct ExtendedInsTokens;
+struct ExtendedFunctionCall;
 
 using EXT_TYPE = std::variant<
+					ExtendedFunctionCall,
 					ExtendedConditionalToken,
 					ExtendedLoopTokens,
 					ExtendedVariableToken,
 					ExtendedIoToken,
 					ExtendedInsTokens
 					>;
+
+struct ExtendedFunctionCall{
+	FunctionCallReturns tokens;
+	std::vector<
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
+	> argsVcts;
+	size_t endPtr;
+
+	ExtendedFunctionCall() = default;
+};
 
 struct ExtendedVariableToken{
 	VariableTokens tokens;

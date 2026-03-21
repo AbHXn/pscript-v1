@@ -107,7 +107,8 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			auto [func, rPT] = prntClass->getFromVmap( tokens[ currentPtr ].token );
 			if( func && ( func->mapType == MAPTYPE::FUNCTION || func->mapType == MAPTYPE::FUNC_PTR) ){
 				try{
-					prntClass->handleFunctionCall( func, tokens, currentPtr, rPT );
+					string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
+					prntClass->handleFunctionCall( func, tokens, currentPtr, rPT, key );
 				}
 				catch(...){
 					cout << "pari call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
@@ -184,9 +185,9 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 			}
 
 		}
-		else if( std::holds_alternative<std::pair<FunctionCallReturns, string>>( astNodeData ) ){
-			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, string>>( astNodeData );
-			MapItem* mapData = helperHandler->getFromVmap( mapDatakey ).first;
+		else if( std::holds_alternative<std::pair<FunctionCallReturns, Token>>( astNodeData ) ){
+			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, Token>>( astNodeData );
+			MapItem* mapData = helperHandler->getFromVmap( mapDatakey.token ).first;
 
 			auto varHolder = std::get<FUNCTION_MAP_DATA*>( mapData->var );
 			
@@ -194,7 +195,9 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 				return varHolder;
 
 			size_t st = 0;
-			auto data = helperHandler->handleFunctionCall( mapData, fullTokens, st, nullptr, funcRecToks);
+			string key = filename + to_string( mapDatakey.row + 1 ) + "-" + to_string( mapDatakey.col + 1 );
+
+			auto data = helperHandler->handleFunctionCall( mapData, fullTokens, st, nullptr, key, funcRecToks);
 			
 			if( data.has_value() ){	
 				if( std::holds_alternative<VarDtype>( data.value() ) ){

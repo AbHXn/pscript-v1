@@ -44,9 +44,7 @@ class FunctionHandler: public VAR_VMAP {
 			auto astTokenAndData 	= stringToASTTokens( resolvedType.simpleVector );
 			size_t startAST 		= 0;
 
-			auto newAstNode = BUILD_AST<REAL_AST_NODE_DATA, REAL_AST_NODE_DATA>( 
-						astTokenAndData, resolvedType.resolvedAstNodeData, startAST 
-					);
+			auto newAstNode = BUILD_AST<REAL_AST_NODE_DATA>( astTokenAndData, resolvedType.resolvedAstNodeData, startAST );
 			
 			if( !newAstNode.has_value() )
 				throw InvalidDTypeError("Failed to resolve the vector\n");
@@ -131,7 +129,7 @@ class FunctionHandler: public VAR_VMAP {
 					else if( mainVmapData->mapType == MAPTYPE::FUNCTION || mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
-						resolvedAstNodeData.push( std::make_pair(pt, curToken) );
+						resolvedAstNodeData.push( std::make_pair(pt, tok) );
 						simpleVector.push_back("CACHE");
 						x--; // stringfuncalltokens it hits then unknown token get that token back
 					}
@@ -315,21 +313,55 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
-		handleFunctionCall( MapItem* func, const std::vector<Token>& tokens, size_t& currentPtr, VAR_VMAP* rPT, std::optional<FunctionCallReturns> data = std::nullopt ){
-			FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
-			
-			// pass the function call validation
-			passValidFuncCallToken( Data.callTokens ); 
+		handleFunctionCall( MapItem* func, const std::vector<Token>& tokens, size_t& currentPtr, 
+							VAR_VMAP* rPT, std::string KEY, std::optional<FunctionCallReturns> data = std::nullopt 
+			){
+			if( preComputed.find( KEY ) == preComputed.end() ){
+				FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
+				passValidFuncCallToken( Data.callTokens ); 
+
+				ExtendedFunctionCall funCallTok;
+				funCallTok.tokens = Data;
+				funCallTok.endPtr = currentPtr;
+
+				if( Data.argsVector.size() ){
+					std::vector< std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> > resolvedArgs;
+					int total_comma = Data.argsVector.size() - 1;
+
+					std::vector<Token> rhsTokens;
+					rhsTokens.push_back( Token( TOKEN_TYPE::OPERATOR, "=", 0, 0 ) );
+
+					for( auto argSingleVec: Data.argsVector ){
+						auto dpData = getAstRootNode( argSingleVec );
+						resolvedArgs.push_back( std::move( dpData ));
+
+						rhsTokens.push_back( Token( TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
+						if( total_comma-- )
+							rhsTokens.push_back( Token( TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
+					}
+					rhsTokens.push_back(Token( TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
+					size_t start = 0;
+					VariableTokens funcVars = stringToVariableTokens( rhsTokens, start );
+					
+					passValidValueTokens( funcVars.valueTokens );
+					funCallTok.argsVcts = std::move( resolvedArgs );
+				}
+				preComputed[ KEY ] = std::move( funCallTok );
+			}
+
+			auto& variantData = preComputed[KEY];
+			auto& extFuncCallToken = std::get<ExtendedFunctionCall>( variantData );
+			currentPtr = extFuncCallToken.endPtr;
 
 			// if it is zero arg function then no need to resolve arg vectors
-			if( Data.argsVector.size() == 0 ){
+			if( extFuncCallToken.tokens.argsVector.size() == 0 ){
 				auto funcFromMap = std::get<FUNCTION_MAP_DATA*>( func->var );
 
 				std::unique_ptr<FunctionHandler> newFuncRunner = std::make_unique<FunctionHandler>();
 
 				size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
 				size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
-				newFuncRunner->runnerBody 	= Data.funcName;
+				newFuncRunner->runnerBody 	= extFuncCallToken.tokens.funcName;
 				newFuncRunner->VMAP_COPY 	= funcFromMap->varMapCopy.first;
 				newFuncRunner->parent 		= funcFromMap->varMapCopy.second;
 
@@ -338,33 +370,19 @@ class FunctionHandler: public VAR_VMAP {
 				);
 			}
 			std::unique_ptr<FunctionHandler> newFuncRunner = std::make_unique<FunctionHandler>();
-			newFuncRunner->runnerBody = Data.funcName;
+			newFuncRunner->runnerBody = extFuncCallToken.tokens.funcName;
 						
 			auto funcFromMap 		 = std::get<FUNCTION_MAP_DATA*>( func->var );
 			newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
 			newFuncRunner->parent 	 = funcFromMap->varMapCopy.second;
 
 			std::queue<DEEP_VALUE_DATA> resolvedArgs;
-			int total_comma = Data.argsVector.size() - 1;
 
-			std::vector<Token> rhsTokens;
-			rhsTokens.push_back( Token( TOKEN_TYPE::OPERATOR, "=", 0, 0 ) );
-
-			for( auto argSingleVec: Data.argsVector ){
-				DEEP_VALUE_DATA dpData = evaluateVector( argSingleVec );
-				resolvedArgs.push( dpData );
-
-				rhsTokens.push_back( Token( TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
-				if( total_comma-- )
-					rhsTokens.push_back( Token( TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
+			for(int x = 0; x < extFuncCallToken.argsVcts.size(); x++){
+				auto& tree = extFuncCallToken.argsVcts[x];
+				DEEP_VALUE_DATA value = getFinalValue( tree );
+				resolvedArgs.push( value );
 			}
-			rhsTokens.push_back(Token( TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
-
-			size_t start = 0;
-			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start );
-			
-			// pass value syntax tokens			
-			passValidValueTokens( funcVars.valueTokens );
 
 			for( auto& ArgsInfo: funcFromMap->argsInfo ){
 				if( resolvedArgs.empty() )
@@ -653,7 +671,6 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
-
 			if( preComputed.find( KEY ) == preComputed.end() ){
 				InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 				passValidInstructionTokens( InsTokensAndData.insToken );
