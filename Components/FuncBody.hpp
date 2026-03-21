@@ -752,6 +752,9 @@ class FunctionHandler: public VAR_VMAP {
 							throw std::runtime_error("string is a one dimensional");
 
 						std::string& strToUpdate = std::get<std::string> ( varDtypeData );
+
+						if ( !std::holds_alternative<VarDtype>( topValue ) )
+							throw std::runtime_error("Variable dtype mismatch mismatch");
 						
 						( !resData.empty() ) ? updateString( strToUpdate, (long int) resData.back(), topValue ) :
 											 mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
