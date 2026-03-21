@@ -1,140 +1,68 @@
-# Print the board
-printBoard <- function(board) {
-  for (i in 1:3) {
-    for (j in 1:3) {
-      cat(board[i, j], " ")
-    }
-    cat("\n")
+is_safe <- function(board, row, col, num) {
+  # Check row
+  if (num %in% board[row, ]) return(FALSE)
+  
+  # Check column
+  if (num %in% board[, col]) return(FALSE)
+  
+  # Check 3x3 box
+  start_row <- ((row - 1) %/% 3) * 3 + 1
+  start_col <- ((col - 1) %/% 3) * 3 + 1
+  
+  if (num %in% board[start_row:(start_row+2), start_col:(start_col+2)]) {
+    return(FALSE)
   }
-  cat("\n")
+  
+  return(TRUE)
 }
 
-# Check if two boards are equal
-boardsEqual <- function(a, b) {
-  all(a == b)
-}
-
-# Heuristic: count of misplaced tiles (not used in BFS, but keeping)
-heuristic <- function(board, goal) {
-  sum((board != "_" & board != goal))
-}
-
-# Copy a board
-copyBoard <- function(board) {
-  board[,]  # returns a copy
-}
-
-# Find the blank position
-findBlank <- function(board) {
-  pos <- which(board == "_", arr.ind = TRUE)
-  return(as.numeric(pos[1,]))
-}
-
-# Swap two positions
-swap <- function(board, r1, c1, r2, c2) {
-  temp <- board[r1, c1]
-  board[r1, c1] <- board[r2, c2]
-  board[r2, c2] <- temp
+solve_sudoku <- function(board) {
+  for (row in 1:9) {
+    for (col in 1:9) {
+      
+      if (board[row, col] == 0) {
+        
+        for (num in 1:9) {
+          
+          if (is_safe(board, row, col, num)) {
+            
+            board[row, col] <- num
+            
+            result <- solve_sudoku(board)
+            
+            # ✅ if solution found (not FALSE)
+            if (!is.logical(result)) {
+              return(result)
+            }
+            
+            # backtrack
+            board[row, col] <- 0
+          }
+        }
+        
+        return(FALSE)
+      }
+    }
+  }
+  
   return(board)
 }
 
-# Generate neighbors
-getNeighbors <- function(board) {
-  neighbors <- list()
-  pos <- findBlank(board)
-  r <- pos[1]
-  c <- pos[2]
-  
-  index <- 1
-  
-  if (r > 1) {
-    nb <- copyBoard(board)
-    nb <- swap(nb, r, c, r-1, c)
-    neighbors[[index]] <- nb
-    index <- index + 1
-  }
-  
-  if (r < 3) {
-    nb <- copyBoard(board)
-    nb <- swap(nb, r, c, r+1, c)
-    neighbors[[index]] <- nb
-    index <- index + 1
-  }
-  
-  if (c > 1) {
-    nb <- copyBoard(board)
-    nb <- swap(nb, r, c, r, c-1)
-    neighbors[[index]] <- nb
-    index <- index + 1
-  }
-  
-  if (c < 3) {
-    nb <- copyBoard(board)
-    nb <- swap(nb, r, c, r, c+1)
-    neighbors[[index]] <- nb
-    index <- index + 1
-  }
-  
-  return(neighbors)
-}
+# Example Sudoku (0 = empty)
+board <- matrix(c(
+  5,3,0,0,7,0,0,0,0,
+  6,0,0,1,9,5,0,0,0,
+  0,9,8,0,0,0,0,6,0,
+  8,0,0,0,6,0,0,0,3,
+  4,0,0,8,0,3,0,0,1,
+  7,0,0,0,2,0,0,0,6,
+  0,6,0,0,0,0,2,8,0,
+  0,0,0,4,1,9,0,0,5,
+  0,0,0,0,8,0,0,7,9
+), nrow = 9, byrow = TRUE)
 
-# Check if a board has been visited
-isVisited <- function(visited, board) {
-  for (v in visited) {
-    if (boardsEqual(v, board)) return(TRUE)
-  }
-  return(FALSE)
-}
+# Solve
+solution <- solve_sudoku(board)
 
-# Add to visited
-addVisited <- function(visited, board) {
-  visited[[length(visited)+1]] <- copyBoard(board)
-  return(visited)
-}
-
-# BFS Solver
-solve <- function(start, goal) {
-  queue <- list(start)
-  visited <- list()
-  head <- 1
-  
-  while (head <= length(queue)) {
-    current <- queue[[head]]
-    
-    cat("Current State:\n")
-    printBoard(current)
-    
-    if (boardsEqual(current, goal)) {
-      cat("Solved\n")
-      return()
-    }
-    
-    visited <- addVisited(visited, current)
-    
-    neighbors <- getNeighbors(current)
-    
-    for (nb in neighbors) {
-      if (!isVisited(visited, nb)) {
-        queue[[length(queue)+1]] <- nb
-      }
-    }
-    
-    head <- head + 1
-  }
-  
-  cat("Cannot solve\n")
-}
-
-# Initial and goal boards
-start <- matrix(c("1","3","6",
-                  "5","_","2",
-                  "4","7","8"), nrow=3, byrow=TRUE)
-
-goal <- matrix(c("1","2","3",
-                 "4","5","6",
-                 "7","8","_"), nrow=3, byrow=TRUE)
-
-cat("Initial Board:\n")
-printBoard(start)
-
-solve(start, goal)
+# Print result
+print(solution)

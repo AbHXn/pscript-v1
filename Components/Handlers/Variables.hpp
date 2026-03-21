@@ -74,6 +74,8 @@ struct VariableTokens{
 	std::vector<std::vector<Token>>	valueVector;
 	std::queue<Token> 			VarQueue;
 
+	VariableTokens() = default;
+
 	// constructor
 	VariableTokens(
 		std::vector<VARIABLE_TOKENS> varTokens,

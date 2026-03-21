@@ -14,7 +14,7 @@ enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
 template <typename T> std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
 ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, T* prntClass, size_t endPtr = 0  );
-DEEP_VALUE_DATA evaluate_AST_NODE( std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
+DEEP_VALUE_DATA evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
 
 using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
 std::vector<BUCKET_TYPE> _CACHE_VARS;
@@ -32,12 +32,167 @@ struct RESOLVER_TYPE{
 	}
 };
 
-using CacheData = std::variant<CondReturnToken, LoopTokens>;
-std::unordered_map<std::string, CacheData> TokenCache;
+/******************************************* EXTENSION FOR SPEED *****************************************/
+
+enum class STATES{
+	VARIABLE	,
+	FUNCTION	,
+	LOOP		,
+	CONDITION	,
+	IOTOKENS	,
+	INSTRUCTON
+};
+
+struct ExtendedIoToken;
+struct ExtendedVariableToken;
+struct ExtendedConditionalToken;
+struct ExtendedLoopTokens;
+struct ExtendedInsTokens;
+
+using EXT_TYPE = std::variant<
+					ExtendedConditionalToken,
+					ExtendedLoopTokens,
+					ExtendedVariableToken,
+					ExtendedIoToken,
+					ExtendedInsTokens
+					>;
+
+struct ExtendedVariableToken{
+	VariableTokens tokens;
+	std::vector<
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>
+		>
+	> valueAst;
+	std::vector<VAR_INFO> varInfos;
+	size_t endPtr;
+
+	ExtendedVariableToken() = default;
+
+	ExtendedVariableToken(
+		VariableTokens tokens, 
+		std::vector<
+			std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>
+			>
+		> valueAst,
+		std::vector<VAR_INFO> varInfos,
+		size_t endPtr
+	){
+		this->tokens = tokens;
+		this->valueAst = std::move( valueAst );
+		this->varInfos = varInfos;
+		this->endPtr = endPtr;
+	}
+};
+
+struct ExtendedIoToken{
+	IOTokenReturn insTokens;
+	std::vector<
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
+	> outputInfo;
+	size_t endPtr;
+
+	ExtendedIoToken() = default;
+
+	ExtendedIoToken(
+		IOTokenReturn insTokens,
+		std::vector<
+			std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
+		> outputInfo, 
+		size_t endPtr
+	){
+		this->insTokens = insTokens;
+		this->outputInfo = std::move( outputInfo );
+		this->endPtr = endPtr;
+	}
+};
+
+struct ExtendedConditionalToken{
+	CondReturnToken ctokens;
+	std::vector<
+		std::pair<
+			std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>, 
+			size_t
+		>
+	> conditions;
+
+	ExtendedConditionalToken() = default;
+
+	ExtendedConditionalToken(
+		CondReturnToken ctokens,
+		std::vector<
+			std::pair<
+				std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>, 
+				size_t
+			>
+		> conditions
+	){
+		this->ctokens = ctokens;
+		this->conditions = std::move( conditions );
+	}
+};
+
+struct ExtendedLoopTokens{
+	LoopTokens lpToken;
+	std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> loopAst;
+
+	ExtendedLoopTokens() = default;
+	
+	ExtendedLoopTokens(
+		LoopTokens lpToken,
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> loopAst
+	){
+		this->lpToken = lpToken;
+		this->loopAst = std::move( loopAst );
+	}
+};
+
+struct ExtendedInsTokens{
+	InstructionTokens InsTokensAndData;
+	std::vector<
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
+	> insTree;
+	size_t endPtr;
+
+	ExtendedInsTokens() = default;
+
+	ExtendedInsTokens(
+		InstructionTokens InsTokensAndData,
+		size_t endPtr
+	){
+		this->InsTokensAndData = InsTokensAndData;
+		this->endPtr = endPtr;
+	}
+};
+
+std::unordered_map<std::string, EXT_TYPE> preComputed;
+
+/******************************************* EXTENSION FOR SPEED *****************************************/
+
 
 class FunctionHandler: public VAR_VMAP {
 	public:
 		std::string functionName;
+
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> 
+		getAstRootNode( std::vector<Token>& vtr ){
+			auto resolvedType 		= vectorResolver( vtr );
+			auto astTokenAndData 	= stringToASTTokens( resolvedType.simpleVector );
+			size_t startAST 		= 0;
+
+			auto newAstNode = BUILD_AST<REAL_AST_NODE_DATA, REAL_AST_NODE_DATA>( 
+						astTokenAndData, resolvedType.resolvedAstNodeData, startAST 
+					);
+			
+			if( !newAstNode.has_value() )
+				throw InvalidDTypeError("Failed to resolve the vector\n");
+
+			return std::move( newAstNode.value() );
+		}
+
+		DEEP_VALUE_DATA
+		getFinalValue( std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& newAstNode ){
+			return evaluate_AST_NODE( newAstNode, this );
+		}
 
 		VarDtype getValueFromToken( const Token& tok ){
 			if( tok.type == TOKEN_TYPE::STRING )
@@ -56,20 +211,19 @@ class FunctionHandler: public VAR_VMAP {
 			throw InvalidDTypeError("not a value");
 		}
 
-		DEEP_VALUE_DATA 
-		evaluateVector( std::vector<Token>& vtr ){
-			auto resolvedType 		= vectorResolver( vtr );
-			auto astTokenAndData 	= stringToASTTokens( resolvedType.simpleVector );
-			size_t startAST 		= 0;
-
-			// built AST Tree
-			auto newAstNode = BUILD_AST<REAL_AST_NODE_DATA, REAL_AST_NODE_DATA>( astTokenAndData, resolvedType.resolvedAstNodeData, startAST );
-
+		DEEP_VALUE_DATA
+		runEvaluation( std::optional<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>>& newAstNode ){
 			if( newAstNode.has_value() ){
 				auto AST_NODE = std::move( newAstNode.value() );
 				return evaluate_AST_NODE( AST_NODE, this );
 			}
 			throw InvalidDTypeError("Failed to resolve the vector\n");
+		}
+
+		DEEP_VALUE_DATA 
+		evaluateVector( std::vector<Token>& vtr ){
+			auto data = this->getAstRootNode( vtr );
+			return this->getFinalValue( data );
 		}
 
 		/* this function is to convert to pure vector resolve variables, function call, array calls etc */
@@ -104,7 +258,7 @@ class FunctionHandler: public VAR_VMAP {
 						// pass array access validity
 						passArrayAccessToken( arrToken.tokens );
 
-						resolvedAstNodeData.push( std::make_pair(arrToken, mainVmapData) );
+						resolvedAstNodeData.push( std::make_pair(arrToken, curToken) );
 						simpleVector.push_back("VAR");
 						x--;
 					}
@@ -112,14 +266,14 @@ class FunctionHandler: public VAR_VMAP {
 					else if( mainVmapData->mapType == MAPTYPE::FUNCTION || mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
-						resolvedAstNodeData.push( std::make_pair(pt, mainVmapData) );
+						resolvedAstNodeData.push( std::make_pair(pt, curToken) );
 						simpleVector.push_back("CACHE");
 						x--; // stringfuncalltokens it hits then unknown token get that token back
 					}
 					else if( mainVmapData->mapType == MAPTYPE::ARRAY_PTR ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 
-						resolvedAstNodeData.push( std::make_pair(arrToken, mainVmapData) );
+						resolvedAstNodeData.push( std::make_pair(arrToken, curToken) );
 						simpleVector.push_back("ARRAY_PTR");
 						x--;
 					}
@@ -401,37 +555,59 @@ class FunctionHandler: public VAR_VMAP {
 			);
 		}
 
-		void VarHandlerRunner( const std::vector<Token>& test, size_t& start ){
-			VariableTokens tokens  = stringToVariableTokens( test, start );
+		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY = nullptr ){
+			if( preComputed.find( KEY ) == preComputed.end() ){
+				VariableTokens tokens  = stringToVariableTokens( test, start );
+
+				size_t endPtr = start;
+
+				std::vector<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>> astNodes;
+				size_t curIndex = 0;
+
+				for( auto valVec: tokens.valueTokens ){
+					if( valVec == VALUE_TOKENS::ARRAY_VALUE || valVec == VALUE_TOKENS::NORMAL_VALUE ){
+						auto testVec = tokens.valueVector[ curIndex++ ];
+
+						std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> evaluatedRes = getAstRootNode( testVec ); 
+						astNodes.push_back( std::move( evaluatedRes ));
+					}
+				}
+				std::vector<VAR_INFO> varInfos;
+				passValidVarDeclaration( tokens.varTokens, varInfos, tokens.VarQueue );
+				passValidValueTokens( tokens.valueTokens );
+
+				ExtendedVariableToken newExtTok = ExtendedVariableToken(
+					tokens, std::move( astNodes ), varInfos, endPtr
+				);
+				preComputed[ KEY ] = std::move( newExtTok );
+			}
+			auto& variationalData = preComputed[ KEY ];
+			ExtendedVariableToken& tokens = std::get<ExtendedVariableToken>( variationalData );
+			start = tokens.endPtr;
 
 			std::queue<DEEP_VALUE_DATA> resolvedValueVector;
-			size_t curIndex = 0;
 
-			for( auto valVec: tokens.valueTokens ){
-				if( valVec == VALUE_TOKENS::ARRAY_VALUE || valVec == VALUE_TOKENS::NORMAL_VALUE ){
-					auto testVec = tokens.valueVector[ curIndex++ ];
-
-					DEEP_VALUE_DATA evaluatedRes = evaluateVector( testVec ); 
-					resolvedValueVector.push( evaluatedRes );
-				}
+			for(int x = 0; x < tokens.valueAst.size(); x++){
+				auto& dataV = tokens.valueAst[x];
+				DEEP_VALUE_DATA val1 = this->getFinalValue( dataV );
+				resolvedValueVector.push( val1 );
 			}
-			std::vector<VAR_INFO> varInfos;
-			// pass the validity test for variable declaration
-			passValidVarDeclaration( tokens.varTokens, varInfos, tokens.VarQueue );
+
+			std::vector<VAR_INFO>& varInfos = tokens.varInfos;
 
 			for( auto& varVerification: varInfos ){
 				auto [data, rPT] = this->getFromVmap( varVerification.varName );	
-				// check if variable is already existsed
-				if( data ) throw VariableAlreayExists( varVerification.varName );
+				
+				if( data ){ 
+					throw VariableAlreayExists( varVerification.varName );
+				}
 			}
-			// if syntax is not correct
-			passValidValueTokens( tokens.valueTokens );
 
-			for( size_t x = 0, i = 0; x < tokens.valueTokens.size(); x++ ){
+			for( size_t x = 0, i = 0; x < tokens.tokens.valueTokens.size(); x++ ){
 				if( i >= varInfos.size() && resolvedValueVector.empty() )
 					break;
 
-				auto curValueToken = tokens.valueTokens[x];
+				auto curValueToken = tokens.tokens.valueTokens[x];
 
 				if( curValueToken != VALUE_TOKENS::NORMAL_VALUE && curValueToken != \
 					VALUE_TOKENS::ARRAY_VALUE && curValueToken != VALUE_TOKENS::ARRAY_OPEN )
@@ -486,7 +662,7 @@ class FunctionHandler: public VAR_VMAP {
 				else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 					x++;
 
-					auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.valueTokens,  x, resolvedValueVector );
+					auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.tokens.valueTokens,  x, resolvedValueVector );
 
 					std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 					newVariable->key 		 = curVarInfo.varName;
@@ -611,23 +787,49 @@ class FunctionHandler: public VAR_VMAP {
 			}
 		}
 
-		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr ){
-			InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
+		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
 
-			// check instruction token validation
-			passValidInstructionTokens( InsTokensAndData.insToken );
+			if( preComputed.find( KEY ) == preComputed.end() ){
+				InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
+				passValidInstructionTokens( InsTokensAndData.insToken );
+
+				ExtendedInsTokens newInsToken = ExtendedInsTokens(
+						InsTokensAndData, currentPtr
+					);
+
+				if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
+					preComputed[KEY] = std::move( newInsToken ); 
+				} 
+				else{
+					std::vector<
+						std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
+					> insTreeNodes;
+
+					for(auto& astStrToks: InsTokensAndData.rightVector){
+						auto treeNode = getAstRootNode( astStrToks );
+						insTreeNodes.push_back( std::move( treeNode ) );
+					}
+
+					newInsToken.insTree = std::move( insTreeNodes );
+					preComputed[ KEY ] = std::move( newInsToken );
+				}
+			}
+
+			auto& variationalData = preComputed[ KEY ];
+			ExtendedInsTokens& insTokens = std::get<ExtendedInsTokens>( variationalData );
+			currentPtr = insTokens.endPtr;
 
 			std::queue<DEEP_VALUE_DATA> finalValueQueue;
-			std::vector<Token>& varsAndVals = InsTokensAndData.leftVector;
+			std::vector<Token>& varsAndVals = insTokens.InsTokensAndData.leftVector;
 
-			if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
-				typeCastRequest( InsTokensAndData, varsAndVals );
+			if( insTokens.InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
+				typeCastRequest( insTokens.InsTokensAndData, varsAndVals );
 				return;
 			}
 
-			for( std::vector<Token>& astStrToks: InsTokensAndData.rightVector ){
-				DEEP_VALUE_DATA data = evaluateVector( astStrToks );
-				finalValueQueue.push( data  );
+			for( auto& astStrToks: insTokens.insTree ){
+				DEEP_VALUE_DATA data = getFinalValue( astStrToks );
+				finalValueQueue.push( data );
 			}
 
 			for( size_t x = 0; x < varsAndVals.size(); x++ ){
@@ -746,49 +948,68 @@ class FunctionHandler: public VAR_VMAP {
 			throw InvalidSyntaxError("Invalid return statement");
 		}
 
-		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start ){
+		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY ){
+			if( preComputed.find( KEY ) == preComputed.end() ){
 				auto tokensAndData = stringToIoTokens( tokens, start );
-				// pass the validation test for iotokens
 				passValidIOTokens( tokensAndData.first );
 
-				std::queue<DEEP_VALUE_DATA> finalQueue;
-				
+				std::vector<
+					std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
+				> outputInfo;
+
 				for( std::vector<Token>&valToks: tokensAndData.second ){
-					DEEP_VALUE_DATA data = evaluateVector( valToks );
-					finalQueue.push(data);
+					auto astNode = getAstRootNode( valToks );
+					outputInfo.push_back( std::move( astNode ) );
 				}
-		
-				bool isFirstPrint = true;
-				for( IO_TOKENS tok: tokensAndData.first ){
-					switch( tok ){
-						case IO_TOKENS::PRINT: {
-							if( !isFirstPrint )
-								std::cout << "\n";
-							else isFirstPrint = false;
 
-							if( finalQueue.empty() )
-								throw InvalidSyntaxError("In para statement");
+				ExtendedIoToken newIo = ExtendedIoToken(
+					tokensAndData, std::move( outputInfo ), start
+				);
+				preComputed[ KEY ] = std::move( newIo );
+			}
 
-							auto top = finalQueue.front();
-							finalQueue.pop();
-							ValueHelper::printDEEP_VALUE_DATA( top );
-							break;
-						}
-						case IO_TOKENS::CONCAT:{
-							std::cout << " ";
-							if( finalQueue.empty() )
-								throw InvalidSyntaxError("In koode statement");
+			auto& variationalData = preComputed[ KEY ];
+			ExtendedIoToken& IoTokens = std::get<ExtendedIoToken>( variationalData );
+			start = IoTokens.endPtr;
 
-							auto top = finalQueue.front();
-							finalQueue.pop();
-							ValueHelper::printDEEP_VALUE_DATA( top );
-							break;
-						}
-						case IO_TOKENS::PRINT_VALUE: continue;
-						case IO_TOKENS::END: default: return;
+			std::queue<DEEP_VALUE_DATA> finalQueue;
+			
+			for( auto& valTree: IoTokens.outputInfo ){
+				DEEP_VALUE_DATA data = getFinalValue( valTree );
+				finalQueue.push(data);
+			}
+	
+			bool isFirstPrint = true;
+			for( IO_TOKENS tok: IoTokens.insTokens.first ){
+				switch( tok ){
+					case IO_TOKENS::PRINT: {
+						if( !isFirstPrint )
+							std::cout << "\n";
+						else isFirstPrint = false;
+
+						if( finalQueue.empty() )
+							throw InvalidSyntaxError("In para statement");
+
+						auto top = finalQueue.front();
+						finalQueue.pop();
+						ValueHelper::printDEEP_VALUE_DATA( top );
+						break;
 					}
+					case IO_TOKENS::CONCAT:{
+						std::cout << " ";
+						if( finalQueue.empty() )
+							throw InvalidSyntaxError("In koode statement");
+
+						auto top = finalQueue.front();
+						finalQueue.pop();
+						ValueHelper::printDEEP_VALUE_DATA( top );
+						break;
+					}
+					case IO_TOKENS::PRINT_VALUE: continue;
+					case IO_TOKENS::END: default: return;
 				}
 			}
+		}
 };
 
 class Conditional: public FunctionHandler{
@@ -798,23 +1019,39 @@ class Conditional: public FunctionHandler{
 		Conditional( std::unique_ptr<LoopHandler> lpRunner ){
 			this->lpRunner = std::move( lpRunner );
 		}
-		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string key ){
-			CondReturnToken ctokens;
-			if( TokenCache.find( key ) == TokenCache.end() ){
-				ctokens = stringToCondTokens( tokens, start );
-				// pass the validation
-				passCondTokenValidation( ctokens.tokens );
-				TokenCache[ key ] = ctokens;
+		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY ){
+
+			if( preComputed.find( KEY ) == preComputed.end() ){
+				CondReturnToken ctokens  = stringToCondTokens( tokens, start );
+		 		passCondTokenValidation( ctokens.tokens );
+
+				std::vector<
+					std::pair<
+						std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>, 
+						size_t 
+					>
+				> astNodes; 
+
+				for( int x = 0; x < ctokens.conditions.size(); x++ ){
+					auto curCond = ctokens.conditions[ x ];
+					auto treeNode = getAstRootNode( curCond.first );
+					astNodes.push_back( std::move( make_pair( std::move( treeNode ), curCond.second ) ) );
+				}
+
+				ExtendedConditionalToken newExtTok = ExtendedConditionalToken(
+					ctokens, std::move( astNodes )
+				);
+				preComputed[ KEY ] = std::move( newExtTok );
 			}
-			else {
-				ctokens = std::get<CondReturnToken>( TokenCache[ key ] );
-				start = ctokens.endOfNok;
-			}
+			auto& variationalData = preComputed[ KEY ];
+			ExtendedConditionalToken& cTokens = std::get<ExtendedConditionalToken>( variationalData );
+			start = cTokens.ctokens.endOfNok;
+
 			bool runTheCondition = false;
 
-			for(int x = 0; x < ctokens.conditions.size(); x++){
-				auto data = ctokens.conditions[ x ];
-				DEEP_VALUE_DATA evRes = evaluateVector( data.first );
+			for(int x = 0; x < cTokens.conditions.size(); x++){
+				auto& data = cTokens.conditions[ x ];
+				DEEP_VALUE_DATA evRes = getFinalValue( data.first );
 
 				if( std::holds_alternative<VarDtype>( evRes ) ){
 					auto VdtypData = std::get<VarDtype>( evRes );
@@ -827,7 +1064,7 @@ class Conditional: public FunctionHandler{
 							start = data.second + 1;
 							
 							ProgramExecutor( tokens, start, CALLER::CONDITIONAL, this );
-							start = ctokens.endOfNok; return;
+							start = cTokens.ctokens.endOfNok; return;
 						}
 					}
 				}
@@ -840,22 +1077,25 @@ class Conditional: public FunctionHandler{
 class LoopHandler: public FunctionHandler{
 	public:		
 		void 
-		LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string key ){
+		LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
 			size_t beginCopy = currentPtr;
 
-			LoopTokens lpTokens;
-			if( TokenCache.find( key ) == TokenCache.end() ){
-				lpTokens = stringToLoopTokens( tokens, currentPtr );
-				// pass the loop validation test
+			if( preComputed.find( KEY ) == preComputed.end() ){
+				LoopTokens lpTokens  = stringToLoopTokens( tokens, currentPtr );
 		 		passValidLoopTokens( lpTokens.lpTokens );
-				TokenCache[ key ] = lpTokens;
-			}
-			else {
-				lpTokens = std::get<LoopTokens>( TokenCache[ key ] );
-				currentPtr = lpTokens.endPtr;
-			}
 
-			DEEP_VALUE_DATA finalValue = evaluateVector( lpTokens.conditions );
+				std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> astNode  = getAstRootNode( lpTokens.conditions ); 
+
+				ExtendedLoopTokens newExtTok = ExtendedLoopTokens(
+					lpTokens, std::move( astNode )
+				);
+				preComputed[ KEY ] = std::move( newExtTok );
+			}
+			auto& variationalData = preComputed[ KEY ];
+			ExtendedLoopTokens& lpTokens = std::get<ExtendedLoopTokens>( variationalData );
+			currentPtr = lpTokens.lpToken.endPtr;
+
+			DEEP_VALUE_DATA finalValue = getFinalValue( lpTokens.loopAst );
 
 			if( !std::holds_alternative<VarDtype>( finalValue ) )
 				throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
@@ -868,11 +1108,11 @@ class LoopHandler: public FunctionHandler{
 			bool runTheBodyAgain = std::get<bool>( cdData );
 			
 			if( !runTheBodyAgain ) {
-				currentPtr = lpTokens.endPtr;
+				currentPtr = lpTokens.lpToken.endPtr;
 				return ;
 			}
 
-			size_t bodyStart = lpTokens.startPtr;
+			size_t bodyStart = lpTokens.lpToken.startPtr;
 			try{
 				ProgramExecutor( tokens, bodyStart, CALLER::LOOP, this );
 				currentPtr = beginCopy;
@@ -883,7 +1123,8 @@ class LoopHandler: public FunctionHandler{
 				const Token& expTok = tokens[ bodyStart ];
 				
 				if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
-					currentPtr = lpTokens.endPtr; return ;
+					currentPtr = lpTokens.lpToken.endPtr; 
+					return ;
 				}
 				if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
 					currentPtr = beginCopy; return ;

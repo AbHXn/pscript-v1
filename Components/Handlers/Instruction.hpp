@@ -90,6 +90,8 @@ struct InstructionTokens{
 	std::vector<std::vector<Token>> rightVector;
 	std::vector<Token> leftVector;
 
+	InstructionTokens() = default;
+
 	InstructionTokens(
 		std::vector<INS_TOKEN> insToken,
 		INS_TOKEN optr,

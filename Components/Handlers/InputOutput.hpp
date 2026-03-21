@@ -15,6 +15,9 @@ bool isRegisteredIoTokens( const std::string& token ){
 	return REGISTERED_IO_TOKENS.find( token ) != REGISTERED_IO_TOKENS.end();
 }
 
+using IOTokenReturn = std::pair<std::vector<IO_TOKENS>, std::vector<std::vector<Token>>>;
+
+
 std::unordered_map<IO_TOKENS, std::vector<IO_TOKENS>> IO_GRAPH = {
 	{ IO_TOKENS::PRINT, 		{ IO_TOKENS::PRINT_VALUE } },
 	{ IO_TOKENS::PRINT_VALUE,   { IO_TOKENS::END, IO_TOKENS::CONCAT, 
@@ -54,7 +57,7 @@ passValidIOTokens( std::vector<IO_TOKENS>& IOTokens ){
 	throw InvalidSyntaxError( "Do dont encounter end ; token in para" );
 }
 
-std::pair<std::vector<IO_TOKENS>, std::vector<std::vector<Token>>>
+IOTokenReturn
 stringToIoTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 	std::vector<IO_TOKENS> IOTokens;
 	std::vector<std::vector<Token>> printValues;

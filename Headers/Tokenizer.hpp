@@ -54,8 +54,7 @@ enum class TOKEN_TYPE{
 };
 
 bool isValueType(TOKEN_TYPE type){
-	return ( type == TOKEN_TYPE::NUMBER || type == TOKEN_TYPE::STRING 
-			|| type == TOKEN_TYPE::FLOATING || type == TOKEN_TYPE::BOOLEAN );
+	return ( type == TOKEN_TYPE::NUMBER || type == TOKEN_TYPE::STRING  || type == TOKEN_TYPE::FLOATING || type == TOKEN_TYPE::BOOLEAN );
 }
 
 struct Token{

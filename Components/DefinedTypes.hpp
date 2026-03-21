@@ -43,7 +43,12 @@ struct FUNCTION_MAP_DATA{
 
 using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, FUNCTION_MAP_DATA*>;
 using DEEP_VALUE_DATA  		= std::variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
-using REAL_AST_NODE_DATA 	= 	std::variant<AST_TOKENS, VarDtype, std::pair<ArrayAccessTokens, MapItem*>, std::pair<FunctionCallReturns, MapItem*>>;
+using REAL_AST_NODE_DATA 	= std::variant<
+								AST_TOKENS, 
+								VarDtype, 
+								std::pair<ArrayAccessTokens, std::string>, 
+								std::pair<FunctionCallReturns, std::string>
+								>;
 
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;

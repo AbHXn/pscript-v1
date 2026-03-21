@@ -44,6 +44,8 @@ struct FunctionTokenReturn {
 	size_t 							 funcStartPtr;
 	size_t 							 funcEndPtr;
 
+	FunctionTokenReturn() = default;
+
 	FunctionTokenReturn( 
 		std::vector<FUNC_TOKENS> tokens,
 		std::vector<std::unique_ptr<ARG_VAR_INFO>> args,

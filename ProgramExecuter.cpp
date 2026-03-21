@@ -20,7 +20,8 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 
 		if( curToken.token == "pidi" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				prntClass->VarHandlerRunner( tokens, currentPtr );
+				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
+				prntClass->VarHandlerRunner( tokens, currentPtr, key );
 			}
 			catch( ... ){
 				cout << "pidi Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
@@ -29,7 +30,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		}
 		else if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				string key = filename + to_string( tokens[ currentPtr ].row + 1 );
+				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
 				lpHandler->runnerBody = prntClass->runnerBody;
 				lpHandler->parent = prntClass;
@@ -55,7 +56,8 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		}
 		else if( curToken.token == "para" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				prntClass->IOHandlerRunner( tokens, currentPtr );
+				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
+				prntClass->IOHandlerRunner( tokens, currentPtr, key);
 			}
 			catch( ... ){
 				cout << "para Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
@@ -78,7 +80,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		}
 		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				string key = filename + to_string( tokens[ currentPtr ].row + 1 );
+				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				unique_ptr<LoopHandler> newLpHander = make_unique<LoopHandler>();
 				newLpHander->parent = prntClass;
 				newLpHander->runnerBody = prntClass->runnerBody;
@@ -115,7 +117,8 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			else{
 				try{
 					backUpPtr = currentPtr;
-					prntClass->InstructionHandlerRunner( tokens, currentPtr );
+					string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
+					prntClass->InstructionHandlerRunner( tokens, currentPtr, key);
 				}
 				catch( const RecoverError& err ){
 					currentPtr = backUpPtr;
@@ -134,15 +137,17 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 }
 
 DEEP_VALUE_DATA 
-evaluate_AST_NODE( std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level ){
+evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level ){
 	auto& astNodeData = astNode->AST_DATA;
 
 	if( !std::holds_alternative<AST_TOKENS>( astNodeData ) ){
 		if( std::holds_alternative<VarDtype>( astNodeData ) ){
 			return std::get<VarDtype>( astNodeData );
 		}
-		else if( std::holds_alternative<std::pair<ArrayAccessTokens, MapItem*>> ( astNodeData ) ){
-			auto [accessTok, mapData] = std::get<std::pair<ArrayAccessTokens, MapItem*>>( astNodeData );
+		else if( std::holds_alternative<std::pair<ArrayAccessTokens, string>> ( astNodeData ) ){
+			auto [accessTok, mapDataKey] = std::get<std::pair<ArrayAccessTokens, string>>( astNodeData );
+			MapItem* mapData = helperHandler->getFromVmap( mapDataKey ).first;
+
 			if( mapData->mapType == MAPTYPE::VARIABLE ){
 				auto varHolder = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
 
@@ -179,8 +184,10 @@ evaluate_AST_NODE( std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, Funct
 			}
 
 		}
-		else if( std::holds_alternative<std::pair<FunctionCallReturns, MapItem*>>( astNodeData ) ){
-			auto [funcRecToks, mapData] = std::get<std::pair<FunctionCallReturns, MapItem*>>( astNodeData );
+		else if( std::holds_alternative<std::pair<FunctionCallReturns, string>>( astNodeData ) ){
+			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, string>>( astNodeData );
+			MapItem* mapData = helperHandler->getFromVmap( mapDatakey ).first;
+
 			auto varHolder = std::get<FUNCTION_MAP_DATA*>( mapData->var );
 			
 			if( isFuncPtr( funcRecToks.callTokens ) )
