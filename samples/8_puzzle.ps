@@ -1,4 +1,4 @@
-pari printBoard(pidi board kootam){
+pindi printBoard(pidi board kootam){
     pidi i = 0;
 
     ittuthiri i < 3 {
@@ -15,7 +15,7 @@ pari printBoard(pidi board kootam){
     para "\n";
 }
 
-pari boardsEqual(pidi a kootam, pidi b kootam){
+pindi boardsEqual(pidi a kootam, pidi b kootam){
     pidi i = 0;
 
     ittuthiri i < 3 {
@@ -32,7 +32,7 @@ pari boardsEqual(pidi a kootam, pidi b kootam){
     poda sheri;
 }
 
-pari heuristic(pidi board kootam, pidi goal kootam){
+pindi heuristic(pidi board kootam, pidi goal kootam){
     pidi score = 0;
     pidi i = 0;
 
@@ -49,7 +49,7 @@ pari heuristic(pidi board kootam, pidi goal kootam){
     poda score;
 }
 
-pari copyBoard(pidi src kootam){
+pindi copyBoard(pidi src kootam){
     pidi dst kootam = {};
     pidi i = 0;
 
@@ -67,7 +67,7 @@ pari copyBoard(pidi src kootam){
     poda dst;
 }
 
-pari findBlank(pidi board kootam){
+pindi findBlank(pidi board kootam){
     pidi pos kootam = {};
     pidi i = 0;
 
@@ -87,18 +87,18 @@ pari findBlank(pidi board kootam){
     poda pos;
 }
 
-pari swap(pidi board kootam, pidi r1, pidi c1, pidi r2, pidi c2){
+pindi swap(pidi board kootam, pidi r1, pidi c1, pidi r2, pidi c2){
     pidi temp = board[r1][c1];
     board[r1][c1] = board[r2][c2];
     board[r2][c2] = temp;
 }
 
-pari addNeighbor(pidi list kootam, pidi board kootam, pidi index){
+pindi addNeighbor(pidi list kootam, pidi board kootam, pidi index){
     pidi copy = copyBoard(board);
     list[index] = copy;
 }
 
-pari getNeighbors(pidi board kootam){
+pindi getNeighbors(pidi board kootam){
     pidi neighbors kootam   = {};
     pidi pos kootam         = findBlank(board);
     pidi r                  = pos[0];
@@ -132,7 +132,7 @@ pari getNeighbors(pidi board kootam){
     poda neighbors;
 }
 
-pari isVisited(pidi visited kootam, pidi board kootam){
+pindi isVisited(pidi visited kootam, pidi board kootam){
     pidi i = 0;
 
     ittuthiri i < visited:valupam {
@@ -144,11 +144,11 @@ pari isVisited(pidi visited kootam, pidi board kootam){
     poda thettu;
 }
 
-pari addVisited(pidi visited kootam, pidi board kootam){
+pindi addVisited(pidi visited kootam, pidi board kootam){
     visited[visited:valupam] = copyBoard(board);
 }
 
-pari solve(pidi start kootam, pidi goal kootam){
+pindi solve(pidi start kootam, pidi goal kootam){
     pidi queue kootam = {};
     pidi visited kootam = {};
 

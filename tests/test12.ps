@@ -1,10 +1,10 @@
-pari swap(pidi arr kootam, pidi i, pidi j){
+pindi swap(pidi arr kootam, pidi i, pidi j){
     pidi t = arr[i];
     arr[i] = arr[j];
     arr[j] = t;
 }
 
-pari partition(pidi arr kootam, pidi low, pidi high){
+pindi partition(pidi arr kootam, pidi low, pidi high){
     pidi pivot = arr[high];
     pidi i = low - 1;
     pidi j = low;
@@ -21,7 +21,7 @@ pari partition(pidi arr kootam, pidi low, pidi high){
     poda i + 1;
 }
 
-pari quicksort(pidi arr kootam, pidi low, pidi high){
+pindi quicksort(pidi arr kootam, pidi low, pidi high){
     nok low < high {
         pidi pi = partition(arr, low, high);
         quicksort(arr, low, pi - 1);

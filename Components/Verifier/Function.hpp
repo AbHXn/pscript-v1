@@ -8,7 +8,7 @@
 #include <memory>
 
 std::unordered_set<std::string> REGISTERED_FUNC_TOKEN = { 
-	"pari", "(", ")", "{", "}", ",", "pidi", "kootam" 
+	"pindi", "(", ")", "{", "}", ",", "pidi", "kootam" 
 };
 
 std::unordered_set<std::string> REGISTERED_FUNC_BODY_TOKENS = {
@@ -123,7 +123,7 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 	for( ; startIndex < tokens.size(); startIndex++ ){
 		const std::string& curToken = tokens[ startIndex ].token;
 
-		if( curToken == "pari" ){
+		if( curToken == "pindi" ){
 			funcTokens.push_back( FUNC_TOKENS::FUNC_START );
 		}
 		else if( curToken == "(" ){
@@ -181,7 +181,7 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 		}
 		prev = !funcTokens.empty() ? funcTokens.back() : prev;
 	}
-	throw InvalidSyntaxError("Invalid syntax error in pari declaration");
+	throw InvalidSyntaxError("Invalid syntax error in pindi declaration");
 }
 
 /* --------------------------- FUNC CALL HANDLER --------------------------------*/
@@ -234,10 +234,10 @@ passValidFuncCallToken( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 			}
 		}
 		if( !continueNext )
-			throw InvalidSyntaxError( "Invalid Token encounter in pari call" );
+			throw InvalidSyntaxError( "Invalid Token encounter in function call" );
 		currentStage = nextExpected;
 	}
-	throw InvalidSyntaxError( "Do dont encounter ) token in pari call" );
+	throw InvalidSyntaxError( "Do dont encounter ) token in function call" );
 }
 
 struct FunctionCallReturns{

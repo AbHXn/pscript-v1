@@ -1,4 +1,4 @@
-pari absDiff(pidi a, pidi b){
+pindi absDiff(pidi a, pidi b){
     nok a > b {
         poda a - b;
     } :umbi {
@@ -6,14 +6,14 @@ pari absDiff(pidi a, pidi b){
     };
 }
 
-pari sumUpto(pidi n){
+pindi sumUpto(pidi n){
     nok n <= 0 {
         poda 0;
     };
     poda n + sumUpto(n - 1);
 }
 
-pari weirdFact(pidi n){
+pindi weirdFact(pidi n){
     nok n <= 1 {
         poda 1;
     };
@@ -24,7 +24,7 @@ pari weirdFact(pidi n){
     poda n * sub;
 }
 
-pari zigzag(pidi n){
+pindi zigzag(pidi n){
     pidi i = 0;
     pidi total = 0;
 
@@ -43,7 +43,7 @@ pari zigzag(pidi n){
 }
 
 
-pari recursiveMixer(pidi n){
+pindi recursiveMixer(pidi n){
     nok n <= 0 {
         poda 0;
     };
@@ -57,7 +57,7 @@ pari recursiveMixer(pidi n){
 }
 
 
-pari deepLoop(pidi n){
+pindi deepLoop(pidi n){
     pidi i = 0;
     pidi result = 0;
 
@@ -83,7 +83,7 @@ pari deepLoop(pidi n){
     poda result;
 }
 
-pari masterTest(pidi x){
+pindi masterTest(pidi x){
     pidi r1 = recursiveMixer(x);
     pidi r2 = deepLoop(x);
     pidi r3 = weirdFact(x % 6);

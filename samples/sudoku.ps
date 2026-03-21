@@ -1,4 +1,4 @@
-pari printBoard(pidi board kootam){
+pindi printBoard(pidi board kootam){
     pidi i = 0;
 
     ittuthiri i < 9 {
@@ -15,7 +15,7 @@ pari printBoard(pidi board kootam){
     para "\n";
 }
 
-pari isSafe(pidi board kootam, pidi row, pidi col, pidi num){
+pindi isSafe(pidi board kootam, pidi row, pidi col, pidi num){
     pidi i = 0;
     ittuthiri i < 9 {
         nok board[row][i] == num {
@@ -50,7 +50,7 @@ pari isSafe(pidi board kootam, pidi row, pidi col, pidi num){
     poda sheri;
 }
 
-pari findEmpty(pidi board kootam){
+pindi findEmpty(pidi board kootam){
     pidi pos kootam = {};
     pidi i = 0;
 
@@ -73,7 +73,7 @@ pari findEmpty(pidi board kootam){
     poda pos;
 }
 
-pari solveSudoku(pidi board kootam){
+pindi solveSudoku(pidi board kootam){
     pidi pos kootam = findEmpty(board);
 
     pidi row = pos[0];

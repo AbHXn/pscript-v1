@@ -1,4 +1,4 @@
-pari clamp(pidi x, pidi lo, pidi hi){
+pindi clamp(pidi x, pidi lo, pidi hi){
     pidi r = 0;
     nok x < lo {
         r = lo;
@@ -12,7 +12,7 @@ pari clamp(pidi x, pidi lo, pidi hi){
     poda r;
 }
 
-pari sumDigits(pidi n){
+pindi sumDigits(pidi n){
     pidi s = 0;
     pidi t = n;
     ittuthiri t > 0 {
@@ -22,9 +22,9 @@ pari sumDigits(pidi n){
     poda s;
 }
 
-pari makeAccumulator(pidi start){
+pindi makeAccumulator(pidi start){
     pidi total = start;
-    pari add(pidi x){
+    pindi add(pidi x){
         pidi r = 0;
         total = total + x;
         r = total;
@@ -34,12 +34,12 @@ pari makeAccumulator(pidi start){
     poda f;
 }
 
-pari makeParityEngine(){
+pindi makepindityEngine(){
     pidi evenRef = 0;
     pidi oddRef = 0;
     pidi calls = 0;
 
-    pari even(pidi n){
+    pindi even(pidi n){
         pidi r = 0;
         calls = calls + 1;
         nok n <= 0 {
@@ -50,7 +50,7 @@ pari makeParityEngine(){
         poda r;
     }
 
-    pari odd(pidi n){
+    pindi odd(pidi n){
         pidi r = 0;
         calls = calls + 1;
         nok n <= 0 {
@@ -62,7 +62,7 @@ pari makeParityEngine(){
     }
     evenRef = even;
     oddRef = odd;
-    pari run(pidi n){
+    pindi run(pidi n){
         pidi r = evenRef(n);
         poda r;
     }
@@ -70,7 +70,7 @@ pari makeParityEngine(){
     poda f;
 }
 
-pari recursiveMix(pidi n){
+pindi recursiveMix(pidi n){
     pidi r = 0;
 
     nok n <= 0 {
@@ -84,7 +84,7 @@ pari recursiveMix(pidi n){
 }
 
 
-pari deepCompute(pidi n){
+pindi deepCompute(pidi n){
     pidi i = 0;
     pidi acc = 0;
     pidi r = 0;
@@ -118,7 +118,7 @@ pidi acc = makeAccumulator(5);
 para acc(3) koode "\n";
 para acc(4) koode "\n";
 
-pidi pe = makeParityEngine();
+pidi pe = makepindityEngine();
 para pe(6) koode "\n";
 para pe(9) koode "\n";
 

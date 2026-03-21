@@ -1,9 +1,9 @@
-pari makeRecursiveEngine(pidi limit){
+pindi makeRecursiveEngine(pidi limit){
     pidi step = 0;
     pidi evenRef = 0;
     pidi oddRef = 0;
 
-    pari even(pidi n){
+    pindi even(pidi n){
         pidi r = 0;
         step = step + 1;
 
@@ -16,7 +16,7 @@ pari makeRecursiveEngine(pidi limit){
         poda r;
     }
 
-    pari odd(pidi n){
+    pindi odd(pidi n){
         pidi r = 0;
         step = step + 1;
 
@@ -32,7 +32,7 @@ pari makeRecursiveEngine(pidi limit){
     evenRef = even;
     oddRef = odd;
 
-    pari run(pidi n){
+    pindi run(pidi n){
         pidi r = 0;
 
         nok n > limit {
@@ -44,7 +44,7 @@ pari makeRecursiveEngine(pidi limit){
         poda r;
     }
 
-    pari getSteps(){
+    pindi getSteps(){
         pidi r = step;
         poda r;
     }

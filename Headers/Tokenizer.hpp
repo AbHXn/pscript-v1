@@ -10,7 +10,7 @@
 #include <cctype>
 
 std::unordered_set<std::string> RESERVED_KEYS = {
-	"pari", "pidi", "sheri", "thettu", "poda", "pinnava",
+	"pindi", "pidi", "sheri", "thettu", "poda", "pinnava",
 	"theku", "ittuthiri", "nok", "umbi", "onnula", "para", 
 	"koode", "um", "yo", "kootam", "edukku"
 };

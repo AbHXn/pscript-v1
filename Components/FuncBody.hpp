@@ -386,7 +386,7 @@ class FunctionHandler: public VAR_VMAP {
 
 			for( auto& ArgsInfo: funcFromMap->argsInfo ){
 				if( resolvedArgs.empty() )
-					throw InvalidSyntaxError("No value to initialized the args in pari");
+					throw InvalidSyntaxError("No value to initialized the args in function");
 				
 				DEEP_VALUE_DATA topValue = resolvedArgs.front();
 				resolvedArgs.pop();

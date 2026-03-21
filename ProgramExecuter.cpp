@@ -64,7 +64,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw;
 			}
 		}
-		else if( curToken.token == "pari" && curToken.type == TOKEN_TYPE::RESERVED ){
+		else if( curToken.token == "pindi" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				prntClass->functionDefHandlerRunner( tokens, currentPtr );
 				currentPtr--;
@@ -73,7 +73,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				continue;
 			}
 			catch( ... ){
-				cout << "pari Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
+				cout << "Pindi Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 			
@@ -111,7 +111,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 					prntClass->handleFunctionCall( func, tokens, currentPtr, rPT, key );
 				}
 				catch(...){
-					cout << "pari call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
+					cout << "Pindi call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 					throw;
 				}
 			}

@@ -1,4 +1,4 @@
-pari abs(pidi x){
+pindi abs(pidi x){
     pidi r = 0;
     nok x < 0 {
         r = 0 - x;
@@ -8,7 +8,7 @@ pari abs(pidi x){
     poda r;
 }
 
-pari sumRec(pidi n){
+pindi sumRec(pidi n){
     pidi r = 0;
     nok n <= 0 {
         r = 0;
@@ -18,7 +18,7 @@ pari sumRec(pidi n){
     poda r;
 }
 
-pari factLimit(pidi n){
+pindi factLimit(pidi n){
     pidi r = 0;
     nok n <= 1 {
         r = 1;
@@ -34,9 +34,9 @@ pari factLimit(pidi n){
     poda r;
 }
 
-pari makeToggle(pidi start){
+pindi makeToggle(pidi start){
     pidi state = start;
-    pari flip(){
+    pindi flip(){
         pidi r = 0;
         nok state == 0 {
             state = 1;
@@ -49,11 +49,11 @@ pari makeToggle(pidi start){
     poda flip;
 }
 
-pari makeEvenOdd(){
+pindi makeEvenOdd(){
     pidi evenRef = 0;
     pidi oddRef = 0;
 
-    pari even(pidi n){
+    pindi even(pidi n){
         pidi r = 0;
         nok n == 0 {
             r = sheri;
@@ -63,7 +63,7 @@ pari makeEvenOdd(){
         poda r;
     }
 
-    pari odd(pidi n){
+    pindi odd(pidi n){
         pidi r = 0;
         nok n == 0 {
             r = thettu;
@@ -76,14 +76,14 @@ pari makeEvenOdd(){
     evenRef = even;
     oddRef = odd;
 
-    pari entry(pidi n){
+    pindi entry(pidi n){
         pidi r = evenRef(n);
         poda r;
     }
     poda entry;
 }
 
-pari deepLoop(pidi n){
+pindi deepLoop(pidi n){
     pidi i = 0;
     pidi sum = 0;
     pidi r = 0;
