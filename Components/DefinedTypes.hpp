@@ -9,12 +9,12 @@
 #include <iostream>
 #include <type_traits>
 
-#include "Handlers/Variables.hpp"
-#include "Handlers/Conditional.hpp"
-#include "Handlers/Function.hpp"
-#include "Handlers/loops.hpp"
-#include "Handlers/InputOutput.hpp"
-#include "Handlers/Instruction.hpp"
+#include "Verifier/Variables.hpp"
+#include "Verifier/Conditional.hpp"
+#include "Verifier/Function.hpp"
+#include "Verifier/loops.hpp"
+#include "Verifier/InputOutput.hpp"
+#include "Verifier/Instruction.hpp"
 
 #include "AST.hpp"
 
