@@ -1,0 +1,204 @@
+pari printBoard(pidi board kootam){
+    pidi i = 0;
+
+    ittuthiri i < 3 {
+        pidi j = 0;
+
+        ittuthiri j < 3 {
+            para board[i][j] koode " ";
+            j = j + 1;
+        }
+
+        para "\n";
+        i = i + 1;
+    }
+    para "\n";
+}
+
+pari boardsEqual(pidi a kootam, pidi b kootam){
+    pidi i = 0;
+
+    ittuthiri i < 3 {
+        pidi j = 0;
+
+        ittuthiri j < 3 {
+            nok a[i][j] != b[i][j] {
+                poda thettu;
+            };
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    poda sheri;
+}
+
+pari heuristic(pidi board kootam, pidi goal kootam){
+    pidi score = 0;
+    pidi i = 0;
+
+    ittuthiri i < 3 {
+        pidi j = 0;
+        ittuthiri j < 3 {
+            nok board[i][j] != "_" um board[i][j] != goal[i][j] {
+                score = score + 1;
+            };
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    poda score;
+}
+
+pari copyBoard(pidi src kootam){
+    pidi dst kootam = {};
+    pidi i = 0;
+
+    ittuthiri i < 3 {
+        pidi darr kootam = {};
+        dst[i] = darr;
+        pidi j = 0;
+
+        ittuthiri j < 3 {
+            dst[i][j] = src[i][j];
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    poda dst;
+}
+
+pari findBlank(pidi board kootam){
+    pidi pos kootam = {};
+    pidi i = 0;
+
+    ittuthiri i < 3 {
+        pidi j = 0;
+
+        ittuthiri j < 3 {
+            nok board[i][j] == "_" {
+                pos[0] = i;
+                pos[1] = j;
+                poda pos;
+            };
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+    poda pos;
+}
+
+pari swap(pidi board kootam, pidi r1, pidi c1, pidi r2, pidi c2){
+    pidi temp = board[r1][c1];
+    board[r1][c1] = board[r2][c2];
+    board[r2][c2] = temp;
+}
+
+pari addNeighbor(pidi list kootam, pidi board kootam, pidi index){
+    pidi copy = copyBoard(board);
+    list[index] = copy;
+}
+
+pari getNeighbors(pidi board kootam){
+    pidi neighbors kootam   = {};
+    pidi pos kootam         = findBlank(board);
+    pidi r                  = pos[0];
+    pidi c                  = pos[1];
+    pidi index              = 0;
+
+    nok r > 0 {
+        pidi nb kootam = copyBoard(board);
+        swap(nb,r,c,r-1,c);
+        neighbors[index] = nb;
+        index = index + 1;
+    };
+    nok r < 2 {
+        pidi nb kootam = copyBoard(board);
+        swap(nb,r,c,r+1,c);
+        neighbors[index] = nb;
+        index = index + 1;
+    };
+    nok c > 0 {
+        pidi nb kootam = copyBoard(board);
+        swap(nb,r,c,r,c-1);
+        neighbors[index] = nb;
+        index = index + 1;
+    };
+    nok c < 2 {
+        pidi nb kootam = copyBoard(board);
+        swap(nb,r,c,r,c+1);
+        neighbors[index] = nb;
+        index = index + 1;
+    };
+    poda neighbors;
+}
+
+pari isVisited(pidi visited kootam, pidi board kootam){
+    pidi i = 0;
+
+    ittuthiri i < visited:valupam {
+        nok boardsEqual(visited[i],board) {
+            poda sheri;
+        };
+        i = i + 1;
+    }
+    poda thettu;
+}
+
+pari addVisited(pidi visited kootam, pidi board kootam){
+    visited[visited:valupam] = copyBoard(board);
+}
+
+pari solve(pidi start kootam, pidi goal kootam){
+    pidi queue kootam = {};
+    pidi visited kootam = {};
+
+    queue[0] = start;
+    pidi head = 0;
+
+    ittuthiri head < queue:valupam {
+        pidi current kootam = queue[head];
+
+        para "Current State:\n";
+        printBoard(current);
+
+        nok boardsEqual(current,goal){
+            para "Solved\n";
+            poda 0;
+        };
+        addVisited(visited,current);
+
+        pidi neighbors kootam = getNeighbors(current);
+        pidi i = 0;
+
+        ittuthiri i < neighbors:valupam {
+            pidi nb kootam = neighbors[i];
+
+            nok isVisited(visited,nb) == thettu {
+                queue[queue:valupam] = nb;
+
+            };
+            i = i + 1;
+        }
+        head = head + 1;
+    }
+    para "Cannot solve\n";
+}
+
+pidi start kootam = {
+    {"1","3","6"},
+    {"5","_","2"},
+    {"4","7","8"}
+};
+
+pidi goal kootam = {
+    {"1","2","3"},
+    {"4","5","6"},
+    {"7","8","_"}
+};
+
+
+para "Initial Board:\n";
+printBoard(start);
+
+solve(start,goal);
+
