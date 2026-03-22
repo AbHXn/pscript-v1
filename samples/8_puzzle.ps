@@ -1,14 +1,11 @@
 pindi printBoard(pidi board kootam){
     pidi i = 0;
-
     ittuthiri i < 3 {
         pidi j = 0;
-
         ittuthiri j < 3 {
             para board[i][j] koode " ";
             j = j + 1;
         }
-
         para "\n";
         i = i + 1;
     }
@@ -17,10 +14,8 @@ pindi printBoard(pidi board kootam){
 
 pindi boardsEqual(pidi a kootam, pidi b kootam){
     pidi i = 0;
-
     ittuthiri i < 3 {
         pidi j = 0;
-
         ittuthiri j < 3 {
             nok a[i][j] != b[i][j] {
                 poda thettu;
@@ -35,7 +30,6 @@ pindi boardsEqual(pidi a kootam, pidi b kootam){
 pindi heuristic(pidi board kootam, pidi goal kootam){
     pidi score = 0;
     pidi i = 0;
-
     ittuthiri i < 3 {
         pidi j = 0;
         ittuthiri j < 3 {
@@ -134,7 +128,6 @@ pindi getNeighbors(pidi board kootam){
 
 pindi isVisited(pidi visited kootam, pidi board kootam){
     pidi i = 0;
-
     ittuthiri i < visited:valupam {
         nok boardsEqual(visited[i],board) {
             poda sheri;
@@ -175,7 +168,6 @@ pindi solve(pidi start kootam, pidi goal kootam){
 
             nok isVisited(visited,nb) == thettu {
                 queue[queue:valupam] = nb;
-
             };
             i = i + 1;
         }
@@ -196,9 +188,7 @@ pidi goal kootam = {
     {"7","8","_"}
 };
 
-
 para "Initial Board:\n";
 printBoard(start);
-
 solve(start,goal);
 
