@@ -8,18 +8,19 @@
 #include <unordered_set>
 #include <stdexcept>
 #include <cctype>
+#include <string_view>
 
-std::unordered_set<std::string> RESERVED_KEYS = {
+std::unordered_set<std::string_view> RESERVED_KEYS = {
 	"pindi", "pidi", "sheri", "thettu", "poda", "pinnava",
 	"theku", "ittuthiri", "nok", "umbi", "onnula", "para", 
 	"koode", "um", "yo", "kootam", "edukku"
 };
 
-std::unordered_set<std::string> SCHARS = {
+std::unordered_set<std::string_view> SCHARS = {
 	":", "(", ")", "[", "]", "{", "}", ",", ".", ";"
 };
 
-std::unordered_set<std::string> OPTR{
+std::unordered_set<std::string_view> OPTR{
 	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":", "?"
 };
 
