@@ -5,9 +5,8 @@ using namespace std;
 size_t LastRecoverErrorList = 0;
 string filename;
 
-template <typename PARENT_CLASS>
 optional<variant<VarDtype, unique_ptr<MapItem>>>
-ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, PARENT_CLASS* prntClass, size_t endPtr ){
+ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr ){
 	size_t backUpPtr = currentPtr;
 
 	while( currentPtr < tokens.size() ){
@@ -31,15 +30,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		else if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-				unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
-				lpHandler->runnerBody = prntClass->runnerBody;
-				lpHandler->parent = prntClass;
 				
-				shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
-				cdHandler->runnerBody = prntClass->runnerBody;
-				cdHandler->parent = prntClass;
+				FunctionHandler newLpHander;
+				newLpHander.parent = prntClass;
+				newLpHander.runnerBody = prntClass->runnerBody;
 				
-				cdHandler->CondHandlerRunner( tokens, currentPtr, key );
+				CondHandlerRunner( tokens, currentPtr, key, &newLpHander );
 			}
 			catch( const RecoverError& err ){
 				continue;
@@ -81,10 +77,12 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-				unique_ptr<LoopHandler> newLpHander = make_unique<LoopHandler>();
-				newLpHander->parent = prntClass;
-				newLpHander->runnerBody = prntClass->runnerBody;
-				newLpHander->LoopHandlerRunner( tokens, currentPtr, key );
+				
+				FunctionHandler newLpHander;
+				newLpHander.parent = prntClass;
+				newLpHander.runnerBody = prntClass->runnerBody;
+
+				LoopHandlerRunner( tokens, currentPtr, key, &newLpHander);
 				currentPtr--;
 			}
 			catch( const RecoverError& err ){
@@ -319,12 +317,10 @@ int main( int argc, char *argv[] ){
 
 		getTheTokens( filename, fullTokens );
 
-		unique_ptr<LoopHandler> lpHandler = make_unique<LoopHandler>();
-		shared_ptr<Conditional> cdHandler = make_unique<Conditional>( move( lpHandler ) );
+		FunctionHandler func;
+		func.functionName = "MAIN";
 
-		unique_ptr<FunctionHandler> func = make_unique<FunctionHandler>( );
-		func->functionName = "MAIN";
-		auto dd = move(ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, func.get() ));
+		ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, &func );
 	}
 	catch( InvalidSyntaxError& err ){
 		cout << err.what() << endl;

@@ -32,23 +32,18 @@ class VAR_VMAP;
 
 struct FUNCTION_MAP_DATA{
 	std::string funcName;
-	size_t argsSize;
-	std::vector<std::unique_ptr<ARG_VAR_INFO>> argsInfo;
-	size_t bodyStartPtr;
-	size_t bodyEndPtr;
-	std::pair<std::unordered_map<std::string, MapItem*>, VAR_VMAP*> varMapCopy;
+	size_t		argsSize;
+	size_t 		bodyStartPtr;
+	size_t 		bodyEndPtr;
 
-	FUNCTION_MAP_DATA() = default;
+	std::vector<std::unique_ptr<ARG_VAR_INFO>> argsInfo;
+	std::pair<std::unordered_map<std::string, MapItem*>, VAR_VMAP*> varMapCopy;
 };
 
 using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, FUNCTION_MAP_DATA*>;
 using DEEP_VALUE_DATA  		= std::variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
-using REAL_AST_NODE_DATA 	= std::variant<
-								AST_TOKENS, 
-								VarDtype, 
-								std::pair<ArrayAccessTokens, std::string>, 
-								std::pair<FunctionCallReturns, Token>
-								>;
+using REAL_AST_NODE_DATA 	= std::variant<AST_TOKENS, VarDtype, std::pair<ArrayAccessTokens, std::string>, 
+							  std::pair<FunctionCallReturns, Token> >;
 
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;

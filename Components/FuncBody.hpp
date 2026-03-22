@@ -4,7 +4,6 @@
 #include "DefinedTypes.hpp"
 #include "VMAP.hpp"
 
-class LoopHandler;
 class FunctionHandler;
 
 std::vector<Token> fullTokens;
@@ -12,8 +11,9 @@ size_t 		   pointer = 0;
 
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
-template <typename T> std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
-ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, T* prntClass, size_t endPtr = 0  );
+std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
+ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr = 0  );
+
 DEEP_VALUE_DATA evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
 
 using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
@@ -357,24 +357,22 @@ class FunctionHandler: public VAR_VMAP {
 			if( extFuncCallToken.tokens.argsVector.size() == 0 ){
 				auto funcFromMap = std::get<FUNCTION_MAP_DATA*>( func->var );
 
-				std::unique_ptr<FunctionHandler> newFuncRunner = std::make_unique<FunctionHandler>();
+				FunctionHandler newFuncRunner;
 
 				size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
 				size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
-				newFuncRunner->runnerBody 	= extFuncCallToken.tokens.funcName;
-				newFuncRunner->VMAP_COPY 	= funcFromMap->varMapCopy.first;
-				newFuncRunner->parent 		= funcFromMap->varMapCopy.second;
+				newFuncRunner.runnerBody 	= extFuncCallToken.tokens.funcName;
+				newFuncRunner.VMAP_COPY 	= funcFromMap->varMapCopy.first;
+				newFuncRunner.parent 		= funcFromMap->varMapCopy.second;
 
-				return ProgramExecutor( 
-					tokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
-				);
+				return ProgramExecutor( tokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
 			}
-			std::unique_ptr<FunctionHandler> newFuncRunner = std::make_unique<FunctionHandler>();
-			newFuncRunner->runnerBody = extFuncCallToken.tokens.funcName;
+			FunctionHandler newFuncRunner;
+			newFuncRunner.runnerBody = extFuncCallToken.tokens.funcName;
 						
 			auto funcFromMap 		 = std::get<FUNCTION_MAP_DATA*>( func->var );
-			newFuncRunner->VMAP_COPY = funcFromMap->varMapCopy.first;
-			newFuncRunner->parent 	 = funcFromMap->varMapCopy.second;
+			newFuncRunner.VMAP_COPY = funcFromMap->varMapCopy.first;
+			newFuncRunner.parent 	 = funcFromMap->varMapCopy.second;
 
 			std::queue<DEEP_VALUE_DATA> resolvedArgs;
 
@@ -406,7 +404,7 @@ class FunctionHandler: public VAR_VMAP {
 					newMapVar->var 		= newVariable.get();
 
 					_CACHE_VARS.push_back( std::move( newVariable ) );
-					newFuncRunner->addToMap( ArgsInfo->name, std::move( newMapVar ) );
+					newFuncRunner.addToMap( ArgsInfo->name, std::move( newMapVar ) );
 				}
 				else if(std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
 					// no need to create variable add to map
@@ -418,7 +416,7 @@ class FunctionHandler: public VAR_VMAP {
 					newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
 
 					newMapVar->var = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
-					newFuncRunner->addToMap( key, std::move( newMapVar ) );
+					newFuncRunner.addToMap( key, std::move( newMapVar ) );
 				}
 				else if( std::holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
 					std::string& key    = ArgsInfo->name;
@@ -426,16 +424,14 @@ class FunctionHandler: public VAR_VMAP {
 					newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
 					newMapVar->var 		= std::get<FUNCTION_MAP_DATA*>(topValue);
 					
-					newFuncRunner->addToMap( key, std::move( newMapVar ) );
+					newFuncRunner.addToMap( key, std::move( newMapVar ) );
 				}
 				else throw std::runtime_error("Type not defined");
 			}
 			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 			size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
 			
-			return ProgramExecutor<FunctionHandler>( 
-				fullTokens, funcBodyStartPtr, CALLER::FUNCTION, newFuncRunner.get(), funcEndStartPtr 
-			);
+			return ProgramExecutor( fullTokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
 		}
 
 		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY = nullptr ){
@@ -478,14 +474,6 @@ class FunctionHandler: public VAR_VMAP {
 
 			std::vector<VAR_INFO>& varInfos = tokens.varInfos;
 
-			for( auto& varVerification: varInfos ){
-				auto [data, rPT] = this->getFromVmap( varVerification.varName );	
-				
-				if( data ){ 
-					throw VariableAlreayExists( varVerification.varName );
-				}
-			}
-
 			for( size_t x = 0, i = 0; x < tokens.tokens.valueTokens.size(); x++ ){
 				if( i >= varInfos.size() && resolvedValueVector.empty() )
 					break;
@@ -500,6 +488,10 @@ class FunctionHandler: public VAR_VMAP {
 					throw InvalidSyntaxError("No variable to initialize the value");
 
 				VAR_INFO curVarInfo = varInfos[ i++ ];
+
+				auto [data, _] = this->getFromVmap( curVarInfo.varName );	
+				if( data ) throw VariableAlreayExists( curVarInfo.varName );
+				
 
 				if( curValueToken == VALUE_TOKENS::NORMAL_VALUE ){
 					auto curValue = resolvedValueVector.front();
@@ -897,125 +889,108 @@ class FunctionHandler: public VAR_VMAP {
 		}
 };
 
-class Conditional: public FunctionHandler{
-	public:
-		// inside condition there may be loop statements
-		std::unique_ptr<LoopHandler> lpRunner;
-		Conditional( std::unique_ptr<LoopHandler> lpRunner ){
-			this->lpRunner = std::move( lpRunner );
+void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY, FunctionHandler* func ){
+	if( preComputed.find( KEY ) == preComputed.end() ){
+		CondReturnToken ctokens  = stringToCondTokens( tokens, start );
+ 		passCondTokenValidation( ctokens.tokens );
+
+		std::vector<std::pair<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>, size_t>> astNodes; 
+
+		for( int x = 0; x < ctokens.conditions.size(); x++ ){
+			auto curCond = ctokens.conditions[ x ];
+			auto treeNode = func->getAstRootNode( curCond.first );
+			astNodes.push_back( std::move( make_pair( std::move( treeNode ), curCond.second ) ) );
 		}
-		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY ){
 
-			if( preComputed.find( KEY ) == preComputed.end() ){
-				CondReturnToken ctokens  = stringToCondTokens( tokens, start );
-		 		passCondTokenValidation( ctokens.tokens );
+		ExtendedConditionalToken newExtTok = ExtendedConditionalToken(
+			ctokens, std::move( astNodes )
+		);
+		preComputed[ KEY ] = std::move( newExtTok );
+	}
+	auto& variationalData = preComputed[ KEY ];
+	ExtendedConditionalToken& cTokens = std::get<ExtendedConditionalToken>( variationalData );
+	start = cTokens.ctokens.endOfNok;
 
-				std::vector<
-					std::pair<
-						std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>, 
-						size_t 
-					>
-				> astNodes; 
+	bool runTheCondition = false;
 
-				for( int x = 0; x < ctokens.conditions.size(); x++ ){
-					auto curCond = ctokens.conditions[ x ];
-					auto treeNode = getAstRootNode( curCond.first );
-					astNodes.push_back( std::move( make_pair( std::move( treeNode ), curCond.second ) ) );
+	for(int x = 0; x < cTokens.conditions.size(); x++){
+		auto& data = cTokens.conditions[ x ];
+		DEEP_VALUE_DATA evRes = func->getFinalValue( data.first );
+
+		if( std::holds_alternative<VarDtype>( evRes ) ){
+			auto VdtypData = std::get<VarDtype>( evRes );
+
+			// only support when condition is boolean
+			if( std::holds_alternative<bool>( VdtypData ) ){
+				runTheCondition = true;
+				// if it is true run the statement
+				if( std::get<bool>( VdtypData ) ){
+					start = data.second + 1;
+					
+					ProgramExecutor( tokens, start, CALLER::CONDITIONAL, func );
+					start = cTokens.ctokens.endOfNok; return;
 				}
-
-				ExtendedConditionalToken newExtTok = ExtendedConditionalToken(
-					ctokens, std::move( astNodes )
-				);
-				preComputed[ KEY ] = std::move( newExtTok );
-			}
-			auto& variationalData = preComputed[ KEY ];
-			ExtendedConditionalToken& cTokens = std::get<ExtendedConditionalToken>( variationalData );
-			start = cTokens.ctokens.endOfNok;
-
-			bool runTheCondition = false;
-
-			for(int x = 0; x < cTokens.conditions.size(); x++){
-				auto& data = cTokens.conditions[ x ];
-				DEEP_VALUE_DATA evRes = getFinalValue( data.first );
-
-				if( std::holds_alternative<VarDtype>( evRes ) ){
-					auto VdtypData = std::get<VarDtype>( evRes );
-
-					// only support when condition is boolean
-					if( std::holds_alternative<bool>( VdtypData ) ){
-						runTheCondition = true;
-						// if it is true run the statement
-						if( std::get<bool>( VdtypData ) ){
-							start = data.second + 1;
-							
-							ProgramExecutor( tokens, start, CALLER::CONDITIONAL, this );
-							start = cTokens.ctokens.endOfNok; return;
-						}
-					}
-				}
-			}
-			if( !runTheCondition ) 
-				throw InvalidSyntaxError("Conditional Expression expects boolean values");
-		}
-};
-
-class LoopHandler: public FunctionHandler{
-	public:		
-		void 
-		LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
-			size_t beginCopy = currentPtr;
-
-			if( preComputed.find( KEY ) == preComputed.end() ){
-				LoopTokens lpTokens  = stringToLoopTokens( tokens, currentPtr );
-		 		passValidLoopTokens( lpTokens.lpTokens );
-
-				std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> astNode  = getAstRootNode( lpTokens.conditions ); 
-
-				ExtendedLoopTokens newExtTok = ExtendedLoopTokens(
-					lpTokens, std::move( astNode )
-				);
-				preComputed[ KEY ] = std::move( newExtTok );
-			}
-			auto& variationalData = preComputed[ KEY ];
-			ExtendedLoopTokens& lpTokens = std::get<ExtendedLoopTokens>( variationalData );
-			currentPtr = lpTokens.lpToken.endPtr;
-
-			DEEP_VALUE_DATA finalValue = getFinalValue( lpTokens.loopAst );
-
-			if( !std::holds_alternative<VarDtype>( finalValue ) )
-				throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
-
-			VarDtype cdData = std::get<VarDtype>( finalValue );
-
-			if( !std::holds_alternative<bool>(cdData) )
-				throw InvalidSyntaxError( "loop condition should be boolean or blank" );
-
-			bool runTheBodyAgain = std::get<bool>( cdData );
-			
-			if( !runTheBodyAgain ) {
-				currentPtr = lpTokens.lpToken.endPtr;
-				return ;
-			}
-
-			size_t bodyStart = lpTokens.lpToken.startPtr;
-			try{
-				ProgramExecutor( tokens, bodyStart, CALLER::LOOP, this );
-				currentPtr = beginCopy;
-			} 
-			// inside loop some statement like break, continue or may be function statement 
-			catch( const RecoverError& err ){
-				currentPtr = bodyStart;
-				const Token& expTok = tokens[ bodyStart ];
-				
-				if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
-					currentPtr = lpTokens.lpToken.endPtr; 
-					return ;
-				}
-				if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
-					currentPtr = beginCopy; return ;
-				}
-				else throw err; 
 			}
 		}
-};
+	}
+	if( !runTheCondition ) 
+		throw InvalidSyntaxError("Conditional Expression expects boolean values");
+}
+
+void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
+	size_t beginCopy = currentPtr;
+
+	if( preComputed.find( KEY ) == preComputed.end() ){
+		LoopTokens lpTokens  = stringToLoopTokens( tokens, currentPtr );
+ 		passValidLoopTokens( lpTokens.lpTokens );
+
+		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> astNode  = func->getAstRootNode( lpTokens.conditions ); 
+
+		ExtendedLoopTokens newExtTok = ExtendedLoopTokens(
+			lpTokens, std::move( astNode )
+		);
+		preComputed[ KEY ] = std::move( newExtTok );
+	}
+	auto& variationalData = preComputed[ KEY ];
+	ExtendedLoopTokens& lpTokens = std::get<ExtendedLoopTokens>( variationalData );
+	currentPtr = lpTokens.lpToken.endPtr;
+
+	DEEP_VALUE_DATA finalValue = func->getFinalValue( lpTokens.loopAst );
+
+	if( !std::holds_alternative<VarDtype>( finalValue ) )
+		throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
+
+	VarDtype cdData = std::get<VarDtype>( finalValue );
+
+	if( !std::holds_alternative<bool>(cdData) )
+		throw InvalidSyntaxError( "loop condition should be boolean or blank" );
+
+	bool runTheBodyAgain = std::get<bool>( cdData );
+	
+	if( !runTheBodyAgain ) {
+		currentPtr = lpTokens.lpToken.endPtr;
+		return ;
+	}
+
+	size_t bodyStart = lpTokens.lpToken.startPtr;
+	try{
+		ProgramExecutor( tokens, bodyStart, CALLER::LOOP, func );
+		currentPtr = beginCopy;
+	} 
+	// inside loop some statement like break, continue or may be function statement 
+	catch( const RecoverError& err ){
+		currentPtr = bodyStart;
+		const Token& expTok = tokens[ bodyStart ];
+		
+		if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
+			currentPtr = lpTokens.lpToken.endPtr; 
+			return ;
+		}
+		if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
+			currentPtr = beginCopy; return ;
+		}
+		else throw err; 
+	}
+}
+
 #endif

@@ -1,15 +1,6 @@
 #ifndef EXTENSION_HPP
 #define EXTENSION_HPP
 
-enum class STATES{
-	VARIABLE	,
-	FUNCTION	,
-	LOOP		,
-	CONDITION	,
-	IOTOKENS	,
-	INSTRUCTON
-};
-
 struct ExtendedIoToken;
 struct ExtendedVariableToken;
 struct ExtendedConditionalToken;
