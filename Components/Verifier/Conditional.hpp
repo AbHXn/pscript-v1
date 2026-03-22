@@ -3,11 +3,12 @@
 
 #include <unordered_set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "../../Headers/MBExceptions.hpp"
 
-std::unordered_set<std::string> REG_COND_TOKENS = { "nok", "{", "}", "umbi", ":" };
+std::unordered_set<std::string_view> REG_COND_TOKENS = { "nok", "{", "}", "umbi", ":" };
 
 enum class COND_TOKENS{ IF, ELSE, CONDITION, BODY_OPEN, BODY_CLOSE, CHAIN, END };
 

@@ -5,13 +5,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
+#include <string_view>
 #include <memory>
 
-std::unordered_set<std::string> REGISTERED_FUNC_TOKEN = { 
+std::unordered_set<std::string_view> REGISTERED_FUNC_TOKEN = { 
 	"pindi", "(", ")", "{", "}", ",", "pidi", "kootam" 
 };
 
-std::unordered_set<std::string> REGISTERED_FUNC_BODY_TOKENS = {
+std::unordered_set<std::string_view> REGISTERED_FUNC_BODY_TOKENS = {
 	"poda"
 };
 

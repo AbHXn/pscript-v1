@@ -4,9 +4,10 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <string_view>
 
-std::unordered_set<std::string> REG_LOOP_TOKENS      = { "ittuthiri", "{", "}" };
-std::unordered_set<std::string> REG_LOOP_BODY_TOKENS = { "pinnava", "theku" };
+std::unordered_set<std::string_view> REG_LOOP_TOKENS      = { "ittuthiri", "{", "}" };
+std::unordered_set<std::string_view> REG_LOOP_BODY_TOKENS = { "pinnava", "theku" };
 
 enum class LOOP_TOKENS{
 	LOOP_START 	,

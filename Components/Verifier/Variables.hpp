@@ -7,6 +7,7 @@
 #include <queue>
 #include <unordered_map>
 #include <string>
+#include <string_view>
 #include <optional>
 #include <cctype>
 #include <unordered_set>
@@ -33,7 +34,7 @@ enum class VARIABLE_TOKENS{
 	VAR_ENDS	
 };
 
-const std::unordered_set<std::string> REGISTERED_TOKENS  = { 
+const std::unordered_set<std::string_view> REGISTERED_TOKENS  = { 
 		"pidi", 
 		"kootam", 
 		"=", 

@@ -4,11 +4,12 @@
 #include <unordered_set>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "../../Headers/MBExceptions.hpp"
 
-std::unordered_set<std::string> REGISTERED_IO_TOKENS = { "koode", "para", ";" };
+std::unordered_set<std::string_view> REGISTERED_IO_TOKENS = { "koode", "para", ";" };
 enum class IO_TOKENS { PRINT, CONCAT, PRINT_VALUE, END };
 
 bool isRegisteredIoTokens( const std::string& token ){

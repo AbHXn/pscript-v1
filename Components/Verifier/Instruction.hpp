@@ -3,10 +3,11 @@
 
 #include <unordered_set>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <unordered_map>
 
-std::unordered_set<std::string> REG_INS_TOKEN = {
+std::unordered_set<std::string_view> REG_INS_TOKEN = {
 	"=", "+=", "-=", "/=", "*=", ":=", "%=", ",", ";"
 };
 
