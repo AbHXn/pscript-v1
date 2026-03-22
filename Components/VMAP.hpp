@@ -1,7 +1,10 @@
 #ifndef VMAP_HPP
 #define VMAP_HPP
 
+using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
+
 std::vector<std::unique_ptr<MapItem>> propHolderTemp;
+std::vector<BUCKET_TYPE> _CACHE_VARS;
 
 class VAR_VMAP{
 	private:

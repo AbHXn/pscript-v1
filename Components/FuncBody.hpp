@@ -7,7 +7,7 @@
 class FunctionHandler;
 
 std::vector<Token> fullTokens;
-size_t 		   pointer = 0;
+size_t pointer = 0;
 
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
@@ -16,19 +16,16 @@ ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_
 
 DEEP_VALUE_DATA evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
 
-using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
-std::vector<BUCKET_TYPE> _CACHE_VARS;
-
 struct RESOLVER_TYPE{
-	std::queue<REAL_AST_NODE_DATA> 		resolvedAstNodeData;
-	std::vector<std::string> 			simpleVector;
+	std::queue<REAL_AST_NODE_DATA> resolvedAstNodeData;
+	std::vector<std::string> simpleVector;
 
 	RESOLVER_TYPE(
-		std::queue<REAL_AST_NODE_DATA> 		resolvedAstNodeData,
-		std::vector<std::string> 			simpleVector
+		std::queue<REAL_AST_NODE_DATA> 	resolvedAstNodeData,
+		std::vector<std::string> simpleVector
 	){
 		this->resolvedAstNodeData = resolvedAstNodeData;
-		this->simpleVector 		  = simpleVector;
+		this->simpleVector = simpleVector;
 	}
 };
 
@@ -475,8 +472,7 @@ class FunctionHandler: public VAR_VMAP {
 			std::vector<VAR_INFO>& varInfos = tokens.varInfos;
 
 			for( size_t x = 0, i = 0; x < tokens.tokens.valueTokens.size(); x++ ){
-				if( i >= varInfos.size() && resolvedValueVector.empty() )
-					break;
+				if( i >= varInfos.size() && resolvedValueVector.empty() ) break;
 
 				auto curValueToken = tokens.tokens.valueTokens[x];
 
@@ -491,7 +487,6 @@ class FunctionHandler: public VAR_VMAP {
 
 				auto [data, _] = this->getFromVmap( curVarInfo.varName );	
 				if( data ) throw VariableAlreayExists( curVarInfo.varName );
-				
 
 				if( curValueToken == VALUE_TOKENS::NORMAL_VALUE ){
 					auto curValue = resolvedValueVector.front();
@@ -667,23 +662,17 @@ class FunctionHandler: public VAR_VMAP {
 				InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 				passValidInstructionTokens( InsTokensAndData.insToken );
 
-				ExtendedInsTokens newInsToken = ExtendedInsTokens(
-						InsTokensAndData, currentPtr
-					);
+				ExtendedInsTokens newInsToken = ExtendedInsTokens( InsTokensAndData, currentPtr);
 
-				if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST ){
+				if( InsTokensAndData.optr == INS_TOKEN::TYPE_CAST )
 					preComputed[KEY] = std::move( newInsToken ); 
-				} 
 				else{
-					std::vector<
-						std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
-					> insTreeNodes;
+					std::vector< std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>> insTreeNodes;
 
 					for(auto& astStrToks: InsTokensAndData.rightVector){
 						auto treeNode = getAstRootNode( astStrToks );
 						insTreeNodes.push_back( std::move( treeNode ) );
 					}
-
 					newInsToken.insTree = std::move( insTreeNodes );
 					preComputed[ KEY ] = std::move( newInsToken );
 				}
@@ -749,7 +738,7 @@ class FunctionHandler: public VAR_VMAP {
 							throw std::runtime_error("Variable dtype mismatch mismatch");
 						
 						( !resData.empty() ) ? updateString( strToUpdate, (long int) resData.back(), topValue ) :
-											 mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
+						mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
 						return;
 					}
 				}
@@ -812,16 +801,13 @@ class FunctionHandler: public VAR_VMAP {
 						propHolderTemp.push_back( std::move( mapData.second ) );
 					return  std::move( mapData.value() ) ;
 				}
-				throw InvalidSyntaxError(
-						"No variable found " + returnStatementData.back().token + 
-						"\nRemember variable should be create inside the function body" 
-						);
+				throw InvalidSyntaxError( "No variable found " + returnStatementData.back().token + 
+						"\nRemember variable should be create inside the function body" );
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
 
 			if( std::holds_alternative<VarDtype> ( res ) )
 				return std::get<VarDtype>( res );
-
 			throw InvalidSyntaxError("Invalid return statement");
 		}
 
@@ -830,21 +816,15 @@ class FunctionHandler: public VAR_VMAP {
 				auto tokensAndData = stringToIoTokens( tokens, start );
 				passValidIOTokens( tokensAndData.first );
 
-				std::vector<
-					std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>
-				> outputInfo;
+				std::vector<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>> outputInfo;
 
 				for( std::vector<Token>&valToks: tokensAndData.second ){
 					auto astNode = getAstRootNode( valToks );
 					outputInfo.push_back( std::move( astNode ) );
 				}
-
-				ExtendedIoToken newIo = ExtendedIoToken(
-					tokensAndData, std::move( outputInfo ), start
-				);
+				ExtendedIoToken newIo = ExtendedIoToken( tokensAndData, std::move( outputInfo ), start );
 				preComputed[ KEY ] = std::move( newIo );
 			}
-
 			auto& variationalData = preComputed[ KEY ];
 			ExtendedIoToken& IoTokens = std::get<ExtendedIoToken>( variationalData );
 			start = IoTokens.endPtr;
@@ -855,7 +835,6 @@ class FunctionHandler: public VAR_VMAP {
 				DEEP_VALUE_DATA data = getFinalValue( valTree );
 				finalQueue.push(data);
 			}
-	
 			bool isFirstPrint = true;
 			for( IO_TOKENS tok: IoTokens.insTokens.first ){
 				switch( tok ){
@@ -902,9 +881,7 @@ void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::st
 			astNodes.push_back( std::move( make_pair( std::move( treeNode ), curCond.second ) ) );
 		}
 
-		ExtendedConditionalToken newExtTok = ExtendedConditionalToken(
-			ctokens, std::move( astNodes )
-		);
+		ExtendedConditionalToken newExtTok = ExtendedConditionalToken( ctokens, std::move( astNodes ) );
 		preComputed[ KEY ] = std::move( newExtTok );
 	}
 	auto& variationalData = preComputed[ KEY ];
@@ -919,14 +896,12 @@ void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::st
 
 		if( std::holds_alternative<VarDtype>( evRes ) ){
 			auto VdtypData = std::get<VarDtype>( evRes );
-
 			// only support when condition is boolean
 			if( std::holds_alternative<bool>( VdtypData ) ){
 				runTheCondition = true;
 				// if it is true run the statement
 				if( std::get<bool>( VdtypData ) ){
 					start = data.second + 1;
-					
 					ProgramExecutor( tokens, start, CALLER::CONDITIONAL, func );
 					start = cTokens.ctokens.endOfNok; return;
 				}
@@ -945,10 +920,7 @@ void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, s
  		passValidLoopTokens( lpTokens.lpTokens );
 
 		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> astNode  = func->getAstRootNode( lpTokens.conditions ); 
-
-		ExtendedLoopTokens newExtTok = ExtendedLoopTokens(
-			lpTokens, std::move( astNode )
-		);
+		ExtendedLoopTokens newExtTok = ExtendedLoopTokens( lpTokens, std::move( astNode ) );
 		preComputed[ KEY ] = std::move( newExtTok );
 	}
 	auto& variationalData = preComputed[ KEY ];
