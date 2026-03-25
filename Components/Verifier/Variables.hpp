@@ -191,8 +191,24 @@ class ArrayList{
 					return finalData.get();
 				}
 
-				if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
-					throw InvalidSyntaxError("Only Array Can Access Using Index");
+				if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) ){
+					auto data = std::get<ARRAY_SUPPORT_TYPES>( test );
+
+					if( !std::holds_alternative<VarDtype>( data ) || index != dimensions.size() - 2 )
+						throw InvalidSyntaxError("Only Array Can Access Using Index");
+					
+					auto vData = std::get<VarDtype>( data );
+
+					if( !std::holds_alternative<std::string>( vData ) )
+						throw InvalidSyntaxError("Only Array Can Access Using Index");
+					
+					auto stringData = std::get<std::string>( vData );
+					auto ch = std::string(1, stringData[dimensions.back()]);
+					auto val = new ARRAY_SUPPORT_TYPES(
+					    VarDtype(ch)
+					);
+					return val;
+				}
 
 				if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test) ){
 					auto& finalData = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
