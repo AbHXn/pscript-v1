@@ -140,6 +140,16 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 	auto& astNodeData = astNode->AST_DATA;
 
 	if( !std::holds_alternative<AST_TOKENS>( astNodeData ) ){
+		if( std::holds_alternative<string>( astNodeData ) ){
+			string test = std::get<string> ( astNodeData );
+			if( test == "edukku" ){
+				std::string inputValue; 
+				getline(std::cin, inputValue);
+				return inputValue;
+			}
+			throw;
+		}
+
 		if( std::holds_alternative<VarDtype>( astNodeData ) ){
 			return std::get<VarDtype>( astNodeData );
 		}

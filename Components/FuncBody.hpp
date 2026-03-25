@@ -139,9 +139,7 @@ class FunctionHandler: public VAR_VMAP {
 					}
 				}
 				else if( tok.type == TOKEN_TYPE::RESERVED && curToken == "edukku" ){
-					std::string inputValue; 
-					getline(std::cin, inputValue);
-					resolvedAstNodeData.push( inputValue );
+					resolvedAstNodeData.push( std::string("edukku"));
 					simpleVector.push_back("NUM");
 				}
 				else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR )
