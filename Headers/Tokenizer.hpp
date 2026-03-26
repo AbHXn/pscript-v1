@@ -233,7 +233,8 @@ void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 			               (prev.token == "(" || prev.token == "[" || prev.token == "{" || prev.token == ",")){
 			                unary = true;
 			            }
-			            else if( prev.type == TOKEN_TYPE::RESERVED && prev.token == "para" )
+			            else if( prev.type == TOKEN_TYPE::RESERVED && (
+			            		prev.token == "para" || prev.token == "poda") )
 			            	unary = true;
 			        }
 
