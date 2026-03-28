@@ -39,7 +39,7 @@ Currently PScript is compiled using **C++**.
 ### Build
 
 ```
-g++ ProgramExecuter.cpp -o pscript
+g++ -O3 ProgramExecuter.cpp -o pscript
 ```
 
 ### Run a Program
