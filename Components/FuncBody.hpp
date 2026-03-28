@@ -580,7 +580,7 @@ class FunctionHandler: public VAR_VMAP {
 			return resolvedIndexVector;
 		}
 
-		void arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList<ARRAY_SUPPORT_TYPES>* arr ){
+		void arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList<ARRAY_SUPPORT_TYPES>** arr ){
 			ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
 			curPtr--;
 
@@ -595,7 +595,7 @@ class FunctionHandler: public VAR_VMAP {
 
 				if( updationIndex < 0 ) throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
 
-				std::variant< ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
+				std::variant< ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = (*arr)->getElementAtIndex( resolvedIndexVector, 0 );
 
 				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
 					auto* arrData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
@@ -616,6 +616,13 @@ class FunctionHandler: public VAR_VMAP {
 						arrList->push_SingleElement( VarDtype{0} );
 				}
 				std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
+			}
+			else {
+				if( !std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( upvalue ) )
+					throw InvalidSyntaxError("Dtype mismatch in array updation");
+
+				auto* arrayData = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( upvalue );
+				(*arr) = arrayData;
 			}
 		}
 
@@ -712,8 +719,9 @@ class FunctionHandler: public VAR_VMAP {
 				}
 
 				if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
-					auto& arr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
-					arrayUpdation( varsAndVals, x, topValue, arr );
+					auto* arr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+					arrayUpdation( varsAndVals, x, topValue, &arr );
+					mapData->var = arr;
 					return ;
 				}
 
@@ -742,7 +750,10 @@ class FunctionHandler: public VAR_VMAP {
 				}
 				if( vmapvariable->isTypeArray ){
 					auto& arr = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
-					arrayUpdation( varsAndVals, x, topValue, arr.get());
+					auto* temp = arr.get();
+					arrayUpdation( varsAndVals, x, topValue, &temp);
+					mapData->var = temp;
+					mapData->mapType = MAPTYPE::ARRAY_PTR;
 				}
 				else if( std::holds_alternative<VarDtype>( topValue ) )
 					mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
