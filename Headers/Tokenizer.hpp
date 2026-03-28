@@ -97,8 +97,11 @@ void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 			comments = !comments;
 			continue;
 		}
-		if( comments )
+		if( comments ){
+			if( cCode == '\n' )
+				lineNumber++;
 			continue;
+		}
 
 		if(cCode == '"' && currentState != TOKEN_TYPE::STRING){
 			if(currentState != TOKEN_TYPE::NOTHING)
