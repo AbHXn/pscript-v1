@@ -441,6 +441,37 @@ Output
 
 ---
 
+# Scope Rules
+
+Variables defined inside a function can be returned **only if they are declared in the function’s main body**.
+
+---
+
+## ❌ Invalid Example
+
+```pscript
+pindi testfunc(){
+    nok condition {
+        pidi data = 434;
+        poda data;   ? INVALID: data is inside nok block ?
+    };
+}
+```
+
+## Valid Example
+
+```pscript
+pindi testfunc(){
+    pidi data = 434;
+    nok condition {
+        poda data;   ? VALID: data is inside pindi block ?
+    };
+}
+```
+
+
+---
+
 # Array Parameters
 
 ```pscript
