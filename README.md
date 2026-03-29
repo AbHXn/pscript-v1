@@ -18,18 +18,6 @@ PScript is a lightweight experimental malayalam based programming language desig
 
 ---
 
-# Hello World
-
-```pscript
-para "hello world!";
-```
-
-Output
-
-```
-hello world!
-```
-
 ---
 
 # Installation
