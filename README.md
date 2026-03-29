@@ -251,7 +251,7 @@ pidi arr kootam = {1, 2, 3, "test", {1,2}, 43.34};
 
 ---
 
-# Size of an arrat
+# Size of an array
 
 ```pscript
 para arr:valupam;
