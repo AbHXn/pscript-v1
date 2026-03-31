@@ -94,14 +94,21 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			}
 		}
 		else{
-			switch( C_CLASS ){
-				case CALLER::FUNCTION: {
-					if( curToken.token == "poda" && curToken.type == TOKEN_TYPE::RESERVED ){
-						return prntClass->getReturnedData( tokens, currentPtr );
-					}
+			if( C_CLASS == CALLER::FUNCTION && curToken.token == "poda" && curToken.type == TOKEN_TYPE::RESERVED ){
+				try{
+					return prntClass->getReturnedData( tokens, currentPtr );
+				} 
+				catch( const RecoverError& err ){
+					currentPtr = backUpPtr;
+					LastRecoverErrorList = tokens[currentPtr].row;
+					throw err;			
 				}
-				default: break;
+				catch( ... ){
+					cout << "poda statement " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
+					throw;
+				}
 			}
+
 			auto [func, rPT] = prntClass->getFromVmap( tokens[ currentPtr ].token );
 			if( func && ( func->mapType == MAPTYPE::FUNCTION || func->mapType == MAPTYPE::FUNC_PTR) ){
 				try{
