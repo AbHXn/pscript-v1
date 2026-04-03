@@ -32,6 +32,13 @@ class FunctionHandler: public VAR_VMAP {
 	public:
 		std::string functionName;
 
+		FunctionHandler() = default;
+
+		FunctionHandler( VAR_VMAP* parent, std::string runnerBody ){
+			this->runnerBody = runnerBody;
+			this->parent = parent;
+		}
+
 		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> 
 		getAstRootNode( std::vector<Token>& vtr ){
 			auto resolvedType 		= vectorResolver( vtr );
@@ -89,8 +96,7 @@ class FunctionHandler: public VAR_VMAP {
 					continue;
 				}
 				if( isValueType( tok.type ) ){
-					VarDtype value = this->getValueFromToken( tok );
-					resolvedAstNodeData.push( value );
+					resolvedAstNodeData.push( this->getValueFromToken( tok ) );
 					simpleVector.push_back("NUM");
 				}
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
@@ -103,7 +109,6 @@ class FunctionHandler: public VAR_VMAP {
 					// Resolve if it is variable
 					if( mainVmapData->mapType == MAPTYPE::VARIABLE ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-						// pass array access validity
 						passArrayAccessToken( arrToken.tokens );
 
 						resolvedAstNodeData.push( std::make_pair(arrToken, curToken) );
@@ -113,13 +118,15 @@ class FunctionHandler: public VAR_VMAP {
 					// Resolve if it is function call
 					else if( mainVmapData->mapType == MAPTYPE::FUNCTION || mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
+						passValidFuncCallToken( pt.callTokens );
 
 						resolvedAstNodeData.push( std::make_pair(pt, tok) );
 						simpleVector.push_back("CACHE");
-						x--; // stringfuncalltokens it hits then unknown token get that token back
+						x--; 
 					}
 					else if( mainVmapData->mapType == MAPTYPE::ARRAY_PTR ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
+						passArrayAccessToken( arrToken.tokens );
 
 						resolvedAstNodeData.push( std::make_pair(arrToken, curToken) );
 						simpleVector.push_back("ARRAY_PTR");

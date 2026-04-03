@@ -33,9 +33,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				
-				FunctionHandler newLpHander;
-				newLpHander.parent = prntClass;
-				newLpHander.runnerBody = prntClass->runnerBody;
+				FunctionHandler newLpHander( prntClass, prntClass->runnerBody );
 				
 				CondHandlerRunner( tokens, currentPtr, key, &newLpHander );
 			}
@@ -79,10 +77,8 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-				
-				FunctionHandler newLpHander;
-				newLpHander.parent = prntClass;
-				newLpHander.runnerBody = prntClass->runnerBody;
+			
+				FunctionHandler newLpHander( prntClass, prntClass->runnerBody );
 
 				LoopHandlerRunner( tokens, currentPtr, key, &newLpHander);
 				currentPtr--;
@@ -343,6 +339,7 @@ int main( int argc, char *argv[] ){
 		func.functionName = "MAIN";
 
 		ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, &func );
+		cout << _CACHE_VARS.size() << endl;
 	}
 	catch( InvalidSyntaxError& err ){
 		cout << err.what() << endl;
