@@ -3,6 +3,8 @@
 using namespace std;
 
 size_t LastRecoverErrorList = 0;
+vector<Token> fullTokens;
+size_t pointer = 0;
 string filename;
 
 optional<variant<VarDtype, unique_ptr<MapItem>>>
@@ -325,6 +327,9 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 
 int main( int argc, char *argv[] ){
 	try{
+		if( argc != 2 )
+			throw runtime_error("./pscript <filename>.ps");
+
 		filename = argv[1];
 		if (filename.size() <= 3)
 			throw runtime_error("Invalid file format");

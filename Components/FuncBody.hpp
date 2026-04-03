@@ -6,9 +6,6 @@
 
 class FunctionHandler;
 
-std::vector<Token> fullTokens;
-size_t pointer = 0;
-
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
 std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
@@ -70,16 +67,7 @@ class FunctionHandler: public VAR_VMAP {
 			
 			throw InvalidDTypeError("not a value");
 		}
-
-		DEEP_VALUE_DATA
-		runEvaluation( std::optional<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>>& newAstNode ){
-			if( newAstNode.has_value() ){
-				auto AST_NODE = std::move( newAstNode.value() );
-				return evaluate_AST_NODE( AST_NODE, this );
-			}
-			throw InvalidDTypeError("Failed to resolve the vector\n");
-		}
-
+		
 		DEEP_VALUE_DATA 
 		evaluateVector( std::vector<Token>& vtr ){
 			auto data = this->getAstRootNode( vtr );
@@ -429,7 +417,7 @@ class FunctionHandler: public VAR_VMAP {
 			size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 			size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
 			
-			return ProgramExecutor( fullTokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
+			return ProgramExecutor( tokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
 		}
 
 		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY = nullptr ){
