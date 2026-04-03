@@ -339,7 +339,6 @@ int main( int argc, char *argv[] ){
 		func.functionName = "MAIN";
 
 		ProgramExecutor( fullTokens, pointer, CALLER::FUNCTION, &func );
-		cout << _CACHE_VARS.size() << endl;
 	}
 	catch( InvalidSyntaxError& err ){
 		cout << err.what() << endl;
