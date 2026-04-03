@@ -118,7 +118,6 @@ class FunctionHandler: public VAR_VMAP {
 					// Resolve if it is function call
 					else if( mainVmapData->mapType == MAPTYPE::FUNCTION || mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
-						passValidFuncCallToken( pt.callTokens );
 
 						resolvedAstNodeData.push( std::make_pair(pt, tok) );
 						simpleVector.push_back("CACHE");
@@ -126,7 +125,6 @@ class FunctionHandler: public VAR_VMAP {
 					}
 					else if( mainVmapData->mapType == MAPTYPE::ARRAY_PTR ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-						passArrayAccessToken( arrToken.tokens );
 
 						resolvedAstNodeData.push( std::make_pair(arrToken, curToken) );
 						simpleVector.push_back("ARRAY_PTR");
