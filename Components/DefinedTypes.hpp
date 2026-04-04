@@ -22,7 +22,7 @@
 #include "../Headers/MBExceptions.hpp"
 #include "../Headers/Tokenizer.hpp"
 
-enum class MAPTYPE{ VARIABLE, FUNCTION, ARRAY_PTR, NULL_PTR, FUNC_PTR };
+enum class MAPTYPE{ VARIABLE, ARRAY_PTR, FUNC_PTR };
 
 template<typename T>
 inline constexpr bool is_number_v = std::is_same_v<T, long int> || std::is_same_v<T, double> || std::is_same_v<T, bool>;
@@ -40,22 +40,22 @@ struct FUNCTION_MAP_DATA{
 	std::pair<std::unordered_map<std::string, std::shared_ptr<MapItem>>, VAR_VMAP*> varMapCopy;
 };
 
-using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, FUNCTION_MAP_DATA*>;
-using DEEP_VALUE_DATA  		= std::variant<VarDtype, ArrayList<ARRAY_SUPPORT_TYPES>*, FUNCTION_MAP_DATA*>;
+using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, std::shared_ptr<FUNCTION_MAP_DATA>>;
+using DEEP_VALUE_DATA  		= std::variant<VarDtype, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>, std::shared_ptr<FUNCTION_MAP_DATA>>;
 using REAL_AST_NODE_DATA 	= std::variant<AST_TOKENS, VarDtype, std::pair<ArrayAccessTokens, std::string>, 
 							  std::pair<FunctionCallReturns, Token>, std::string>;
 
 struct MapItem{
 	MAPTYPE mapType = MAPTYPE::VARIABLE;
 	std::variant<
-		VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*,
-		ArrayList<ARRAY_SUPPORT_TYPES>*,
-		FUNCTION_MAP_DATA*
+		std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>,
+		std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>,
+		std::shared_ptr<FUNCTION_MAP_DATA>
 	> var;
 
 	void updateSingleVariable( VarDtype newValue ){
 		if( this->mapType == MAPTYPE::VARIABLE ){
-			auto varHolderData = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto varHolderData = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			if( varHolderData->isTypeArray )
 				throw std::runtime_error("var is an array");
 			varHolderData->value = newValue;
@@ -65,7 +65,7 @@ struct MapItem{
 
 	void typeCastToInt(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -86,7 +86,7 @@ struct MapItem{
 
 	void typeCastToDouble(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -107,7 +107,7 @@ struct MapItem{
 
 	void typeCastToString(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -128,7 +128,7 @@ struct MapItem{
 
 	void typeCastToBool(){
 		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( this->var );
+			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
 			if( VHdata->isTypeArray )
 				TypeCastError("Cannot cast array type");
@@ -196,7 +196,7 @@ class ValueHelper{
 	    }, value);
 	}
 
-	 static void printArrayList(const ArrayList<ARRAY_SUPPORT_TYPES>* array) {
+	 static void printArrayList( ArrayList<ARRAY_SUPPORT_TYPES>* array) {
         if (!array) {
             std::cout << "null";
             return;
@@ -204,23 +204,19 @@ class ValueHelper{
 
         std::cout << "[";
         for (size_t i = 0; i < array->arrayList.size(); ++i) {
-            const auto& elem = array->arrayList[i];
+            auto& elem = array->arrayList[i];
             if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( elem ) ){
             	auto arrSpType = std::get<ARRAY_SUPPORT_TYPES>( elem );
             	if( std::holds_alternative<VarDtype>(arrSpType) ){
             		ValueHelper::printVarDtype( std::get<VarDtype>( arrSpType ) );
             	}
-            	else if( std::holds_alternative<FUNCTION_MAP_DATA*>(arrSpType) ){
+            	else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>(arrSpType) ){
             		std::cout << "FUNC";
             	}
             	else std::cout << "Unknown";
             }
-            else if (std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem )){
-            	auto arrptr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( elem );
-            	ValueHelper::printArrayList( arrptr );
-            }
-            else if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem ) ){
-            	auto& arrptr = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem );
+            else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem ) ){
+            	auto arrptr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem );
             	ValueHelper::printArrayList( arrptr.get() );
             }
             if (i + 1 < array->arrayList.size()) std::cout << ", ";
@@ -229,45 +225,40 @@ class ValueHelper{
     }
 
 	static DEEP_VALUE_DATA
-	getFinalValueFromMap( MapItem* mapData ){
+	getFinalValueFromMap( std::shared_ptr<MapItem>& mapData ){
 		if( mapData->mapType == MAPTYPE::VARIABLE ){
-			auto VariableData = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+			auto VariableData = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 			return ValueHelper::getDataFromVariableHolder( VariableData );
 		}
-		else if( mapData->mapType == MAPTYPE::FUNCTION ){
-			return std::get<FUNCTION_MAP_DATA*>( mapData->var );
-		}
 		else if( mapData->mapType == MAPTYPE::FUNC_PTR ){
-			return std::get<FUNCTION_MAP_DATA*>( mapData->var );
+			return std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( mapData->var );
 		}
 		else if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
-			auto VariableData = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+			auto VariableData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 			return VariableData;
 		}
 		throw std::runtime_error("DTYPE not defined in MAP");
 	}
 
 	static DEEP_VALUE_DATA
-	getDataFromVariableHolder( VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>* varData ){
-		if( std::holds_alternative<VarDtype> ( varData->value ) ){
+	getDataFromVariableHolder( std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>& varData ){
+		if( std::holds_alternative<VarDtype> ( varData->value ) )
 			return std::get<VarDtype>( varData->value );
-		}
-		else if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value ) ){
-			auto& arrList = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value );
-			return arrList.get();
-		}
+		
+		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value ) )
+			return std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varData->value );
+		
 		throw std::runtime_error("DTYPE not defined in MAP");
 	}
 
 	static void
 	printDEEP_VALUE_DATA( DEEP_VALUE_DATA& data ){
-		if( std::holds_alternative<VarDtype>( data ) ){
+		if( std::holds_alternative<VarDtype>( data ) )
 			printVarDtype( std::get<VarDtype>( data ) );
-		}
-		else if( std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(data) ){
-			auto& test = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(data);
-			printArrayList( test );
-		}
+
+		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(data) )
+			printArrayList( std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(data).get() );
+		
 		else throw std::runtime_error("Didn't create display method for given type");
 	}
 

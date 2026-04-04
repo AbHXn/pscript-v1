@@ -104,7 +104,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			}
 
 			auto [func, rPT] = prntClass->getFromVmap( tokens[ currentPtr ].token );
-			if( func && ( func->mapType == MAPTYPE::FUNCTION || func->mapType == MAPTYPE::FUNC_PTR) ){
+			if( func && func->mapType == MAPTYPE::FUNC_PTR ){
 				try{
 					string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 					prntClass->handleFunctionCall( func, tokens, currentPtr, rPT, key );
@@ -159,7 +159,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey ).first;
 
 			if( mapData->mapType == MAPTYPE::VARIABLE ){
-				auto varHolder = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+				auto varHolder = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 
 				if( !varHolder->isTypeArray ){
 					DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
@@ -172,8 +172,8 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 					throw InvalidSyntaxError("Invalid dtype for operation");
 				}
 				else {
-					auto& arrayData = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
-					auto datan = helperHandler->handleArrayCases( arrayData.get(), accessTok );
+					auto& arrayData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
+					auto datan = helperHandler->handleArrayCases( arrayData, accessTok );
 					if( level == 0 ) return datan;
 
 					if( std::holds_alternative<VarDtype>( datan ) )
@@ -183,7 +183,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 				}
 			}
 			if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
-				auto arryListPtr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+				auto arryListPtr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 				auto datan = helperHandler->handleArrayCases( arryListPtr, accessTok );
 				if( level == 0) return datan;
 
@@ -198,7 +198,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, Token>>( astNodeData );
 			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDatakey.token ).first;
 
-			auto varHolder = std::get<FUNCTION_MAP_DATA*>( mapData->var );
+			auto varHolder = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( mapData->var );
 			
 			if( isFuncPtr( funcRecToks.callTokens ) )
 				return varHolder;
@@ -214,7 +214,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 				}
 				else if( std::holds_alternative<std::shared_ptr<MapItem>>( data.value() ) ){
 					auto returnedData = std::move( std::get<std::shared_ptr<MapItem>>( data.value() ) );
-					DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
+					DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData );
 
 					if( level == 0 ) return final;
 					

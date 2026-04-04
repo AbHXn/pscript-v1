@@ -99,7 +99,7 @@ class FunctionHandler: public VAR_VMAP {
 						x--;
 					}
 					// Resolve if it is function call
-					else if( mainVmapData->mapType == MAPTYPE::FUNCTION || mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
+					else if( mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
 						resolvedAstNodeData.push( std::make_pair(pt, tok) );
@@ -126,7 +126,7 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		std::optional<VarDtype>
-		handleArrayProperties( ArrayList<ARRAY_SUPPORT_TYPES>* array, ArrayAccessTokens& arrToken){
+		handleArrayProperties( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array, ArrayAccessTokens& arrToken){
 			if( arrToken.arrProperty == "valupam" ){
 				return (long int) array->totalElementsAllocated;
 			} 
@@ -137,7 +137,7 @@ class FunctionHandler: public VAR_VMAP {
 		}
 
 		DEEP_VALUE_DATA
-		handleArrayCases( ArrayList<ARRAY_SUPPORT_TYPES>* arrayData, ArrayAccessTokens& arrToken ){
+		handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayData, ArrayAccessTokens& arrToken ){
 			if( arrToken.indexVector.size() ){
 				std::vector<long int> resolvedIndexVector;
 				// Resolve the index vector to the final value
@@ -153,23 +153,24 @@ class FunctionHandler: public VAR_VMAP {
 					long int index = std::holds_alternative<long int> ( vDtypeIndex ) ? std::get<long int> ( vDtypeIndex ) : std::get<double> (vDtypeIndex);
 					resolvedIndexVector.push_back( index );
 				}
-				std::variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
+				auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
 
-				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
-					auto spData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
+				if( std::holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) ){
+					auto spData = std::get<ARRAY_SUPPORT_TYPES>( returnIndex );
 					return std::visit( [&]( auto&& data ) {
 					    if (arrToken.isTouchedArrayProperty) {
 					    	DEEP_VALUE_DATA dv = data;
 					        return DEEP_VALUE_DATA{handleVarDefinedProperties(dv, arrToken)};
 					    } 
 					    return DEEP_VALUE_DATA{data};
-					}, *spData);
+					}, spData);
 				}
 				else{
-					auto arrList = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
+					auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );
 					if( arrToken.isTouchedArrayProperty ){
 						auto data = handleArrayProperties( arrList, arrToken );
-						if( data.has_value() )  return data.value();
+						if( data.has_value() )  
+							return data.value();
 					}
 					return arrList;
 				}
@@ -204,10 +205,10 @@ class FunctionHandler: public VAR_VMAP {
 					
 					else return "ARILA";
 				}
-				else if( std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( Vdata ) )
+				else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( Vdata ) )
 					return "ARRAY_PTR";
 				
-				else if( std::holds_alternative<FUNCTION_MAP_DATA*>( Vdata ) )
+				else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( Vdata ) )
 					return "FUNC_PTR";
 				
 				else return "ARILA";
@@ -326,7 +327,7 @@ class FunctionHandler: public VAR_VMAP {
 
 			// if it is zero arg function then no need to resolve arg vectors
 			if( extFuncCallToken.tokens.argsVector.size() == 0 ){
-				auto funcFromMap = std::get<FUNCTION_MAP_DATA*>( func->var );
+				auto funcFromMap = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );
 
 				FunctionHandler newFuncRunner;
 
@@ -341,7 +342,7 @@ class FunctionHandler: public VAR_VMAP {
 			FunctionHandler newFuncRunner;
 			newFuncRunner.runnerBody = extFuncCallToken.tokens.funcName;
 						
-			auto funcFromMap 		= std::get<FUNCTION_MAP_DATA*>( func->var );
+			auto funcFromMap 		= std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );
 			newFuncRunner.VMAP_COPY = funcFromMap->varMapCopy.first;
 			newFuncRunner.parent 	= funcFromMap->varMapCopy.second;
 
@@ -368,19 +369,18 @@ class FunctionHandler: public VAR_VMAP {
 						throw InvalidSyntaxError("Argument expects kootam\n");
 
 					// create variable
-					std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_shared<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 					newVariable->key 	= ArgsInfo->name;							
 					newVariable->value 	= std::get<VarDtype>( topValue );
 
 					// add to vmap
 					auto newMapVar 		= std::make_shared<MapItem>( );
 					newMapVar->mapType  = MAPTYPE::VARIABLE;
-					newMapVar->var 		= newVariable.get();
+					newMapVar->var 		= newVariable;
 
-					_CACHE_VARS.push_back( std::move( newVariable ) );
 					newFuncRunner.addToMap( ArgsInfo->name, newMapVar );
 				}
-				else if(std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
+				else if(std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> ( topValue )){
 					// no need to create variable add to map
 					if( !ArgsInfo->isArray )
 						throw InvalidSyntaxError("Argument is not kootam type");
@@ -389,14 +389,14 @@ class FunctionHandler: public VAR_VMAP {
 					auto newMapVar		= std::make_shared<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
 
-					newMapVar->var = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
+					newMapVar->var = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(topValue) ;
 					newFuncRunner.addToMap( key, newMapVar );
 				}
-				else if( std::holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
+				else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( topValue ) ){
 					std::string& key    = ArgsInfo->name;
 					auto newMapVar 		= std::make_shared<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-					newMapVar->var 		= std::get<FUNCTION_MAP_DATA*>(topValue);
+					newMapVar->var 		= std::get<std::shared_ptr<FUNCTION_MAP_DATA>>(topValue);
 					
 					newFuncRunner.addToMap( key, newMapVar );
 				}
@@ -469,40 +469,39 @@ class FunctionHandler: public VAR_VMAP {
 					auto curValue = resolvedValueVector.front();
 					resolvedValueVector.pop();
 
-					if( curVarInfo.isTypeArray && !std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ) )
+					if( curVarInfo.isTypeArray && !std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( curValue ) )
 						throw InvalidSyntaxError("Assigning value to kootam type is invalid");
 
-					if( !curVarInfo.isTypeArray && std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( curValue ))
+					if( !curVarInfo.isTypeArray && std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( curValue ))
 						throw InvalidSyntaxError("Trying to Assign kootam type to non kootam type");
 
 					if( std::holds_alternative<VarDtype> ( curValue ) ){
-						std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+						std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_shared<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 						newVariable->key 		 = curVarInfo.varName;
 						newVariable->isTypeArray = false;
 						newVariable->value 		 = std::get<VarDtype>( curValue );
 
-						auto newMapVar 		= std::make_unique<MapItem>( );
+						auto newMapVar 		= std::make_shared<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::VARIABLE;
-						newMapVar->var 	  	= newVariable.get() ;
+						newMapVar->var 	  	= newVariable;
 						
-						_CACHE_VARS.push_back( std::move( newVariable ) );
-						this->addToMap( curVarInfo.varName, std::move(newMapVar) );
+						this->addToMap( curVarInfo.varName, newMapVar );
 					}
-					else if(std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( curValue )){
+					else if(std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> ( curValue )){
 						std::string& key    = curVarInfo.varName;
-						auto newMapVar 		= std::make_unique<MapItem>( );
+						auto newMapVar 		= std::make_shared<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
-						newMapVar->var 		= std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(curValue) ;
+						newMapVar->var 		= std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(curValue) ;
 						
-						this->addToMap( key, std::move( newMapVar ) );
+						this->addToMap( key, newMapVar );
 					}
-					else if( std::holds_alternative<FUNCTION_MAP_DATA*>( curValue ) ){
+					else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( curValue ) ){
 						std::string& key    = curVarInfo.varName;
-						auto newMapVar 		= std::make_unique<MapItem>( );
+						auto newMapVar 		= std::make_shared<MapItem>( );
 						newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-						newMapVar->var 		= std::get<FUNCTION_MAP_DATA*>(curValue);
+						newMapVar->var 		= std::get<std::shared_ptr<FUNCTION_MAP_DATA>>(curValue);
 						
-						this->addToMap( key, std::move( newMapVar ) );
+						this->addToMap( key, newMapVar );
 					}
 					else throw std::runtime_error("Type not defined");
 				}
@@ -511,17 +510,16 @@ class FunctionHandler: public VAR_VMAP {
 
 					auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.tokens.valueTokens,  x, resolvedValueVector );
 
-					std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_unique<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+					std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_shared<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
 					newVariable->key 		 = curVarInfo.varName;
 					newVariable->isTypeArray = true;
-					newVariable->value 		 = std::move( newArray );
+					newVariable->value 		 = newArray;
 
-					auto newMapVar 		= std::make_unique<MapItem>( );
+					auto newMapVar 		= std::make_shared<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::VARIABLE;
-					newMapVar->var 		= newVariable.get();
+					newMapVar->var 		= newVariable;
 
-					_CACHE_VARS.push_back( std::move( newVariable ) );
-					this->addToMap( curVarInfo.varName, std::move(newMapVar) );
+					this->addToMap( curVarInfo.varName, newMapVar );
 				}
 			}
 		}
@@ -559,7 +557,7 @@ class FunctionHandler: public VAR_VMAP {
 			return resolvedIndexVector;
 		}
 
-		void arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayList<ARRAY_SUPPORT_TYPES>** arr ){
+		void arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>& arr ){
 			ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
 			curPtr--;
 
@@ -574,20 +572,20 @@ class FunctionHandler: public VAR_VMAP {
 
 				if( updationIndex < 0 ) throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
 
-				std::variant< ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*> returnIndex = (*arr)->getElementAtIndex( resolvedIndexVector, 0 );
+				auto returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
 
-				if( std::holds_alternative<ARRAY_SUPPORT_TYPES*> ( returnIndex ) ){
-					auto* arrData = std::get<ARRAY_SUPPORT_TYPES*>( returnIndex );
+				if( std::holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) ){
+					auto arrData = std::get<ARRAY_SUPPORT_TYPES>( returnIndex );
 
-					if( !std::holds_alternative<VarDtype>( *arrData ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( *arrData ) ) )
+					if( !std::holds_alternative<VarDtype>( arrData ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( arrData ) ) )
 						throw InvalidSyntaxError("Failed to index an non array type");
 					
-					auto& ttt = std::get<VarDtype>( *arrData );
+					auto& ttt = std::get<VarDtype>( arrData );
 					std::string& strToUpdate = std::get<std::string>( ttt );
 					updateString( strToUpdate, updationIndex, upvalue );
 					return ;
 				}
-				ArrayList<ARRAY_SUPPORT_TYPES>* arrList = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( returnIndex );
+				auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );
 
 				if( arrList->totalElementsAllocated <= updationIndex ){
 					size_t cur = arrList->totalElementsAllocated;
@@ -597,11 +595,11 @@ class FunctionHandler: public VAR_VMAP {
 				std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
 			}
 			else {
-				if( !std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>( upvalue ) )
+				if( !std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue ) )
 					throw InvalidSyntaxError("Dtype mismatch in array updation");
 
-				auto* arrayData = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( upvalue );
-				(*arr) = arrayData;
+				auto arrayData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue );
+				arr = arrayData;
 			}
 		}
 
@@ -691,20 +689,20 @@ class FunctionHandler: public VAR_VMAP {
 				DEEP_VALUE_DATA topValue = finalValueQueue.front( );
 				finalValueQueue.pop( );
 
-				if( std::holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
+				if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( topValue ) ){
 					mapData->mapType = MAPTYPE::FUNC_PTR;
-					mapData->var = std::get<FUNCTION_MAP_DATA*>(topValue);
+					mapData->var = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>(topValue);
 					continue;
 				}
 
 				if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
-					auto* arr = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( mapData->var );
-					arrayUpdation( varsAndVals, x, topValue, &arr );
+					auto& arr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( mapData->var );
+					arrayUpdation( varsAndVals, x, topValue, arr );
 					mapData->var = arr;
 					return ;
 				}
 
-				auto vmapvariable = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
+				auto vmapvariable = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 				if( std::holds_alternative<VarDtype> ( vmapvariable->value ) ){
 					auto& varDtypeData = std::get<VarDtype>( vmapvariable->value );
 
@@ -728,10 +726,9 @@ class FunctionHandler: public VAR_VMAP {
 					}
 				}
 				if( vmapvariable->isTypeArray ){
-					auto& arr = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
-					auto* temp = arr.get();
-					arrayUpdation( varsAndVals, x, topValue, &temp);
-					mapData->var = temp;
+					auto& arr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
+					arrayUpdation( varsAndVals, x, topValue, arr);
+					mapData->var = arr;
 					mapData->mapType = MAPTYPE::ARRAY_PTR;
 				}
 				else if( std::holds_alternative<VarDtype>( topValue ) )
@@ -748,7 +745,7 @@ class FunctionHandler: public VAR_VMAP {
 			if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
 				throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
 			
-			std::unique_ptr<FUNCTION_MAP_DATA> funcMapData = std::make_unique<FUNCTION_MAP_DATA>();
+			std::shared_ptr<FUNCTION_MAP_DATA> funcMapData = std::make_shared<FUNCTION_MAP_DATA>();
 			funcMapData->funcName 		= funcTokens.funcName;
 			funcMapData->argsSize 		= funcTokens.args.size();
 			funcMapData->bodyStartPtr 	= funcTokens.funcStartPtr;
@@ -759,12 +756,11 @@ class FunctionHandler: public VAR_VMAP {
 
 			funcMapData->varMapCopy				 			   = std::make_pair(vmapCopy, this->parent);
 			std::shared_ptr<MapItem> funcMapItem 			   = std::make_shared<MapItem>();
-			funcMapItem->mapType 				 			   = MAPTYPE::FUNCTION;
+			funcMapItem->mapType 				 			   = MAPTYPE::FUNC_PTR;
 			funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem;
-			funcMapItem->var 	 							   = funcMapData.get();
+			funcMapItem->var 	 							   = funcMapData;
 
-			_CACHE_VARS.push_back( std::move(funcMapData) );					
-			this->addToMap( funcTokens.funcName, std::move( funcMapItem ) );
+			this->addToMap( funcTokens.funcName, funcMapItem );
 		}
 
 		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>

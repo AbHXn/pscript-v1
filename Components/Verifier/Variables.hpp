@@ -126,16 +126,16 @@ struct ArrayAccessTokens{
 };
 
 template <typename ARRAY_SUPPORT_TYPES>
-class ArrayList{
+class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYPES>>{
 	public:
-		std::vector< std::variant< ARRAY_SUPPORT_TYPES,ArrayList<ARRAY_SUPPORT_TYPES>*,std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>> arrayList;
+		std::vector< std::variant< ARRAY_SUPPORT_TYPES, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>> arrayList;
 		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated = 0;
 		
 		template <typename DEEP_VALUE>
-		static std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
+		static std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 		_arrayListBuilder( std::vector<VALUE_TOKENS>& arrayTokenList, size_t& curIndex, std::queue<DEEP_VALUE>& valueQueue ){
-			auto newArrayList = std::make_unique< ArrayList<ARRAY_SUPPORT_TYPES> >();
+			auto newArrayList = std::make_shared< ArrayList<ARRAY_SUPPORT_TYPES> >();
 			while( curIndex < arrayTokenList.size() ){
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
 					curIndex++;
@@ -143,7 +143,7 @@ class ArrayList{
 				}
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
 					curIndex++ 	  ; 
-					std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
+					std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
 					newArrayList->push_ArrayList( move( array ) );
 				}
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_VALUE ){
@@ -159,9 +159,9 @@ class ArrayList{
 		}
 
 		template <typename DEEP_VALUE>
-		static std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
+		static std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
 		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, std::queue<DEEP_VALUE>& ValueQueue ){
-			std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
+			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
 			return arrayResult;
 		}
 
@@ -171,10 +171,10 @@ class ArrayList{
 			visit( [&]( auto&& data ){ this->arrayList.push_back( data ); }, singleElement );
 		}
 		
-		std::variant<ArrayList<ARRAY_SUPPORT_TYPES>*, ARRAY_SUPPORT_TYPES*>
+		std::variant<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>, ARRAY_SUPPORT_TYPES>
 		getElementAtIndex(std::vector<long int>& dimensions, size_t index = 0){
 			if( dimensions.empty() )
-				return this;
+				return this->shared_from_this();
 
 			auto curIndex = dimensions[ index ];
 			if( curIndex >= 0 && curIndex < this->arrayList.size() ){
@@ -182,13 +182,12 @@ class ArrayList{
 
 				if( index == dimensions.size() - 1 ){
 					if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) )
-						return &std::get<ARRAY_SUPPORT_TYPES>( test );
+						return std::get<ARRAY_SUPPORT_TYPES>( test );
 
-					else if( std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*>(test) )
-						return std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>( test );
+					else if( std::holds_alternative< std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> >(test) )
+						return std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( test );
 					
-					auto& finalData = std::get<std::unique_ptr<ArrayList>>(test);
-					return finalData.get();
+					else throw;
 				}
 
 				if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) ){
@@ -204,26 +203,19 @@ class ArrayList{
 					
 					auto stringData = std::get<std::string>( vData );
 					auto ch = std::string(1, stringData[dimensions.back()]);
-					auto val = new ARRAY_SUPPORT_TYPES(
-					    VarDtype(ch)
-					);
-					return val;
+					return ARRAY_SUPPORT_TYPES{ VarDtype(ch) };
 				}
 
-				if( std::holds_alternative<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test) ){
-					auto& finalData = std::get<std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
+				if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test) ){
+					auto finalData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
 					return finalData->getElementAtIndex( dimensions, index+1 );
 				}
-				else{
-					auto finalData = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(test);
-					return finalData->getElementAtIndex( dimensions, index+1 );
-				}
-				
+				else throw;
 			} 
 			else throw ArrayOutOfBound(std::to_string(curIndex));
 		}
 
-		void push_ArrayList( std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
+		void push_ArrayList( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
 			this->totalElementsAllocated++;
 			this->arrayList.push_back( move( arrayListElement ) );	
 		}
@@ -233,7 +225,7 @@ template <typename ARRAY_SUPPORT_TYPES>
 struct VARIABLE_HOLDER{
 	std::string key;
 	bool isTypeArray;
-	std::variant<VarDtype,std::unique_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> value;
+	std::variant<VarDtype,std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> value;
 };
 struct VAR_INFO{
 	std::string varName;
