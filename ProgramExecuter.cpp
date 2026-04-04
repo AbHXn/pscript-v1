@@ -7,7 +7,7 @@ vector<Token> fullTokens;
 size_t pointer = 0;
 string filename;
 
-optional<variant<VarDtype, unique_ptr<MapItem>>>
+optional<variant<VarDtype, shared_ptr<MapItem>>>
 ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr ){
 	size_t backUpPtr = currentPtr;
 
@@ -156,7 +156,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 		}
 		else if( std::holds_alternative<std::pair<ArrayAccessTokens, string>> ( astNodeData ) ){
 			auto [accessTok, mapDataKey] = std::get<std::pair<ArrayAccessTokens, string>>( astNodeData );
-			MapItem* mapData = helperHandler->getFromVmap( mapDataKey ).first;
+			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey ).first;
 
 			if( mapData->mapType == MAPTYPE::VARIABLE ){
 				auto varHolder = std::get<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>*>( mapData->var );
@@ -196,7 +196,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 		}
 		else if( std::holds_alternative<std::pair<FunctionCallReturns, Token>>( astNodeData ) ){
 			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, Token>>( astNodeData );
-			MapItem* mapData = helperHandler->getFromVmap( mapDatakey.token ).first;
+			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDatakey.token ).first;
 
 			auto varHolder = std::get<FUNCTION_MAP_DATA*>( mapData->var );
 			
@@ -212,10 +212,9 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 				if( std::holds_alternative<VarDtype>( data.value() ) ){
 					return std::get<VarDtype>(data.value());
 				}
-				else if( std::holds_alternative<std::unique_ptr<MapItem>>( data.value() ) ){
-					auto returnedData = std::move( std::get<std::unique_ptr<MapItem>>( data.value() ) );
+				else if( std::holds_alternative<std::shared_ptr<MapItem>>( data.value() ) ){
+					auto returnedData = std::move( std::get<std::shared_ptr<MapItem>>( data.value() ) );
 					DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
-					propHolderTemp.push_back( std::move( returnedData ) );
 
 					if( level == 0 ) return final;
 					

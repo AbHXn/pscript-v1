@@ -3,7 +3,6 @@
 
 using BUCKET_TYPE = std::variant<std::unique_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>, std::unique_ptr<FUNCTION_MAP_DATA>>;
 
-std::vector<std::unique_ptr<MapItem>> propHolderTemp;
 std::vector<BUCKET_TYPE> _CACHE_VARS;
 
 class VAR_VMAP{
@@ -11,17 +10,17 @@ class VAR_VMAP{
 		std::string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
 		
-		std::unordered_map<std::string, std::unique_ptr<MapItem>> VMAP;
-		std::unordered_map<std::string, MapItem*> VMAP_COPY;
+		std::unordered_map<std::string, std::shared_ptr<MapItem>> VMAP;
+		std::unordered_map<std::string, std::shared_ptr<MapItem>> VMAP_COPY;
 
-		std::unordered_map<std::string, MapItem*>
+		std::unordered_map<std::string, std::shared_ptr<MapItem>>
 		getDeepCopyOfVMAP( void ){
-			std::unordered_map<std::string, MapItem*> copyData;
+			std::unordered_map<std::string, std::shared_ptr<MapItem>> copyData;
 			VAR_VMAP* currentDir = this;
 			
 			while( currentDir ){
 				for( auto& value: currentDir->VMAP )
-					copyData[value.first] = value.second.get();
+					copyData[value.first] = value.second;
 				
 				for( auto value: currentDir->VMAP_COPY )
 					copyData[value.first] = value.second;
@@ -30,7 +29,7 @@ class VAR_VMAP{
 			return copyData;
 		}
 
-		std::pair<MapItem*, VAR_VMAP*>
+		std::pair<std::shared_ptr<MapItem>, VAR_VMAP*>
 		getFromVmapCopy(const std::string& key) {
 		    VAR_VMAP* currentEnv = this;
  		    
@@ -43,19 +42,19 @@ class VAR_VMAP{
 		    return std::make_pair(nullptr, nullptr);
 		}
 
-		std::pair<MapItem*, VAR_VMAP*>
+		std::pair<std::shared_ptr<MapItem>, VAR_VMAP*>
 		getFromVmap(const std::string& key) {
 	        auto cur = this;
 	        while( cur && cur->runnerBody == this->runnerBody ){
 	        	auto it = cur->VMAP.find(key);
 	       		if (it != cur->VMAP.end())
-	            	return std::make_pair( it->second.get(), cur );
+	            	return std::make_pair( it->second, cur );
 	            cur = cur->parent;
 	        }
 		    return getFromVmapCopy(key);
 		}
 
-		std::optional<std::unique_ptr<MapItem>>
+		std::optional<std::shared_ptr<MapItem>>
 		moveFromVmap(const std::string& key){
 		    auto it = VMAP.find(key);
 
@@ -65,10 +64,10 @@ class VAR_VMAP{
 		    auto result = std::move(it->second);
 		    VMAP.erase(it);
 
-		    return result;
+		    return std::move(result);
 		}
 
-		void addToMap( std::string key, std::unique_ptr<MapItem> data ){
+		void addToMap( std::string key, std::shared_ptr<MapItem> data ){
 			this->VMAP[ key ] = std::move( data );
 		}
 };

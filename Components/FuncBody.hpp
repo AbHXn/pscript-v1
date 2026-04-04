@@ -8,7 +8,7 @@ class FunctionHandler;
 
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
-std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
+std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
 ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr = 0  );
 
 DEEP_VALUE_DATA evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
@@ -283,8 +283,8 @@ class FunctionHandler: public VAR_VMAP {
 			return HandlingDtype;
 		}
 
-		std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
-		handleFunctionCall( MapItem* func, const std::vector<Token>& tokens, size_t& currentPtr, 
+		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
+		handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 
 							VAR_VMAP* rPT, std::string KEY, std::optional<FunctionCallReturns> data = std::nullopt 
 			){
 			if( preComputed.find( KEY ) == preComputed.end() ){
@@ -373,12 +373,12 @@ class FunctionHandler: public VAR_VMAP {
 					newVariable->value 	= std::get<VarDtype>( topValue );
 
 					// add to vmap
-					auto newMapVar 		= std::make_unique<MapItem>( );
+					auto newMapVar 		= std::make_shared<MapItem>( );
 					newMapVar->mapType  = MAPTYPE::VARIABLE;
 					newMapVar->var 		= newVariable.get();
 
 					_CACHE_VARS.push_back( std::move( newVariable ) );
-					newFuncRunner.addToMap( ArgsInfo->name, std::move( newMapVar ) );
+					newFuncRunner.addToMap( ArgsInfo->name, newMapVar );
 				}
 				else if(std::holds_alternative<ArrayList<ARRAY_SUPPORT_TYPES>*> ( topValue )){
 					// no need to create variable add to map
@@ -386,19 +386,19 @@ class FunctionHandler: public VAR_VMAP {
 						throw InvalidSyntaxError("Argument is not kootam type");
 
 					std::string& key    = ArgsInfo->name;
-					auto newMapVar		= std::make_unique<MapItem>( );
+					auto newMapVar		= std::make_shared<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
 
 					newMapVar->var = std::get<ArrayList<ARRAY_SUPPORT_TYPES>*>(topValue) ;
-					newFuncRunner.addToMap( key, std::move( newMapVar ) );
+					newFuncRunner.addToMap( key, newMapVar );
 				}
 				else if( std::holds_alternative<FUNCTION_MAP_DATA*>( topValue ) ){
 					std::string& key    = ArgsInfo->name;
-					auto newMapVar 		= std::make_unique<MapItem>( );
+					auto newMapVar 		= std::make_shared<MapItem>( );
 					newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
 					newMapVar->var 		= std::get<FUNCTION_MAP_DATA*>(topValue);
 					
-					newFuncRunner.addToMap( key, std::move( newMapVar ) );
+					newFuncRunner.addToMap( key, newMapVar );
 				}
 				else throw std::runtime_error("Type not defined");
 			}
@@ -758,25 +758,25 @@ class FunctionHandler: public VAR_VMAP {
 			auto vmapCopy = this->getDeepCopyOfVMAP();
 
 			funcMapData->varMapCopy				 			   = std::make_pair(vmapCopy, this->parent);
-			std::unique_ptr<MapItem> funcMapItem 			   = std::make_unique<MapItem>();
+			std::shared_ptr<MapItem> funcMapItem 			   = std::make_shared<MapItem>();
 			funcMapItem->mapType 				 			   = MAPTYPE::FUNCTION;
-			funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem.get();
+			funcMapData->varMapCopy.first[funcTokens.funcName] = funcMapItem;
 			funcMapItem->var 	 							   = funcMapData.get();
 
 			_CACHE_VARS.push_back( std::move(funcMapData) );					
 			this->addToMap( funcTokens.funcName, std::move( funcMapItem ) );
 		}
 
-		std::optional<std::variant<VarDtype, std::unique_ptr<MapItem>>>
+		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
 		getReturnedData( const std::vector<Token>&tokens, size_t& currentPtr ){
 			currentPtr++;
 			std::vector<Token> returnStatementData;
 
 			while( currentPtr < tokens.size() ){
-				const Token& curToken = tokens[ currentPtr ];
-				if( curToken.token == ";" ) break;
+				const Token& curToken = tokens[ currentPtr++ ];
+				if( curToken.token == ";" ) 
+					break;
 				returnStatementData.push_back( curToken );
-				currentPtr++;
 			}
 
 			if( returnStatementData.empty() )
@@ -784,16 +784,14 @@ class FunctionHandler: public VAR_VMAP {
 
 			if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
 				auto mapData = this->moveFromVmap( returnStatementData.back().token );
-				if( mapData.has_value() ){
-					for( auto& mapData: this->VMAP )
-						propHolderTemp.push_back( std::move( mapData.second ) );
-					return  std::move( mapData.value() ) ;
-				}
-				throw InvalidSyntaxError( "No variable found " + returnStatementData.back().token + 
+				
+				if( !mapData.has_value() )
+					throw InvalidSyntaxError( "No variable found " + returnStatementData.back().token + 
 						"\nRemember variable should be create inside the function body" );
+
+				return std::move( mapData.value() );				
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
-
 			if( std::holds_alternative<VarDtype> ( res ) )
 				return std::get<VarDtype>( res );
 			throw InvalidSyntaxError("Invalid return statement");

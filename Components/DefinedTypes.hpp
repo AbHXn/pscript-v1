@@ -37,7 +37,7 @@ struct FUNCTION_MAP_DATA{
 	size_t 		bodyEndPtr;
 
 	std::vector<std::unique_ptr<ARG_VAR_INFO>> argsInfo;
-	std::pair<std::unordered_map<std::string, MapItem*>, VAR_VMAP*> varMapCopy;
+	std::pair<std::unordered_map<std::string, std::shared_ptr<MapItem>>, VAR_VMAP*> varMapCopy;
 };
 
 using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, FUNCTION_MAP_DATA*>;
