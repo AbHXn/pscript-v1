@@ -32,9 +32,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		else if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-				
 				FunctionHandler newLpHander( prntClass, prntClass->runnerBody );
-				
 				CondHandlerRunner( tokens, currentPtr, key, &newLpHander );
 			}
 			catch( const RecoverError& err ){
@@ -77,9 +75,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-			
 				FunctionHandler newLpHander( prntClass, prntClass->runnerBody );
-
 				LoopHandlerRunner( tokens, currentPtr, key, &newLpHander);
 				currentPtr--;
 			}
@@ -219,7 +215,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 				else if( std::holds_alternative<std::unique_ptr<MapItem>>( data.value() ) ){
 					auto returnedData = std::move( std::get<std::unique_ptr<MapItem>>( data.value() ) );
 					DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData.get() );
-					helperHandler->pushCache( std::move( returnedData ) );
+					propHolderTemp.push_back( std::move( returnedData ) );
 
 					if( level == 0 ) return final;
 					

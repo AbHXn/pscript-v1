@@ -7,10 +7,6 @@ std::vector<std::unique_ptr<MapItem>> propHolderTemp;
 std::vector<BUCKET_TYPE> _CACHE_VARS;
 
 class VAR_VMAP{
-	private:
-		std::queue<std::unique_ptr<MapItem>> funcReturnedCache;
-		size_t cacheElement = 0;
-
 	public:
 		std::string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
@@ -74,11 +70,6 @@ class VAR_VMAP{
 
 		void addToMap( std::string key, std::unique_ptr<MapItem> data ){
 			this->VMAP[ key ] = std::move( data );
-		}
-
-		void pushCache( std::unique_ptr<MapItem> data ){
-			this->cacheElement++;
-			this->funcReturnedCache.push( std::move( data ) );
 		}
 };
 
