@@ -58,23 +58,6 @@ class FunctionHandler: public VAR_VMAP {
 			return evaluate_AST_NODE( newAstNode, this );
 		}
 
-		VarDtype getValueFromToken( const Token& tok ){
-			if( tok.type == TOKEN_TYPE::STRING )
-				return VarDtype{ ValueHelper::unescapeString( tok.token ) };
-			
-			else if( tok.type == TOKEN_TYPE::NUMBER )
-				return VarDtype{  DtypeHelper::toLong( tok.token ) };
-			
-			else if( tok.type == TOKEN_TYPE::FLOATING )
-				return VarDtype{ DtypeHelper::toDouble( tok.token ) };
-
-			else if( tok.type == TOKEN_TYPE::BOOLEAN && 
-					( tok.token == "sheri" || tok.token == "thettu" ) )
-				return VarDtype{ DtypeHelper::toBoolean( tok.token ) };
-			
-			throw InvalidDTypeError("not a value");
-		}
-		
 		DEEP_VALUE_DATA 
 		evaluateVector( std::vector<Token>& vtr ){
 			auto data = this->getAstRootNode( vtr );
@@ -96,7 +79,7 @@ class FunctionHandler: public VAR_VMAP {
 					continue;
 				}
 				if( isValueType( tok.type ) ){
-					resolvedAstNodeData.push( this->getValueFromToken( tok ) );
+					resolvedAstNodeData.push( ValueHelper::getValueFromToken( tok ) );
 					simpleVector.push_back("NUM");
 				}
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){

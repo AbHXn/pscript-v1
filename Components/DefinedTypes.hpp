@@ -271,6 +271,23 @@ class ValueHelper{
 		else throw std::runtime_error("Didn't create display method for given type");
 	}
 
+	static VarDtype getValueFromToken( const Token& tok ){
+		if( tok.type == TOKEN_TYPE::STRING )
+			return VarDtype{ ValueHelper::unescapeString( tok.token ) };
+		
+		else if( tok.type == TOKEN_TYPE::NUMBER )
+			return VarDtype{  DtypeHelper::toLong( tok.token ) };
+		
+		else if( tok.type == TOKEN_TYPE::FLOATING )
+			return VarDtype{ DtypeHelper::toDouble( tok.token ) };
+
+		else if( tok.type == TOKEN_TYPE::BOOLEAN && 
+				( tok.token == "sheri" || tok.token == "thettu" ) )
+			return VarDtype{ DtypeHelper::toBoolean( tok.token ) };
+		
+		throw InvalidDTypeError("not a value");
+	}
+
 	template<typename T>
 	static std::string toString(T v) {
 	    if constexpr (std::is_same_v<T, bool>)
