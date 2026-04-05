@@ -182,7 +182,6 @@ class FunctionHandler: public VAR_VMAP {
 				}
 				return arrayData;
 			}
-			throw;
 		}
 
 		VarDtype 
