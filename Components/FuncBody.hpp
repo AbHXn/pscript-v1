@@ -850,7 +850,7 @@ class FunctionHandler: public VAR_VMAP {
 		}
 };
 
-void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY, FunctionHandler* func ){
+inline void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY, FunctionHandler* func ){
 	if( preComputed.find( KEY ) == preComputed.end() ){
 		CondReturnToken ctokens  = stringToCondTokens( tokens, start );
  		passCondTokenValidation( ctokens.tokens );
@@ -894,7 +894,7 @@ void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::st
 		throw InvalidSyntaxError("Conditional Expression expects boolean values");
 }
 
-void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
+inline void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
 	size_t beginCopy = currentPtr;
 
 	if( preComputed.find( KEY ) == preComputed.end() ){

@@ -53,7 +53,7 @@ struct MapItem{
 		std::shared_ptr<FUNCTION_MAP_DATA>
 	> var;
 
-	void updateSingleVariable( VarDtype newValue ){
+	inline void updateSingleVariable( VarDtype newValue ){
 		if( this->mapType == MAPTYPE::VARIABLE ){
 			auto varHolderData = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			if( varHolderData->isTypeArray )
@@ -63,7 +63,7 @@ struct MapItem{
 		else throw std::runtime_error("not an single element");
 	}
 
-	void typeCastToInt(){
+	inline void typeCastToInt(){
 		if( mapType == MAPTYPE::VARIABLE ){
 			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
@@ -84,7 +84,7 @@ struct MapItem{
 		}
 	}
 
-	void typeCastToDouble(){
+	inline void typeCastToDouble(){
 		if( mapType == MAPTYPE::VARIABLE ){
 			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
@@ -105,7 +105,7 @@ struct MapItem{
 		}
 	}
 
-	void typeCastToString(){
+	inline void typeCastToString(){
 		if( mapType == MAPTYPE::VARIABLE ){
 			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
@@ -126,7 +126,7 @@ struct MapItem{
 		}
 	}
 
-	void typeCastToBool(){
+	inline void typeCastToBool(){
 		if( mapType == MAPTYPE::VARIABLE ){
 			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			
