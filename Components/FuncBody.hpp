@@ -118,8 +118,12 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedAstNodeData.push( std::string("edukku"));
 					simpleVector.push_back("NUM");
 				}
-				else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR )
+				else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
+					// VariableTokens varArrayTokens = stringToVariableTokens( tokens, x, false );
+					// passValidValueTokens( std::vector<VALUE_TOKENS>& valueTokens )
+
 					throw InvalidSyntaxError("Array should create in seperate pidi");
+				}
 				else throw InvalidSyntaxError( "Unknown Token " + curToken );
 			}
 			return RESOLVER_TYPE( resolvedAstNodeData, simpleVector );
@@ -416,14 +420,11 @@ class FunctionHandler: public VAR_VMAP {
 				std::vector<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>> astNodes;
 				size_t curIndex = 0;
 
-				for( auto valVec: tokens.valueTokens ){
-					if( valVec == VALUE_TOKENS::ARRAY_VALUE || valVec == VALUE_TOKENS::NORMAL_VALUE ){
-						auto testVec = tokens.valueVector[ curIndex++ ];
-
-						std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> evaluatedRes = getAstRootNode( testVec ); 
-						astNodes.push_back( std::move( evaluatedRes ));
-					}
+				for(auto testVec: tokens.valueVector){
+					std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> evaluatedRes = getAstRootNode( testVec ); 
+					astNodes.push_back( std::move( evaluatedRes ));
 				}
+
 				std::vector<VAR_INFO> varInfos;
 				passValidVarDeclaration( tokens.varTokens, varInfos, tokens.VarQueue );
 				passValidValueTokens( tokens.valueTokens );

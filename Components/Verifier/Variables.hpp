@@ -237,13 +237,12 @@ struct VAR_INFO{
 	}
 };
 
-VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t& startCurPtr ){
+VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t& startCurPtr, bool isVariableTurn = true ){
 	std::vector<VARIABLE_TOKENS> 	varTokens;
 	std::vector<VALUE_TOKENS> 		valueToken;
 	std::vector<std::vector<Token>> valueVector;
 	std::queue<Token> VarQueue;
 
-	bool isVariableTurn 	= true;
 	int arrayOpenedCount 	= 0;
 
 	for( ; startCurPtr < tokens.size(); ++startCurPtr ) {
