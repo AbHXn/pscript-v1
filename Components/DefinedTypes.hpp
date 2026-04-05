@@ -139,7 +139,7 @@ struct MapItem{
 				vardata = static_cast<bool>(*p);
 			}
 			else if (auto s = std::get_if<double>(&vardata)) {
-            	vardata = static_cast<bool>(*p);
+            	vardata = static_cast<bool>(*s);
         	}
         	else if (auto p = std::get_if<std::string>(&vardata)) {
     			vardata = DtypeHelper::toBoolean( *p );
