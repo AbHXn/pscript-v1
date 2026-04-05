@@ -332,6 +332,9 @@ class FunctionHandler: public VAR_VMAP {
 			if( extFuncCallToken.tokens.argsVector.size() == 0 ){
 				auto funcFromMap = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );
 
+				if( funcFromMap->argsInfo.size() != 0 )
+					throw std::runtime_error("pindi need args");
+
 				FunctionHandler newFuncRunner;
 
 				size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
@@ -507,6 +510,9 @@ class FunctionHandler: public VAR_VMAP {
 				}
 				else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 					x++;
+
+					if( !curVarInfo.isTypeArray )
+						throw InvalidSyntaxError("Expected kootam type");
 
 					auto newArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray<DEEP_VALUE_DATA>(tokens.tokens.valueTokens,  x, resolvedValueVector );
 

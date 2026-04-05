@@ -144,7 +144,7 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
 					curIndex++ 	  ; 
 					std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
-					newArrayList->push_ArrayList( move( array ) );
+					newArrayList->push_ArrayList( array );
 				}
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_VALUE ){
 					DEEP_VALUE value = valueQueue.front();
@@ -187,7 +187,7 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 					else if( std::holds_alternative< std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> >(test) )
 						return std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( test );
 					
-					else throw;
+					else throw std::runtime_error("Unkown Dtype");
 				}
 
 				if ( std::holds_alternative<ARRAY_SUPPORT_TYPES>( test ) ){
@@ -210,14 +210,14 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 					auto finalData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(test);
 					return finalData->getElementAtIndex( dimensions, index+1 );
 				}
-				else throw;
+				else throw std::runtime_error("Unkown Dtype");
 			} 
 			else throw ArrayOutOfBound(std::to_string(curIndex));
 		}
 
 		void push_ArrayList( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
 			this->totalElementsAllocated++;
-			this->arrayList.push_back( move( arrayListElement ) );	
+			this->arrayList.push_back( arrayListElement );	
 		}
 };
 
