@@ -785,7 +785,7 @@ class FunctionHandler: public VAR_VMAP {
 					throw InvalidSyntaxError( "No variable found " + returnStatementData.back().token + 
 						"\nRemember variable should be create inside the function body" );
 
-				return std::move( mapData.value() );				
+				return mapData.value();				
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
 			if( std::holds_alternative<VarDtype> ( res ) )
