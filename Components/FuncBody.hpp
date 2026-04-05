@@ -362,7 +362,7 @@ class FunctionHandler: public VAR_VMAP {
 
 			for( auto& ArgsInfo: funcFromMap->argsInfo ){
 				if( resolvedArgs.empty() )
-					throw InvalidSyntaxError("No value to initialized the args in function");
+					throw InvalidSyntaxError("No value to initialize the args in function");
 
 				if( newFuncRunner.VMAP_COPY.find( ArgsInfo->name ) != newFuncRunner.VMAP_COPY.end() )
 					throw VariableAlreayExists( ArgsInfo->name );
