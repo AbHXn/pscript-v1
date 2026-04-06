@@ -215,6 +215,17 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 			else throw ArrayOutOfBound(std::to_string(curIndex));
 		}
 
+		static std::variant< ARRAY_SUPPORT_TYPES, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>
+		removeElementAtIndex(std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>& arrList, long int index){
+			if( index >= 0 && arrList->arrayList.size() > index ){
+				auto cur = arrList->arrayList[index];
+				arrList->arrayList.erase( arrList->arrayList.begin() + index );
+				arrList->totalElementsAllocated--;
+				return cur;
+			}
+			else throw ArrayOutOfBound(std::to_string(index));
+		}
+
 		void push_ArrayList( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayListElement ){
 			this->totalElementsAllocated++;
 			this->arrayList.push_back( arrayListElement );	

@@ -70,7 +70,6 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				cout << "Pindi Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
-			
 		}
 		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{

@@ -46,7 +46,6 @@ class FunctionHandler: public VAR_VMAP {
 			size_t startAST 		= 0;
 
 			auto newAstNode = BUILD_AST<REAL_AST_NODE_DATA>( astTokenAndData, resolvedType.resolvedAstNodeData, startAST );
-			
 			if( !newAstNode.has_value() )
 				throw InvalidDTypeError("Failed to resolve the vector\n");
 
@@ -118,16 +117,13 @@ class FunctionHandler: public VAR_VMAP {
 					resolvedAstNodeData.push( std::string("edukku"));
 					simpleVector.push_back("NUM");
 				}
-				else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
-					// VariableTokens varArrayTokens = stringToVariableTokens( tokens, x, false );
-					// passValidValueTokens( std::vector<VALUE_TOKENS>& valueTokens )
-
+				else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR )
 					throw InvalidSyntaxError("Array should create in seperate pidi");
-				}
 				else throw InvalidSyntaxError( "Unknown Token " + curToken );
 			}
 			return RESOLVER_TYPE( resolvedAstNodeData, simpleVector );
 		}
+
 
 		std::optional<VarDtype>
 		handleArrayProperties( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array, ArrayAccessTokens& arrToken){
@@ -137,26 +133,42 @@ class FunctionHandler: public VAR_VMAP {
 			else if( arrToken.arrProperty == "jaadi" ){
 				return "KOOTAM";
 			}
+			else if( arrToken.arrProperty == "irangu" ){
+				throw InvalidSyntaxError("irangu is for elements inside the array");
+			}
 			return std::nullopt;
 		}
 
 		DEEP_VALUE_DATA
 		handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayData, ArrayAccessTokens& arrToken ){
 			if( arrToken.indexVector.size() ){
-				std::vector<long int> resolvedIndexVector;
-				// Resolve the index vector to the final value
-				for( auto& vec: arrToken.indexVector ){
-					DEEP_VALUE_DATA val = evaluateVector( vec );
-					if( !std::holds_alternative<VarDtype>( val ) )
-						throw InvalidSyntaxError("Array Index Expects Positive Integer");
-				
-					VarDtype vDtypeIndex = std::get<VarDtype>( val );
-					if( !std::holds_alternative<long int> ( vDtypeIndex ) && !std::holds_alternative<double> ( vDtypeIndex ))
-						throw InvalidSyntaxError("Array Index Expects Positive Integer");
+				std::vector<long int> resolvedIndexVector = getResolvedIndexVectors( arrToken.indexVector );
 
-					long int index = std::holds_alternative<long int> ( vDtypeIndex ) ? std::get<long int> ( vDtypeIndex ) : std::get<double> (vDtypeIndex);
-					resolvedIndexVector.push_back( index );
+				// ONE INDEX BEFORE TYPE / * can extend later */
+				if( arrToken.isTouchedArrayProperty && arrToken.arrProperty == "irangu"){
+					auto lastIndex = resolvedIndexVector.back();
+					resolvedIndexVector.pop_back();
+					auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
+
+					if( !std::holds_alternative< std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex ) )
+						throw std::runtime_error("irangu is only applicable to kootam type");
+
+					auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );					
+
+					auto data = ArrayList<ARRAY_SUPPORT_TYPES>::removeElementAtIndex( arrList, lastIndex );
+					
+					if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data ) )
+						return DEEP_VALUE_DATA{ std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data ) };
+
+					else if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( data ) ){
+						auto adata = std::get<ARRAY_SUPPORT_TYPES>( data );
+						return std::visit( [&](auto&& cdata){
+							return DEEP_VALUE_DATA{ cdata };
+						}, adata);
+					}
+					else throw std::runtime_error("Invalid dtype in array");
 				}
+
 				auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
 
 				if( std::holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) ){
@@ -603,9 +615,7 @@ class FunctionHandler: public VAR_VMAP {
 			else {
 				if( !std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue ) )
 					throw InvalidSyntaxError("Dtype mismatch in array updation");
-
-				auto arrayData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue );
-				arr = arrayData;
+				arr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue );
 			}
 		}
 
