@@ -18,52 +18,46 @@ pindi PRIORITY_QUEUE(){
 
 	pindi heapify(){
 		pidi lindex = __queue:valupam - 1;
-		
 		ittuthiri lindex != 0 {
 			pidi lparent = lindex / 2;
 			lparent = ceil(lparent) - 1;
-			
 			nok __queue[lparent] > __queue[lindex]{
 				swap(__queue, lparent, lindex);
 			}: umbi { theku; };
-
 			lindex = lparent;
 		}
 	}
-
 	pindi push(pidi data){
 		__queue[__queue:valupam] = data;
 		heapify();
 		para __queue koode "\n";
 	}
-
 	pindi pop(){
-		pidi data = __queue[0]:irangu;
+		nok __queue:valupam == 1{
+			poda __queue[0]:irangu;
+		};
+		pidi data 	= __queue[0];	
+		pidi q_size = __queue:valupam - 1;
+		__queue[0] 	= __queue[q_size]:irangu;
+	
 		pidi cindex = 0;
-
-		pidi q_size = __queue:valupam;
-
 		ittuthiri cindex < q_size {
 			pidi ch_index1 = cindex * 2 + 1;
 			pidi ch_index2 = cindex * 2 + 2;
-
 			nok ch_index1 >= q_size um ch_index2 >= q_size {
 				poda data;
 			};
-
 			pidi mindex = ch_index1;
 			nok ch_index2 < q_size um __queue[ch_index2] < __queue[ch_index1]{
 				mindex = ch_index2;
 			};
-
 			nok __queue[cindex] > __queue[mindex] {
 				swap(__queue, cindex, mindex);
-			};
-			cindex = mindex;
+				cindex = mindex;
+			}: umbi{ theku; };
 		}
 		poda data;
 	}
-
 	pidi PQ_RETURN_DATA kootam = { __queue, push, pop };
 	poda PQ_RETURN_DATA;
 }
