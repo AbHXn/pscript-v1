@@ -887,7 +887,6 @@ inline void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, 
 	start = cTokens.ctokens.endOfNok;
 
 	bool runTheCondition = false;
-
 	for(int x = 0; x < cTokens.conditions.size(); x++){
 		auto& data = cTokens.conditions[ x ];
 		DEEP_VALUE_DATA evRes = func->getFinalValue( data.first );
@@ -912,7 +911,6 @@ inline void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, 
 
 inline void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
 	size_t beginCopy = currentPtr;
-
 	if( preComputed.find( KEY ) == preComputed.end() ){
 		LoopTokens lpTokens  = stringToLoopTokens( tokens, currentPtr );
  		passValidLoopTokens( lpTokens.lpTokens );
@@ -923,43 +921,41 @@ inline void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& curren
 	}
 	auto& variationalData = preComputed[ KEY ];
 	ExtendedLoopTokens& lpTokens = std::get<ExtendedLoopTokens>( variationalData );
-	currentPtr = lpTokens.lpToken.endPtr;
+	currentPtr = beginCopy;
 
-	DEEP_VALUE_DATA finalValue = func->getFinalValue( lpTokens.loopAst );
-
-	if( !std::holds_alternative<VarDtype>( finalValue ) )
-		throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
-
-	VarDtype cdData = std::get<VarDtype>( finalValue );
-
-	if( !std::holds_alternative<bool>(cdData) )
-		throw InvalidSyntaxError( "loop condition should be boolean or blank" );
-
-	bool runTheBodyAgain = std::get<bool>( cdData );
-	
-	if( !runTheBodyAgain ) {
+	while( currentPtr == beginCopy ){
 		currentPtr = lpTokens.lpToken.endPtr;
-		return ;
-	}
 
-	size_t bodyStart = lpTokens.lpToken.startPtr;
-	try{
-		ProgramExecutor( tokens, bodyStart, CALLER::LOOP, func );
-		currentPtr = beginCopy;
-	} 
-	// inside loop some statement like break, continue or may be function statement 
-	catch( const RecoverError& err ){
-		currentPtr = bodyStart;
-		const Token& expTok = tokens[ bodyStart ];
-		
-		if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
-			currentPtr = lpTokens.lpToken.endPtr; 
-			return ;
+		DEEP_VALUE_DATA finalValue = func->getFinalValue( lpTokens.loopAst );
+		if( !std::holds_alternative<VarDtype>( finalValue ) )
+			throw InvalidSyntaxError( "Loop Condition Should be Boolean or Blank" );
+
+		VarDtype cdData = std::get<VarDtype>( finalValue );
+		if( !std::holds_alternative<bool>(cdData) )
+			throw InvalidSyntaxError( "loop condition should be boolean or blank" );
+
+		if( !std::get<bool>( cdData ) ) return ;
+
+		size_t bodyStart = lpTokens.lpToken.startPtr;
+		try{
+			ProgramExecutor( tokens, bodyStart, CALLER::LOOP, func );
+			currentPtr = beginCopy;
+			std::unordered_map<std::string, std::shared_ptr<MapItem>>().swap(func->VMAP);
+		} 
+		catch( const RecoverError& err ){
+			currentPtr = bodyStart;
+			const Token& expTok = tokens[ bodyStart ];
+			
+			if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
+				currentPtr = lpTokens.lpToken.endPtr; 
+				return ;
+			}
+			if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
+				currentPtr = beginCopy; 
+				return ;
+			}
+			throw err; 
 		}
-		if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
-			currentPtr = beginCopy; return ;
-		}
-		else throw err; 
 	}
 }
 

@@ -1,7 +1,7 @@
 pindi _dataHolder(){
     pidi let kootam = {};
     pidi value kootam = {};
-	pidi first_letter = {};
+	pidi first_letter kootam = {};
 
     pindi addToLet( pidi char, pidi val ){
         pidi ascii_value = char:THA_ASCII;
@@ -35,9 +35,9 @@ pindi _dataHolder(){
             index = index + 1;        
         }
     }
-    pidi raw_list = { let, value, first_letter };
-    pidi functions = { addToLet, addToValue, print_result };
-    pidi final = { raw_list, functions };
+    pidi raw_list kootam = { let, value, first_letter };
+    pidi functions kootam = { addToLet, addToValue, print_result };
+    pidi final kootam = { raw_list, functions };
     poda final;
 }
 
