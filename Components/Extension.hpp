@@ -17,6 +17,8 @@ using EXT_TYPE = std::variant<
 					ExtendedInsTokens
 					>;
 
+std::unordered_map<std::string, EXT_TYPE> preComputed;
+
 struct ExtendedFunctionCall{
 	FunctionCallReturns tokens;
 	std::vector<
@@ -133,7 +135,5 @@ struct ExtendedInsTokens{
 		this->endPtr = endPtr;
 	}
 };
-
-std::unordered_map<std::string, EXT_TYPE> preComputed;
 
 #endif
