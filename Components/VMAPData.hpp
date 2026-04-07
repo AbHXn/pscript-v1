@@ -1,31 +1,17 @@
-/* MAP ITEM AND ITS HELPER CLASSES */
-
 #ifndef DEFINEDVALUES_HPP
 #define DEFINEDVALUES_HPP
 
 #include <string>
-#include <optional>
 #include <memory>
-#include <iostream>
-#include <type_traits>
 
 #include "Verifier/Variables.hpp"
-#include "Verifier/Conditional.hpp"
 #include "Verifier/Function.hpp"
-#include "Verifier/loops.hpp"
-#include "Verifier/InputOutput.hpp"
-#include "Verifier/Instruction.hpp"
+#include "../Headers/Dtypes.hpp"
+#include "../Headers/MBExceptions.hpp"
 
 #include "AST.hpp"
 
-#include "../Headers/Dtypes.hpp"
-#include "../Headers/MBExceptions.hpp"
-#include "../Headers/Tokenizer.hpp"
-
 enum class MAPTYPE{ VARIABLE, ARRAY_PTR, FUNC_PTR };
-
-template<typename T>
-inline constexpr bool is_number_v = std::is_same_v<T, long int> || std::is_same_v<T, double> || std::is_same_v<T, bool>;
 
 struct MapItem;
 class VAR_VMAP;

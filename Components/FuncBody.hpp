@@ -1,9 +1,15 @@
 #ifndef FUNCBODY_HPP
 #define FUNCBODY_HPP
 
-#include "DefinedTypes.hpp"
 #include "VMAP.hpp"
 #include "ValueHelper.hpp"
+
+#include "Verifier/Variables.hpp"
+#include "Verifier/Conditional.hpp"
+#include "Verifier/Function.hpp"
+#include "Verifier/loops.hpp"
+#include "Verifier/InputOutput.hpp"
+#include "Verifier/Instruction.hpp"
 
 class FunctionHandler;
 

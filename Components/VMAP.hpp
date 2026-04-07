@@ -1,6 +1,8 @@
 #ifndef VMAP_HPP
 #define VMAP_HPP
 
+#include "VMAPData.hpp"
+
 class VAR_VMAP{
 	public:
 		std::string runnerBody = "__xmain__";

@@ -8,6 +8,9 @@ vector<Token> fullTokens;
 size_t pointer = 0;
 string filename;
 
+template<typename T>
+inline constexpr bool is_number_v = std::is_same_v<T, long int> || std::is_same_v<T, double> || std::is_same_v<T, bool>;
+
 optional<variant<VarDtype, shared_ptr<MapItem>>>
 ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr ){
 	size_t backUpPtr = currentPtr;

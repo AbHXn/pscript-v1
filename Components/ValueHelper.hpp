@@ -1,7 +1,14 @@
 #ifndef VALUEHELPER 
 #define VALUEHELPER
 
-#include "DefinedTypes.hpp"
+#include "VMAPData.hpp"
+
+#include "Verifier/Variables.hpp"
+#include "Verifier/Conditional.hpp"
+#include "Verifier/Function.hpp"
+#include "Verifier/loops.hpp"
+#include "Verifier/InputOutput.hpp"
+#include "Verifier/Instruction.hpp"
 
 class ValueHelper{
 	public:
