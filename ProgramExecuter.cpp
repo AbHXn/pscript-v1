@@ -102,11 +102,11 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				}
 			}
 
-			auto [func, rPT] = prntClass->getFromVmap( tokens[ currentPtr ].token );
+			auto func = prntClass->getFromVmap( tokens[ currentPtr ].token );
 			if( func && func->mapType == MAPTYPE::FUNC_PTR ){
 				try{
 					string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-					prntClass->handleFunctionCall( func, tokens, currentPtr, rPT, key );
+					prntClass->handleFunctionCall( func, tokens, currentPtr, key );
 				}
 				catch(...){
 					cout << "Pindi call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
@@ -155,7 +155,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 		}
 		else if( std::holds_alternative<std::pair<ArrayAccessTokens, string>> ( astNodeData ) ){
 			auto [accessTok, mapDataKey] = std::get<std::pair<ArrayAccessTokens, string>>( astNodeData );
-			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey ).first;
+			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey );
 
 			if( mapData->mapType == MAPTYPE::VARIABLE ){
 				auto varHolder = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
@@ -195,7 +195,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 		}
 		else if( std::holds_alternative<std::pair<FunctionCallReturns, Token>>( astNodeData ) ){
 			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, Token>>( astNodeData );
-			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDatakey.token ).first;
+			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDatakey.token );
 
 			auto varHolder = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( mapData->var );
 			
@@ -205,7 +205,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 			size_t st = 0;
 			string key = filename + to_string( mapDatakey.row + 1 ) + "-" + to_string( mapDatakey.col + 1 );
 
-			auto data = helperHandler->handleFunctionCall( mapData, fullTokens, st, nullptr, key, funcRecToks);
+			auto data = helperHandler->handleFunctionCall( mapData, fullTokens, st, key, funcRecToks);
 			
 			if( data.has_value() ){	
 				if( std::holds_alternative<VarDtype>( data.value() ) ){

@@ -6,8 +6,7 @@ class VAR_VMAP{
 		std::string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
 		
-		std::unordered_map<std::string, std::shared_ptr<MapItem>> VMAP;
-		std::unordered_map<std::string, std::shared_ptr<MapItem>> VMAP_COPY;
+		std::unordered_map<std::string, std::shared_ptr<MapItem>> VMAP, VMAP_COPY;
 
 		std::unordered_map<std::string, std::shared_ptr<MapItem>>
 		inline getDeepCopyOfVMAP( void ){
@@ -25,26 +24,26 @@ class VAR_VMAP{
 			return copyData;
 		}
 
-		std::pair<std::shared_ptr<MapItem>, VAR_VMAP*>
+		std::shared_ptr<MapItem>
 		inline getFromVmapCopy(const std::string& key) {
 		    VAR_VMAP* currentEnv = this;
  		    
  		    while (currentEnv != nullptr) {
 		        auto it_2 = currentEnv->VMAP_COPY.find(key);
 		        if( it_2 != currentEnv->VMAP_COPY.end() )
-		        	return std::make_pair( it_2->second, currentEnv );
+		        	return it_2->second;
  		        currentEnv = currentEnv->parent;
 		    }
-		    return std::make_pair(nullptr, nullptr);
+		    return nullptr;
 		}
 
-		std::pair<std::shared_ptr<MapItem>, VAR_VMAP*>
+		std::shared_ptr<MapItem>
 		inline getFromVmap(const std::string& key) {
 	        auto cur = this;
 	        while( cur && cur->runnerBody == this->runnerBody ){
 	        	auto it = cur->VMAP.find(key);
 	       		if (it != cur->VMAP.end())
-	            	return std::make_pair( it->second, cur );
+	            	return it->second;
 	            cur = cur->parent;
 	        }
 		    return getFromVmapCopy(key);
@@ -57,14 +56,13 @@ class VAR_VMAP{
 		    if (it == VMAP.end())
 		        return std::nullopt;
 
-		    auto result = std::move(it->second);
+		    auto result = it->second;
 		    VMAP.erase(it);
-
-		    return std::move(result);
+		    return result;
 		}
 
 		inline void addToMap( std::string key, std::shared_ptr<MapItem> data ){
-			this->VMAP[ key ] = std::move( data );
+			this->VMAP[ key ] = data;
 		}
 };
 

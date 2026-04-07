@@ -81,8 +81,7 @@ class FunctionHandler: public VAR_VMAP {
 					simpleVector.push_back("NUM");
 				}
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
-					auto VmapData = this->getFromVmap( curToken );
-					auto mainVmapData = VmapData.first;
+					auto mainVmapData = this->getFromVmap( curToken );
 
 					if (mainVmapData == nullptr)
 						throw InvalidSyntaxError( "Unknown identifier " + curToken );
@@ -291,7 +290,7 @@ class FunctionHandler: public VAR_VMAP {
 
 		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
 		handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 
-							VAR_VMAP* rPT, std::string KEY, std::optional<FunctionCallReturns> data = std::nullopt 
+							std::string KEY, std::optional<FunctionCallReturns> data = std::nullopt 
 			){
 			if( preComputed.find( KEY ) == preComputed.end() ){
 				FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
@@ -467,7 +466,7 @@ class FunctionHandler: public VAR_VMAP {
 
 				VAR_INFO curVarInfo = varInfos[ i++ ];
 
-				auto [data, _] = this->getFromVmap( curVarInfo.varName );	
+				auto data = this->getFromVmap( curVarInfo.varName );	
 				if( data ) throw VariableAlreayExists( curVarInfo.varName );
 
 				if( curValueToken == VALUE_TOKENS::NORMAL_VALUE ){
@@ -612,7 +611,7 @@ class FunctionHandler: public VAR_VMAP {
 		// This function handles type casting ....
 		void typeCastRequest( InstructionTokens& InsTokensAndData, std::vector<Token>& varsAndVals ){
 			for( int x = 0; x < varsAndVals.size(); x++ ){
-				auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
+				auto mapData = getFromVmap( varsAndVals[ x ].token );
 
 				if( x >= InsTokensAndData.rightVector.size() )
 					throw InvalidSyntaxError("Typecasting error");
@@ -684,7 +683,7 @@ class FunctionHandler: public VAR_VMAP {
 			}
 
 			for( size_t x = 0; x < varsAndVals.size(); x++ ){
-				auto [mapData, rPT] = getFromVmap( varsAndVals[ x ].token );
+				auto mapData = getFromVmap( varsAndVals[ x ].token );
 				
 				if( mapData == nullptr )
 					throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token );
@@ -748,7 +747,7 @@ class FunctionHandler: public VAR_VMAP {
 			// pass the validation to move forward
 			passValidFuncToken( funcTokens.tokens );
 
-			if( this->getFromVmap( funcTokens.funcName ).first != nullptr )
+			if( this->getFromVmap( funcTokens.funcName ) != nullptr )
 				throw InvalidSyntaxError( funcTokens.funcName + " already defined" );
 			
 			std::shared_ptr<FUNCTION_MAP_DATA> funcMapData = std::make_shared<FUNCTION_MAP_DATA>();
