@@ -784,13 +784,13 @@ class FunctionHandler: public VAR_VMAP {
 				return std::nullopt;
 
 			if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
-				auto mapData = this->moveFromVmap( returnStatementData.back().token );
+				auto mapData = this->getFromVmap( returnStatementData.back().token );
 				
-				if( !mapData.has_value() )
+				if( mapData == nullptr )
 					throw InvalidSyntaxError( "No variable found " + returnStatementData.back().token + 
 						"\nRemember variable should be create inside the function body" );
 
-				return mapData.value();				
+				return mapData;				
 			}
 			DEEP_VALUE_DATA res = evaluateVector( returnStatementData );
 			if( std::holds_alternative<VarDtype> ( res ) )

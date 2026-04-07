@@ -5,7 +5,6 @@ class VAR_VMAP{
 	public:
 		std::string runnerBody = "__xmain__";
 		VAR_VMAP* parent = nullptr;
-		
 		std::unordered_map<std::string, std::shared_ptr<MapItem>> VMAP, VMAP_COPY;
 
 		std::unordered_map<std::string, std::shared_ptr<MapItem>>
@@ -16,7 +15,7 @@ class VAR_VMAP{
 			while( currentDir ){
 				for( auto& value: currentDir->VMAP )
 					copyData[value.first] = value.second;
-				
+
 				for( auto value: currentDir->VMAP_COPY )
 					copyData[value.first] = value.second;
 				currentDir = currentDir->parent;
@@ -27,7 +26,7 @@ class VAR_VMAP{
 		std::shared_ptr<MapItem>
 		inline getFromVmapCopy(const std::string& key) {
 		    VAR_VMAP* currentEnv = this;
- 		    
+
  		    while (currentEnv != nullptr) {
 		        auto it_2 = currentEnv->VMAP_COPY.find(key);
 		        if( it_2 != currentEnv->VMAP_COPY.end() )
@@ -40,6 +39,7 @@ class VAR_VMAP{
 		std::shared_ptr<MapItem>
 		inline getFromVmap(const std::string& key) {
 	        auto cur = this;
+	      
 	        while( cur && cur->runnerBody == this->runnerBody ){
 	        	auto it = cur->VMAP.find(key);
 	       		if (it != cur->VMAP.end())
@@ -47,18 +47,6 @@ class VAR_VMAP{
 	            cur = cur->parent;
 	        }
 		    return getFromVmapCopy(key);
-		}
-
-		std::optional<std::shared_ptr<MapItem>>
-		inline moveFromVmap(const std::string& key){
-		    auto it = VMAP.find(key);
-
-		    if (it == VMAP.end())
-		        return std::nullopt;
-
-		    auto result = it->second;
-		    VMAP.erase(it);
-		    return result;
 		}
 
 		inline void addToMap( std::string key, std::shared_ptr<MapItem> data ){
