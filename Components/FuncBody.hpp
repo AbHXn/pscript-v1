@@ -63,7 +63,6 @@ class FunctionHandler: public VAR_VMAP {
 			return this->getFinalValue( data );
 		}
 
-		/* this function is to convert to pure vector resolve variables, function call, array calls etc */
 		RESOLVER_TYPE
 		vectorResolver( const std::vector<Token>& tokens ){
 			std::queue<REAL_AST_NODE_DATA> resolvedAstNodeData;
@@ -84,12 +83,11 @@ class FunctionHandler: public VAR_VMAP {
 				else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
 					auto VmapData = this->getFromVmap( curToken );
 					auto mainVmapData = VmapData.first;
-					// if identifier is not there in VMAP
+
 					if (mainVmapData == nullptr)
 						throw InvalidSyntaxError( "Unknown identifier " + curToken );
 
-					// Resolve if it is variable
-					if( mainVmapData->mapType == MAPTYPE::VARIABLE ){
+					if( mainVmapData->mapType == MAPTYPE::VARIABLE || mainVmapData->mapType == MAPTYPE::ARRAY_PTR ){
 						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
 						passArrayAccessToken( arrToken.tokens );
 
@@ -97,20 +95,12 @@ class FunctionHandler: public VAR_VMAP {
 						simpleVector.push_back("VAR");
 						x--;
 					}
-					// Resolve if it is function call
-					else if( mainVmapData->mapType == MAPTYPE::FUNC_PTR ){
+					else{
 						FunctionCallReturns pt = stringToFunctionCallTokens( tokens, x );
 
 						resolvedAstNodeData.push( std::make_pair(pt, tok) );
 						simpleVector.push_back("CACHE");
 						x--; 
-					}
-					else if( mainVmapData->mapType == MAPTYPE::ARRAY_PTR ){
-						ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, x );
-
-						resolvedAstNodeData.push( std::make_pair(arrToken, curToken) );
-						simpleVector.push_back("ARRAY_PTR");
-						x--;
 					}
 				}
 				else if( tok.type == TOKEN_TYPE::RESERVED && curToken == "edukku" ){
