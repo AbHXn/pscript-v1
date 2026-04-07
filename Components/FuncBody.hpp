@@ -3,6 +3,7 @@
 
 #include "DefinedTypes.hpp"
 #include "VMAP.hpp"
+#include "ValueHelper.hpp"
 
 class FunctionHandler;
 
