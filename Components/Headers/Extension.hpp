@@ -1,6 +1,13 @@
 #ifndef EXTENSION_HPP
 #define EXTENSION_HPP
 
+#include "../Verifier/Headers/Variables.hpp"
+#include "../Verifier/Headers/Conditional.hpp"
+#include "../Verifier/Headers/Function.hpp"
+#include "../Verifier/Headers/loops.hpp"
+#include "../Verifier/Headers/InputOutput.hpp"
+#include "../Verifier/Headers/Instruction.hpp"
+
 struct ExtendedIoToken;
 struct ExtendedVariableToken;
 struct ExtendedConditionalToken;
@@ -17,7 +24,7 @@ using EXT_TYPE = std::variant<
 					ExtendedInsTokens
 					>;
 
-std::unordered_map<std::string, EXT_TYPE> preComputed;
+static std::unordered_map<std::string, EXT_TYPE> preComputed;
 
 struct ExtendedFunctionCall{
 	FunctionCallReturns tokens;

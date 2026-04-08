@@ -1,23 +1,10 @@
-#ifndef INPUTOUTPUT_HPP
-#define INPUTOUTPUT_HPP
-
-#include <unordered_set>
-#include <vector>
-#include <string>
-#include <string_view>
-#include <unordered_map>
-
-#include "../../Headers/MBExceptions.hpp"
+#include "Headers/InputOutput.hpp"
 
 std::unordered_set<std::string_view> REGISTERED_IO_TOKENS = { "koode", "para", ";" };
-enum class IO_TOKENS { PRINT, CONCAT, PRINT_VALUE, END };
 
 bool isRegisteredIoTokens( const std::string& token ){
 	return REGISTERED_IO_TOKENS.find( token ) != REGISTERED_IO_TOKENS.end();
 }
-
-using IOTokenReturn = std::pair<std::vector<IO_TOKENS>, std::vector<std::vector<Token>>>;
-
 
 std::unordered_map<IO_TOKENS, std::vector<IO_TOKENS>> IO_GRAPH = {
 	{ IO_TOKENS::PRINT, 		{ IO_TOKENS::PRINT_VALUE } },
@@ -93,4 +80,3 @@ stringToIoTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 	throw InvalidSyntaxError("Failed to find the end of token ;");
 }
 
-#endif

@@ -4,10 +4,10 @@
 #include <string>
 #include <memory>
 
-#include "Verifier/Variables.hpp"
-#include "Verifier/Function.hpp"
-#include "../Headers/Dtypes.hpp"
-#include "../Headers/MBExceptions.hpp"
+#include "../Verifier/Headers/Variables.hpp"
+#include "../Verifier/Headers/Function.hpp"
+#include "../../Headers/Dtypes.hpp"
+#include "../../Headers/MBExceptions.hpp"
 
 #include "AST.hpp"
 

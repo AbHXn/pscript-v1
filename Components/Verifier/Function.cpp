@@ -1,12 +1,4 @@
-#ifndef FUNCTION_HPP
-#define FUNCTION_HPP
-
-#include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
-#include <string_view>
-#include <memory>
+#include "Headers/Function.hpp"
 
 std::unordered_set<std::string_view> REGISTERED_FUNC_TOKEN = { 
 	"pindi", "(", ")", "{", "}", ",", "pidi", "kootam" 
@@ -16,52 +8,6 @@ std::unordered_set<std::string_view> REGISTERED_FUNC_BODY_TOKENS = {
 	"poda"
 };
 
-enum class FUNC_TOKENS{
-	NOTHING 	,
-	FUNC_START 	,
-	FUNC_NAME 	,
-	ARGS_OPEN 	,
-	ARGS_CLOSE 	,
-	BODY_OPEN 	,
-	FUNC_BODY 	,
-	BODY_CLOSE 	,
-	VAR_START 	,
-	VAR_NAME 	,
-	VAR_ARRAY 	,
-	VAR_COMMA
-};
-
-// For arg Name and Type ( Single or Array )
-struct ARG_VAR_INFO{
-	std::string name;
-	bool isArray;
-};
-
-// Func Info
-struct FunctionTokenReturn {
-	std::vector<FUNC_TOKENS> 			 tokens;
-	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
-	std::string 					 funcName;
-	size_t 							 funcStartPtr;
-	size_t 							 funcEndPtr;
-
-	FunctionTokenReturn() = default;
-
-	FunctionTokenReturn( 
-		std::vector<FUNC_TOKENS> tokens,
-		std::vector<std::unique_ptr<ARG_VAR_INFO>> args,
-		std::string funcName,
-		size_t funcStartPtr,
-		size_t funcEndPtr
-	){
-		this->tokens 		= tokens;
-		this->args 			= std::move(args);
-		this->funcName 		= funcName;
-		this->funcStartPtr  = funcStartPtr;
-		this->funcEndPtr	= funcEndPtr;
-	}
-};
-// Function syntax verifier
 std::unordered_map<FUNC_TOKENS, std::vector<FUNC_TOKENS>> FUNC_GRAPH = {
 	{ FUNC_TOKENS::FUNC_START, 	{ FUNC_TOKENS::FUNC_NAME } 	},
 	{ FUNC_TOKENS::FUNC_NAME, 	{ FUNC_TOKENS::ARGS_OPEN }  },
@@ -79,8 +25,15 @@ std::unordered_map<FUNC_TOKENS, std::vector<FUNC_TOKENS>> FUNC_GRAPH = {
     { FUNC_TOKENS::FUNC_BODY,   { FUNC_TOKENS::BODY_CLOSE } },
 };
 
-void 
-passValidFuncToken( std::vector<FUNC_TOKENS>& tokens ){
+std::unordered_map<FUNC_CALL_TOKEN, std::vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
+	{ FUNC_CALL_TOKEN::FUNC_NAME, { FUNC_CALL_TOKEN::ARG_OPEN } },
+	{ FUNC_CALL_TOKEN::ARG_OPEN,  { FUNC_CALL_TOKEN::ARG_VALUE, FUNC_CALL_TOKEN::ARG_CLOSE } },
+	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_COMMA, FUNC_CALL_TOKEN::ARG_CLOSE } },
+	{ FUNC_CALL_TOKEN::ARG_COMMA, { FUNC_CALL_TOKEN::ARG_VALUE } },
+	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_CLOSE } }
+};
+
+void passValidFuncToken( std::vector<FUNC_TOKENS>& tokens ){
 	size_t startIndex = 0;
 	FUNC_TOKENS currentStage = FUNC_TOKENS::FUNC_START;
 
@@ -112,8 +65,7 @@ passValidFuncToken( std::vector<FUNC_TOKENS>& tokens ){
 	throw InvalidSyntaxError( "Do dont encounter end } token in Function" );
 }
 
-FunctionTokenReturn
-stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
+FunctionTokenReturn stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 	std::vector<FUNC_TOKENS> funcTokens;
 	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
 	std::string funcName;
@@ -185,32 +137,12 @@ stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 	throw InvalidSyntaxError("Invalid syntax error in pindi declaration");
 }
 
-/* --------------------------- FUNC CALL HANDLER --------------------------------*/
-
-enum class FUNC_CALL_TOKEN{
-	NOTHING,   // 0
-	FUNC_NAME, // 1
-	ARG_OPEN,  // 2
-	ARG_COMMA, // 3
-	ARG_VALUE, // 4
-	ARG_CLOSE, // 5
-};
-
-// function call syntax verifier
-std::unordered_map<FUNC_CALL_TOKEN, std::vector<FUNC_CALL_TOKEN>> FUNC_CALL_GRAPH = {
-	{ FUNC_CALL_TOKEN::FUNC_NAME, { FUNC_CALL_TOKEN::ARG_OPEN } },
-	{ FUNC_CALL_TOKEN::ARG_OPEN,  { FUNC_CALL_TOKEN::ARG_VALUE, FUNC_CALL_TOKEN::ARG_CLOSE } },
-	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_COMMA, FUNC_CALL_TOKEN::ARG_CLOSE } },
-	{ FUNC_CALL_TOKEN::ARG_COMMA, { FUNC_CALL_TOKEN::ARG_VALUE } },
-	{ FUNC_CALL_TOKEN::ARG_VALUE, { FUNC_CALL_TOKEN::ARG_CLOSE } }
-};
 
 bool isFuncPtr( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 	return callTokens.size() == 1 && callTokens.back() == FUNC_CALL_TOKEN::FUNC_NAME;
 }
 
-void
-passValidFuncCallToken( std::vector<FUNC_CALL_TOKEN>& callTokens ){
+void passValidFuncCallToken( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 	if( callTokens.empty() )
 		throw InvalidSyntaxError("Function call token is empty");
 
@@ -240,24 +172,6 @@ passValidFuncCallToken( std::vector<FUNC_CALL_TOKEN>& callTokens ){
 	}
 	throw InvalidSyntaxError( "Do dont encounter ) token in function call" );
 }
-
-struct FunctionCallReturns{
-	std::vector<FUNC_CALL_TOKEN> callTokens;
-	std::vector<std::vector<Token>> argsVector;
-	std::string funcName;
-
-	FunctionCallReturns() = default;
-
-	FunctionCallReturns( 
-		std::vector<FUNC_CALL_TOKEN> callTokens,
-		std::vector<std::vector<Token>> argsVector,
-		std::string funcName
-	){
-		this->callTokens = callTokens;
-		this->argsVector = argsVector;
-		this->funcName 	 = funcName;
-	}
-};
 
 FunctionCallReturns stringToFunctionCallTokens( const std::vector<Token>& tokens, size_t& curPtr ){
 	std::vector<FUNC_CALL_TOKEN> ctokens;
@@ -311,5 +225,3 @@ FunctionCallReturns stringToFunctionCallTokens( const std::vector<Token>& tokens
 	}
 	return FunctionCallReturns( ctokens, argsTokens, funcCallName );
 }
-
-#endif

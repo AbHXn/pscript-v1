@@ -1,21 +1,11 @@
-#ifndef CONDITIONAL_HPP
-#define CONDITIONAL_HPP
-
-#include <unordered_set>
-#include <string>
-#include <string_view>
-#include <vector>
-
-#include "../../Headers/MBExceptions.hpp"
+#include "Headers/Conditional.hpp"
 
 std::unordered_set<std::string_view> REG_COND_TOKENS = { "nok", "{", "}", "umbi", ":" };
-
-enum class COND_TOKENS{ IF, ELSE, CONDITION, BODY_OPEN, BODY_CLOSE, CHAIN, END };
 
 bool isRegisteredCondToken( const std::string& tokens ){
 	return REG_COND_TOKENS.find( tokens ) != REG_COND_TOKENS.end();
 }
-// syntax verifier graph
+
 std::unordered_map<COND_TOKENS, std::vector<COND_TOKENS>> CONDITIONAL_GRAPH = {
 	{ COND_TOKENS::IF, 		    { COND_TOKENS::CONDITION } },
 	{ COND_TOKENS::CONDITION,   { COND_TOKENS::BODY_OPEN } },
@@ -25,26 +15,7 @@ std::unordered_map<COND_TOKENS, std::vector<COND_TOKENS>> CONDITIONAL_GRAPH = {
 	{ COND_TOKENS::ELSE, 		{ COND_TOKENS::BODY_OPEN } }
 };
 
-struct CondReturnToken{
-	std::vector<COND_TOKENS> tokens;
-	std::vector<std::pair<std::vector<Token>, size_t>> conditions;
-	size_t endOfNok;
-
-	CondReturnToken() = default;
-
-	CondReturnToken(
-		std::vector<COND_TOKENS> tokens,
-		std::vector<std::pair<std::vector<Token>, size_t>> conditions,
-		size_t endOfNok
-	){
-		this->tokens = tokens;
-		this->conditions = conditions;
-		this->endOfNok = endOfNok;
-	}
-};
-
-void 
-passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
+void passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 	COND_TOKENS curStage = COND_TOKENS::IF;
 	int startIndex 	  = 0;
 	bool hitElseStage = false;
@@ -84,8 +55,7 @@ passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 	throw InvalidSyntaxError( "Do dont encounter ; in nok statement" );
 }
 
-CondReturnToken
-stringToCondTokens( const std::vector<Token>& tokens, size_t& start ){
+CondReturnToken stringToCondTokens( const std::vector<Token>& tokens, size_t& start ){
 	std::vector<std::pair<std::vector<Token>, size_t>> conditions;
 	std::vector<COND_TOKENS> condTokens;
 	size_t bodyOpenCount = 0;
@@ -142,4 +112,3 @@ stringToCondTokens( const std::vector<Token>& tokens, size_t& start ){
 	throw InvalidSyntaxError("Forgot ; in nok statement?");
 }
 
-#endif 

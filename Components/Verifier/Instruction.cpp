@@ -1,11 +1,4 @@
-#ifndef INSTRUCTION_HPP
-#define INSTRUCTION_HPP
-
-#include <unordered_set>
-#include <string>
-#include <string_view>
-#include <vector>
-#include <unordered_map>
+#include "Headers/Instruction.hpp"
 
 std::unordered_set<std::string_view> REG_INS_TOKEN = {
 	"=", "+=", "-=", "/=", "*=", ":=", "%=", ",", ";"
@@ -14,21 +7,6 @@ std::unordered_set<std::string_view> REG_INS_TOKEN = {
 bool isRegisteredInsTokens( const std::string& tok ){
 	return REG_INS_TOKEN.find( tok ) != REG_INS_TOKEN.end();
 }
-
-enum class INS_TOKEN{
-	NOT_DEFINED,
-	REPLACE,
-	COMMA,
-	ADD_REPLACE,
-	TYPE_CAST  ,
-	SUB_REPLACE,
-	MUL_REPLACE,
-	DIV_REPLACE,
-	MOD_REPLACE,
-	LHS_VALUE,
-	RHS_VALUE,
-	INS_END,
-};
 
 std::unordered_map<INS_TOKEN, std::vector<INS_TOKEN>> INS_GRAPH = {
 	{ INS_TOKEN::LHS_VALUE, { INS_TOKEN::LHS_VALUE,
@@ -85,30 +63,7 @@ bool MainToken( const std::string& curToken, INS_TOKEN& Optr ){
 	return false;
 }
 
-struct InstructionTokens{
-	std::vector<INS_TOKEN> insToken;
-	INS_TOKEN optr;
-	std::vector<std::vector<Token>> rightVector;
-	std::vector<Token> leftVector;
-
-	InstructionTokens() = default;
-
-	InstructionTokens(
-		std::vector<INS_TOKEN> insToken,
-		INS_TOKEN optr,
-		std::vector<std::vector<Token>> rightVector,
-		std::vector<Token> leftVector
-	){
-		this->insToken 	  = insToken;
-		this->optr 		  = optr;
-		this->rightVector = rightVector;
-		this->leftVector  = leftVector;
-	}
-
-};
-
-InstructionTokens
-stringToInsToken(const std::vector<Token>& tokens, size_t& startIndex ){
+InstructionTokens stringToInsToken(const std::vector<Token>& tokens, size_t& startIndex ){
 	INS_TOKEN Optr = INS_TOKEN::NOT_DEFINED;
 	bool isLhs 	   = true;
 	
@@ -164,8 +119,7 @@ stringToInsToken(const std::vector<Token>& tokens, size_t& startIndex ){
 	throw InvalidSyntaxError( "Do dont encounter end ; token in para" );
 }
 
-void 
-passValidInstructionTokens( std::vector<INS_TOKEN>& tokens ){
+void  passValidInstructionTokens( std::vector<INS_TOKEN>& tokens ){
 	size_t startIndex = 0;
 	INS_TOKEN currentStage = INS_TOKEN::LHS_VALUE;
 
@@ -193,5 +147,3 @@ passValidInstructionTokens( std::vector<INS_TOKEN>& tokens ){
 	}
 	throw InvalidSyntaxError("Do dont encounter end ; token in para");
 }
-
-#endif

@@ -1,23 +1,7 @@
-#ifndef LOOP_HPP
-#define LOOP_HPP
-
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <string_view>
+#include "Headers/loops.hpp"
 
 std::unordered_set<std::string_view> REG_LOOP_TOKENS      = { "ittuthiri", "{", "}" };
 std::unordered_set<std::string_view> REG_LOOP_BODY_TOKENS = { "pinnava", "theku" };
-
-enum class LOOP_TOKENS{
-	LOOP_START 	,
-	CONDITION 	,
-	BREAK 		,
-	CONTINUE 	,
-	BODY_OPEN 	,
-	BODY 		,
-	BODY_CLOSE
-};
 
 std::unordered_map<LOOP_TOKENS, std::vector<LOOP_TOKENS>> LOOP_GRAPH = {
 	{ LOOP_TOKENS::LOOP_START,  { LOOP_TOKENS::CONDITION, LOOP_TOKENS::BODY_OPEN } },
@@ -52,29 +36,7 @@ size_t getEndPointer( const std::vector<Token>& tokens, size_t startPtr ){
 	throw InvalidSyntaxError( "forget to close '}' ? " );
 }
 
-struct LoopTokens{
-	std::vector<LOOP_TOKENS> lpTokens;
-	std::vector<Token> conditions;
-	size_t startPtr;
-	size_t endPtr;
-
-	LoopTokens() = default;
-
-	LoopTokens(
-		std::vector<LOOP_TOKENS> lpTokens,
-		std::vector<Token> conditions,
-		size_t startPtr,
-		size_t endPtr
-	){
-		this->lpTokens 	 = lpTokens;
-		this->conditions = conditions;
-		this->startPtr   = startPtr;
-		this->endPtr 	 = endPtr;
-	}
-};
-
-LoopTokens
-stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
+LoopTokens stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 	std::vector<LOOP_TOKENS> lpTokens;
 	std::vector<Token> conditions;
 
@@ -119,8 +81,7 @@ stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
 	throw InvalidSyntaxError( "Syntax error occured in ittuthiri statement" );
 }
 
-void 
-passValidLoopTokens( std::vector<LOOP_TOKENS>& tokens ){
+void passValidLoopTokens( std::vector<LOOP_TOKENS>& tokens ){
 	size_t startIndex = 0;
 	LOOP_TOKENS currentStage = LOOP_TOKENS::LOOP_START;
 
@@ -149,4 +110,3 @@ passValidLoopTokens( std::vector<LOOP_TOKENS>& tokens ){
 	throw InvalidSyntaxError( "Do dont encounter end ; token in ittuthiri" );
 }
 
-#endif

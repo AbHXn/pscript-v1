@@ -1,0 +1,246 @@
+#include "Tokenizer.hpp"
+
+std::unordered_set<std::string_view> RESERVED_KEYS = {
+	"pindi", "pidi", "sheri", "thettu", "poda", "pinnava",
+	"theku", "ittuthiri", "nok", "umbi", "onnula", "para", 
+	"koode", "um", "yo", "kootam", "edukku"
+};
+
+std::unordered_set<std::string_view> SCHARS = {
+	":", "(", ")", "[", "]", "{", "}", ",", ".", ";"
+};
+
+std::unordered_set<std::string_view> OPTR{
+	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":", "?"
+};
+
+bool isReservedKey(const std::string& tok){
+	return RESERVED_KEYS.find(tok) != RESERVED_KEYS.end();
+}
+
+bool isOptr(const std::string& tok){
+	return OPTR.find(tok) != OPTR.end();
+}
+
+bool isSpec(const std::string& tok){
+	return SCHARS.find(tok) != SCHARS.end();
+}
+
+std::vector<std::string> debug_string = { 
+	"NOTHING", "NUMBER", "FLOATING", 
+	"STRING", "BOOLEAN", "IDENTIFIER", 
+	"RESERVED", "SPEC_CHAR", "OPTR" 
+};
+
+
+bool isValueType(TOKEN_TYPE type){
+	return ( type == TOKEN_TYPE::NUMBER || type == TOKEN_TYPE::STRING  || type == TOKEN_TYPE::FLOATING || type == TOKEN_TYPE::BOOLEAN );
+}
+
+void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
+
+	std::ifstream codeFile(filename);
+
+	if(!codeFile.is_open())
+		throw std::runtime_error("Cannot open file: " + filename);
+
+	char cCode;
+	std::string currentWord = "";
+	TOKEN_TYPE currentState = TOKEN_TYPE::NOTHING;
+
+	size_t lineNumber = 0, colNumber = 0;
+	bool isSkip = false;
+	bool comments = false;
+
+	while(codeFile.get(cCode)){
+		if( cCode == '?' ){
+			comments = !comments;
+			continue;
+		}
+		if( comments ){
+			if( cCode == '\n' )
+				lineNumber++;
+			continue;
+		}
+
+		if(cCode == '"' && currentState != TOKEN_TYPE::STRING){
+			if(currentState != TOKEN_TYPE::NOTHING)
+				throw std::runtime_error("Invalid token at line: " + std::to_string(lineNumber) + " Column: " + std::to_string(colNumber));
+
+			currentState = TOKEN_TYPE::STRING;
+			continue;
+		}
+		if(currentState == TOKEN_TYPE::STRING){
+			if(cCode == '\\')
+				isSkip = true;
+
+			else if(cCode == '"'){
+				if(!currentWord.empty() && currentWord.back() == '\\'){
+					currentWord.push_back('"');
+					continue;
+				}
+			}
+			if(cCode == '"'){
+				Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
+				currentWord = "";
+				currentState = TOKEN_TYPE::NOTHING;
+				colNumber++;
+			}
+			else{
+				currentWord.push_back(cCode);
+				isSkip = false;
+			}
+			continue;
+		}
+		if(cCode == '\n'){
+			lineNumber++;
+			colNumber = 0;
+			continue;
+		}
+		if(isdigit(static_cast<unsigned char>(cCode))){
+		    if(currentState == TOKEN_TYPE::NUMBER || 
+		       currentState == TOKEN_TYPE::IDENTIFIER || 
+		       currentState == TOKEN_TYPE::FLOATING){
+
+		        currentWord.push_back(cCode);
+		    }
+		    else if(currentState == TOKEN_TYPE::NOTHING){
+		        currentState = TOKEN_TYPE::NUMBER;
+		        currentWord.push_back(cCode);
+		    }
+		    else{
+		        Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
+		        currentWord = std::string(1, cCode);
+		        currentState = TOKEN_TYPE::NUMBER;
+		    }
+		}
+
+		else if(isalpha((unsigned char)cCode) || cCode == '_'){
+			if(currentState == TOKEN_TYPE::IDENTIFIER)
+				currentWord.push_back(cCode);
+
+			else if(currentState == TOKEN_TYPE::NOTHING){
+				currentState = TOKEN_TYPE::IDENTIFIER;
+				currentWord.push_back(cCode);
+			}
+			else if(currentState == TOKEN_TYPE::OPERATOR){
+				Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
+				colNumber++;
+				currentWord = std::string(1, cCode);
+				currentState = TOKEN_TYPE::IDENTIFIER;
+			}			
+		}
+		else if(cCode == ' '){
+			if(!currentWord.empty() && currentState != TOKEN_TYPE::NOTHING){
+				if(currentState == TOKEN_TYPE::NUMBER ||
+				   currentState == TOKEN_TYPE::FLOATING ||
+				   currentState == TOKEN_TYPE::STRING){
+
+					Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
+					currentWord = "";
+					currentState = TOKEN_TYPE::NOTHING;
+					colNumber++;
+					continue;
+				}
+				if(isReservedKey(currentWord)){
+					currentState = TOKEN_TYPE::RESERVED;
+					if(currentWord == "sheri" || currentWord == "thettu")
+						currentState = TOKEN_TYPE::BOOLEAN;
+				}
+				else if(isOptr(currentWord))
+					currentState = TOKEN_TYPE::OPERATOR;
+
+				else if(isSpec(currentWord))
+					currentState = TOKEN_TYPE::SPEC_CHAR;
+
+				Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
+
+				currentWord = "";
+				currentState = TOKEN_TYPE::NOTHING;
+				colNumber++;
+			}
+		}
+		else{
+			if(cCode == '='){
+				if(isOptr(currentWord)){
+					currentWord.push_back(cCode);
+					Tokens.push_back(Token(TOKEN_TYPE::OPERATOR,currentWord,lineNumber,colNumber));
+					currentWord = "";
+					currentState = TOKEN_TYPE::NOTHING;
+					colNumber++;
+				}
+				else{
+					if(currentState != TOKEN_TYPE::NOTHING){
+						Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
+						colNumber++;
+					}
+					currentState = TOKEN_TYPE::OPERATOR;
+					currentWord = std::string(1, cCode);
+				}
+			}
+			else if(isOptr(std::string(1, cCode))){
+
+			    if((cCode == '-' || cCode == '+') && currentState == TOKEN_TYPE::NOTHING){
+
+			        bool unary = false;
+
+			        if(Tokens.empty())
+			            unary = true;
+			        else{
+			            Token prev = Tokens.back();
+
+			            if(prev.type == TOKEN_TYPE::OPERATOR)
+			                unary = true;
+
+			            else if(prev.type == TOKEN_TYPE::SPEC_CHAR &&
+			               (prev.token == "(" || prev.token == "[" || prev.token == "{" || prev.token == ",")){
+			                unary = true;
+			            }
+			            else if( prev.type == TOKEN_TYPE::RESERVED && (
+			            		prev.token == "para" || prev.token == "poda") )
+			            	unary = true;
+			        }
+
+			        if(unary){
+			            currentState = TOKEN_TYPE::NUMBER;
+			            currentWord.push_back(cCode);
+			            continue;
+			        }
+			    }
+
+			    if(currentState != TOKEN_TYPE::NOTHING){
+			        Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
+			        currentWord.clear();
+			    }
+
+			    currentWord = std::string(1, cCode);
+			    currentState = TOKEN_TYPE::OPERATOR;
+			    colNumber++;
+			}
+
+
+			else if(cCode == '.' && currentState == TOKEN_TYPE::NUMBER){
+				currentWord.push_back(cCode);
+				currentState = TOKEN_TYPE::FLOATING;
+			}
+			else if(isSpec(std::string(1, cCode))){
+				if(currentState != TOKEN_TYPE::NOTHING){
+					if(isReservedKey(currentWord)){
+						currentState = TOKEN_TYPE::RESERVED;
+						if(currentWord == "sheri" || currentWord == "thettu")
+							currentState = TOKEN_TYPE::BOOLEAN;
+					}
+					Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
+					currentWord = "";
+					currentState = TOKEN_TYPE::NOTHING;
+					colNumber++;
+				}
+				Tokens.push_back(Token(TOKEN_TYPE::SPEC_CHAR,std::string(1, cCode),lineNumber,colNumber));
+				colNumber++;
+			}
+		}
+	}
+	if(currentState != TOKEN_TYPE::NOTHING)
+		Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
+}
+

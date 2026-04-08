@@ -1,0 +1,36 @@
+#ifndef FUNCBODY_HPP
+#define FUNCBODY_HPP
+
+#include "VMAP.hpp"
+#include "ValueHelper.hpp"
+#include "../Verifier/Headers/Variables.hpp"
+#include "../Verifier/Headers/Conditional.hpp"
+#include "../Verifier/Headers/Function.hpp"
+#include "../Verifier/Headers/loops.hpp"
+#include "../Verifier/Headers/InputOutput.hpp"
+#include "../Verifier/Headers/Instruction.hpp"
+#include "Extension.hpp"
+#include "BodyEncounter.hpp"
+
+enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
+
+class FunctionHandler: public VAR_VMAP {
+	public:
+		std::string functionName;
+
+		FunctionHandler() = default;
+		FunctionHandler( VAR_VMAP* parent, std::string runnerBody );
+
+		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY = nullptr );
+		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
+		void functionDefHandlerRunner( const std::vector<Token>&token, size_t& start );
+		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY );
+		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY );
+		void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
+};
+
+std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
+ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr = 0  );
+
+
+#endif

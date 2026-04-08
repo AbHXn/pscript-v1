@@ -1,5 +1,6 @@
-#include "Components/FuncBody.hpp"
-#include "Components/ValueHelper.hpp"
+#include "Components/Headers/FunctionHandler.hpp"
+#include "Components/Headers/ValueHelper.hpp"
+#include "Components/Headers/BodyEncounter.hpp"
 
 using namespace std;
 
@@ -37,7 +38,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				FunctionHandler newLpHander( prntClass, prntClass->runnerBody );
-				CondHandlerRunner( tokens, currentPtr, key, &newLpHander );
+				newLpHander.CondHandlerRunner( tokens, currentPtr, key );
 			}
 			catch( const RecoverError& err ){
 				continue;
@@ -79,7 +80,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			try{
 				string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				FunctionHandler newLpHander( prntClass, prntClass->runnerBody );
-				LoopHandlerRunner( tokens, currentPtr, key, &newLpHander);
+				newLpHander.LoopHandlerRunner( tokens, currentPtr, key );
 				currentPtr--;
 			}
 			catch( const RecoverError& err ){
@@ -91,9 +92,10 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			}
 		}
 		else{
+			BodyEncounters bodyEncounter( prntClass );
 			if( C_CLASS == CALLER::FUNCTION && curToken.token == "poda" && curToken.type == TOKEN_TYPE::RESERVED ){
 				try{
-					return prntClass->getReturnedData( tokens, currentPtr );
+					return bodyEncounter.getReturnedData( tokens, currentPtr );
 				} 
 				catch( const RecoverError& err ){
 					currentPtr = backUpPtr;
@@ -110,7 +112,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			if( func && func->mapType == MAPTYPE::FUNC_PTR ){
 				try{
 					string key = filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-					prntClass->handleFunctionCall( func, tokens, currentPtr, key );
+					bodyEncounter.handleFunctionCall( func, tokens, currentPtr, key );
 				}
 				catch(...){
 					cout << "Pindi call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
@@ -157,7 +159,10 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 		if( std::holds_alternative<VarDtype>( astNodeData ) ){
 			return std::get<VarDtype>( astNodeData );
 		}
-		else if( std::holds_alternative<std::pair<ArrayAccessTokens, string>> ( astNodeData ) ){
+		
+		BodyEncounters bodyEncounter( helperHandler );
+
+		if( std::holds_alternative<std::pair<ArrayAccessTokens, string>> ( astNodeData ) ){
 			auto [accessTok, mapDataKey] = std::get<std::pair<ArrayAccessTokens, string>>( astNodeData );
 			shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey );
 
@@ -166,7 +171,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 
 				if( !varHolder->isTypeArray ){
 					DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
-					auto datan = helperHandler->handleRawVariables( accessTok,  tdata );
+					auto datan = bodyEncounter.handleRawVariables( accessTok,  tdata );
 					if( level == 0 ) return datan;
 
 					if( std::holds_alternative<VarDtype>( datan ) )
@@ -176,7 +181,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 				}
 				else {
 					auto& arrayData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
-					auto datan = helperHandler->handleArrayCases( arrayData, accessTok );
+					auto datan = bodyEncounter.handleArrayCases( arrayData, accessTok );
 					if( level == 0 ) return datan;
 
 					if( std::holds_alternative<VarDtype>( datan ) )
@@ -187,7 +192,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 			}
 			if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
 				auto arryListPtr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( mapData->var );
-				auto datan = helperHandler->handleArrayCases( arryListPtr, accessTok );
+				auto datan = bodyEncounter.handleArrayCases( arryListPtr, accessTok );
 				if( level == 0) return datan;
 
 				if( std::holds_alternative<VarDtype>( datan ) )
@@ -209,7 +214,7 @@ evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
 			size_t st = 0;
 			string key = filename + to_string( mapDatakey.row + 1 ) + "-" + to_string( mapDatakey.col + 1 );
 
-			auto data = helperHandler->handleFunctionCall( mapData, fullTokens, st, key, funcRecToks);
+			auto data = bodyEncounter.handleFunctionCall( mapData, fullTokens, st, key, funcRecToks);
 			
 			if( data.has_value() ){	
 				if( std::holds_alternative<VarDtype>( data.value() ) ){
