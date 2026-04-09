@@ -11,4 +11,4 @@ files.sort()
 for file in files:
 	file = os.path.join(_TEST_DIR_, file);	
 	print(f"running {file}")
-	os.system(f"./a.out {file} >> res")
+	os.system(f"./pscript {file} >> res")

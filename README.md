@@ -27,7 +27,11 @@ Currently PScript is compiled using **C++**.
 ### Build
 
 ```
-g++ -O3 ProgramExecuter.cpp -o pscript
+git clone https://github.com/AbHXn/pscript-v1
+
+cd pscript-v1
+
+make
 ```
 
 ### Run a Program
