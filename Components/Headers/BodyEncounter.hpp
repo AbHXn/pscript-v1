@@ -22,8 +22,8 @@ class BodyEncounters {
 
 		std::optional<VarDtype> handleArrayProperties( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array, ArrayAccessTokens& arrToken);
 		DEEP_VALUE_DATA handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayData, ArrayAccessTokens& arrToken );
-		VarDtype handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok );
-		DEEP_VALUE_DATA handleRawVariables( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder );
+		VarDtype handlerVarDtypePrpperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok );
+		DEEP_VALUE_DATA handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder );
 
 		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
 		handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 

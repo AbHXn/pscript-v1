@@ -53,7 +53,7 @@ BodyEncounters::handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>
 			return std::visit( [&]( auto&& data ) {
 			    if (arrToken.isTouchedArrayProperty) {
 			    	DEEP_VALUE_DATA dv = data;
-			        return DEEP_VALUE_DATA{handleVarDefinedProperties(dv, arrToken)};
+			        return DEEP_VALUE_DATA{handlerVarDtypePrpperties(dv, arrToken)};
 			    } 
 			    return DEEP_VALUE_DATA{data};
 			}, spData);
@@ -77,50 +77,13 @@ BodyEncounters::handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>
 }
 
 VarDtype 
-BodyEncounters::handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
-	if( tok.arrProperty == "jaadi" ){
-		if( std::holds_alternative<VarDtype> (Vdata) ){
-			auto data = std::get<VarDtype>( Vdata );
-			
-			if( std::holds_alternative<std::string> ( data ) )
-				return "STR";
-			
-			else if( std::holds_alternative<double> (data) )
-				return "THULA";
-			
-			else if( std::holds_alternative<long> (data) )
-				return "INT";
-			
-			else if( std::holds_alternative<bool> (data) )
-				return "BOOL";
-			
-			else return "ARILA";
-		}
-		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( Vdata ) )
-			return "ARRAY_PTR";
-		
-		else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( Vdata ) )
-			return "FUNC_PTR";
-		
-		else return "ARILA";
-	}
-	else if( tok.arrProperty == "kanam" ){
-		if( std::holds_alternative<VarDtype>(Vdata) ){
-			auto data = std::get<VarDtype>(Vdata);
-			
-			if( std::holds_alternative<std::string> ( data ) )
-				return (long) std::get<std::string>(data).size();
-			
-			else if( std::holds_alternative<double> (data) )
-				return (long) sizeof(double);
-			
-			else if( std::holds_alternative<long> (data) )
-				return (long) sizeof(long);
-
-			else if( std::holds_alternative<bool> (data) )
-				return (long) sizeof(bool);
-		}
-	}
+BodyEncounters::handlerVarDtypePrpperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
+	if( tok.arrProperty == "jaadi" )
+		return ValueHelper::getValueType( Vdata );
+	
+	else if( tok.arrProperty == "kanam" )
+		return ValueHelper::getVariableSize( Vdata );
+	
 	else if( tok.arrProperty == "THA_ASCII" ){
 		if( !std::holds_alternative<VarDtype>( Vdata ) )
 			throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
@@ -152,7 +115,7 @@ BodyEncounters::handleVarDefinedProperties( DEEP_VALUE_DATA& Vdata, ArrayAccessT
 }
 
 DEEP_VALUE_DATA 
-BodyEncounters::handleRawVariables( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder ){
+BodyEncounters::handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder ){
 	DEEP_VALUE_DATA HandlingDtype = varHolder;
 	if( arrToken.indexVector.size() > 0 ){
 		if( !std::holds_alternative<VarDtype> ( varHolder ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( varHolder ) ) )
@@ -169,7 +132,7 @@ BodyEncounters::handleRawVariables( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA
 			HandlingDtype =  DEEP_VALUE_DATA { std::string(1, stringVarHolder[ index ]) };
 	}
 	if( arrToken.isTouchedArrayProperty )
-		return handleVarDefinedProperties( HandlingDtype, arrToken );	
+		return handlerVarDtypePrpperties( HandlingDtype, arrToken );	
 
 	return HandlingDtype;
 }
@@ -222,7 +185,7 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 		if( funcFromMap->argsInfo.size() != 0 )
 			throw std::runtime_error("pindi need args");
 
-		FunctionHandler newFuncRunner;
+		FunctionHandler newFuncRunner( this->funcHandler->ctx );
 
 		size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
 		size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
@@ -232,7 +195,7 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 
 		return ProgramExecutor( tokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
 	}
-	FunctionHandler newFuncRunner;
+	FunctionHandler newFuncRunner( this->funcHandler->ctx );
 	newFuncRunner.runnerBody = extFuncCallToken.tokens.funcName;
 				
 	auto funcFromMap 		= std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );

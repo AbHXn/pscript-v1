@@ -120,6 +120,53 @@ class ValueHelper{
 	    }, data);
 	}
 
+	static std::string getValueType( DEEP_VALUE_DATA& Vdata ){
+		if( std::holds_alternative<VarDtype> (Vdata) ){
+			auto data = std::get<VarDtype>( Vdata );
+			
+			if( std::holds_alternative<std::string> ( data ) )
+				return "STR";
+			
+			else if( std::holds_alternative<double> (data) )
+				return "THULA";
+			
+			else if( std::holds_alternative<long> (data) )
+				return "INT";
+			
+			else if( std::holds_alternative<bool> (data) )
+				return "BOOL";
+			
+			else return "ARILA";
+		}
+		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( Vdata ) )
+			return "ARRAY_PTR";
+		
+		else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( Vdata ) )
+			return "FUNC_PTR";
+		
+		else return "ARILA";
+	}
+
+	static VarDtype getVariableSize( DEEP_VALUE_DATA& Vdata ){
+		if( std::holds_alternative<VarDtype>(Vdata) ){
+			auto data = std::get<VarDtype>(Vdata);
+			
+			if( std::holds_alternative<std::string> ( data ) )
+				return (long) std::get<std::string>(data).size();
+			
+			else if( std::holds_alternative<double> (data) )
+				return (long) sizeof(double);
+			
+			else if( std::holds_alternative<long> (data) )
+				return (long) sizeof(long);
+
+			else if( std::holds_alternative<bool> (data) )
+				return (long) sizeof(bool);
+
+			throw InvalidSyntaxError("Invalid Type for kanam");
+		}
+		throw InvalidSyntaxError("Kanam property is only for single type variable");
+	}
 
 	static VarDtype getValueFromToken( const Token& tok ){
 		if( tok.type == TOKEN_TYPE::STRING )

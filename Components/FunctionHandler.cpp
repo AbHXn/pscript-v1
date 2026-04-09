@@ -1,8 +1,9 @@
 #include "Headers/FunctionHandler.hpp"
 
-FunctionHandler::FunctionHandler( VAR_VMAP* parent, std::string runnerBody ){
+FunctionHandler::FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std::shared_ptr<Context> ctx ){
 	this->runnerBody = runnerBody;
 	this->parent = parent;
+	this->ctx = ctx;
 }
 
 void FunctionHandler::VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY ){

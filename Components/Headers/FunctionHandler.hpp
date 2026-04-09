@@ -14,12 +14,20 @@
 
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
+struct Context{
+	size_t LastRecoverErrorList = 0;
+	std::vector<Token> fullTokens;
+	size_t pointer = 0;
+	std::string filename;
+};
+
 class FunctionHandler: public VAR_VMAP {
 	public:
 		std::string functionName;
+		std::shared_ptr<Context> ctx;
 
-		FunctionHandler() = default;
-		FunctionHandler( VAR_VMAP* parent, std::string runnerBody );
+		FunctionHandler( std::shared_ptr<Context> ctx ): ctx(ctx) {};
+		FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std::shared_ptr<Context> ctx );
 
 		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY = nullptr );
 		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
