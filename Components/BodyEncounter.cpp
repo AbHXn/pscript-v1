@@ -352,27 +352,10 @@ void BodyEncounters::typeCastRequest( InstructionTokens& InsTokensAndData, std::
 		if( castInfo.size() != 1 )
 			throw InvalidSyntaxError("Typecasting error");
 
-		Token& top = castInfo.back();
-
 		if( mapData == nullptr )
 			throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token   );
 
-		if( mapData->mapType != MAPTYPE::VARIABLE )
-			throw InvalidSyntaxError("Only variables are allowed for TYPE_CASTING");
-		
-		if( top.token == "INT" )
-			mapData->typeCastToInt();
-		
-		else if( top.token == "THULA" )
-			mapData->typeCastToDouble();
-		
-		else if( top.token == "STR" )
-			mapData->typeCastToString();
-		
-		else if( top.token == "BOOL" )
-			mapData->typeCastToBool();
-		
-		else throw TypeCastError("Failed to cast");
+		mapData->typeCast(castInfo.back());
 	}
 }
 

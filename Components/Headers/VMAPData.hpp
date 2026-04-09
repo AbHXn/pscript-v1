@@ -49,6 +49,25 @@ struct MapItem{
 		else throw std::runtime_error("not an single element");
 	}
 
+	inline void typeCast(Token& tok){
+		if( this->mapType != MAPTYPE::VARIABLE )
+			throw InvalidSyntaxError("Only variables are allowed for TYPE_CASTING");
+		
+		if( tok.token == "INT" )
+			this->typeCastToInt();
+		
+		else if( tok.token == "THULA" )
+			this->typeCastToDouble();
+		
+		else if( tok.token == "STR" )
+			this->typeCastToString();
+		
+		else if( tok.token == "BOOL" )
+			this->typeCastToBool();
+		
+		else throw TypeCastError("Failed to cast");
+	}
+
 	inline void typeCastToInt(){
 		if( mapType == MAPTYPE::VARIABLE ){
 			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
