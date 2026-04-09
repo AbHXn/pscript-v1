@@ -29,7 +29,7 @@ class FunctionHandler: public VAR_VMAP {
 		FunctionHandler( std::shared_ptr<Context> ctx ): ctx(ctx) {};
 		FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std::shared_ptr<Context> ctx );
 
-		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY = nullptr );
+		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY );
 		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
 		void functionDefHandlerRunner( const std::vector<Token>&token, size_t& start );
 		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY );

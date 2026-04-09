@@ -8,6 +8,10 @@
 #include "../Verifier/Headers/InputOutput.hpp"
 #include "../Verifier/Headers/Instruction.hpp"
 
+#include "AST.hpp"
+#include "VMAPData.hpp"
+#include "ExprResolver.hpp"
+
 struct ExtendedIoToken;
 struct ExtendedVariableToken;
 struct ExtendedConditionalToken;
@@ -24,7 +28,7 @@ using EXT_TYPE = std::variant<
 					ExtendedInsTokens
 					>;
 
-static std::unordered_map<std::string, EXT_TYPE> preComputed;
+extern std::unordered_map<std::string, EXT_TYPE> preComputed;
 
 struct ExtendedFunctionCall{
 	FunctionCallReturns tokens;
@@ -141,6 +145,14 @@ struct ExtendedInsTokens{
 		this->InsTokensAndData = InsTokensAndData;
 		this->endPtr = endPtr;
 	}
+};
+
+namespace PreComputedCaching{
+	void VariableCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
+	void IOCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
+	void InstructionCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
+	void ConditionalCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
+	void LoopCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
 };
 
 #endif
