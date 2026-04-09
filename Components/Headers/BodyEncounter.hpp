@@ -25,7 +25,7 @@ class BodyEncounters {
 		VarDtype handlerVarDtypePrpperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok );
 		DEEP_VALUE_DATA handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder );
 
-		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
+		FUNC_RETURN_TYPE
 		handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 
 							std::string KEY, std::optional<FunctionCallReturns> data = std::nullopt );
 
@@ -33,7 +33,8 @@ class BodyEncounters {
 		std::vector<long int> getResolvedIndexVectors( std::vector<std::vector<Token>>& indexVector );
 		void arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>& arr );
 		void typeCastRequest( InstructionTokens& InsTokensAndData, std::vector<Token>& varsAndVals );
-		std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>> getReturnedData( const std::vector<Token>&tokens, size_t& currentPtr );
+		
+		FUNC_RETURN_TYPE getReturnedData( const std::vector<Token>&tokens, size_t& currentPtr );
 };
 
 #endif

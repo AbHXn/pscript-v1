@@ -65,8 +65,25 @@ ExprResolver::vectorResolver( const std::vector<Token>& tokens, FunctionHandler*
 			resolvedAstNodeData.push( std::string("edukku"));
 			simpleVector.push_back("NUM");
 		}
-		else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR )
-			throw InvalidSyntaxError("Array should create in seperate pidi");
+		else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
+			size_t start_ptr = 0;
+			VariableTokens arrayCreationToken = stringToVariableTokens( tokens, start_ptr, false );
+			arrayCreationToken.valueTokens.push_back( VALUE_TOKENS::VALUE_END );
+			passValidValueTokens( arrayCreationToken.valueTokens );
+
+			std::queue<DEEP_VALUE_DATA> resolvedValueVector;
+			for(int x = 0; x < arrayCreationToken.valueVector.size(); x++){
+				auto finalValue = ExprResolver::evaluateVector( arrayCreationToken.valueVector[x], func );
+				resolvedValueVector.push( finalValue );
+			}
+			size_t nstart_ptr = 1;
+			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> tempArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray( 
+				arrayCreationToken.valueTokens, nstart_ptr, resolvedValueVector
+			 );
+			resolvedAstNodeData.push( tempArray );
+			simpleVector.push_back("ARRAY");
+			x = start_ptr;
+		}
 		else throw InvalidSyntaxError( "Unknown Token " + curToken );
 	}
 	return RESOLVER_TYPE( resolvedAstNodeData, simpleVector );
@@ -87,12 +104,10 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 			throw;
 		}
 
-		if( std::holds_alternative<VarDtype>( astNodeData ) ){
+		if( std::holds_alternative<VarDtype>( astNodeData ) )
 			return std::get<VarDtype>( astNodeData );
-		}
 		
 		BodyEncounters bodyEncounter( helperHandler );
-
 		if( std::holds_alternative<std::pair<ArrayAccessTokens, std::string>> ( astNodeData ) ){
 			auto [accessTok, mapDataKey] = std::get<std::pair<ArrayAccessTokens, std::string>>( astNodeData );
 			std::shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey );
@@ -131,7 +146,6 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 
 				throw InvalidSyntaxError("Invalid dtype for operation");
 			}
-
 		}
 		else if( std::holds_alternative<std::pair<FunctionCallReturns, Token>>( astNodeData ) ){
 			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, Token>>( astNodeData );
@@ -162,8 +176,19 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 
 					throw InvalidSyntaxError("Invalid dtype for operation");
 				}
+				else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data.value() ) ){
+					DEEP_VALUE_DATA final = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data.value() );
+					if( level == 0 ) return final;
+
+					throw InvalidSyntaxError("Invalid dtype for operation");
+				}
 				else throw std::runtime_error("unknown typed pushed to queue");
 			}
+		}
+		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( astNodeData ) ){
+			auto data = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( astNodeData );
+			if( level == 0 ) return data;
+			throw InvalidSyntaxError("Invalid dtype for operation");
 		}
 		throw InvalidSyntaxError("Invalid dtype for operation");
 	}

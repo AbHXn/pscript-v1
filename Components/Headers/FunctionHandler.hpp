@@ -37,7 +37,7 @@ class FunctionHandler: public VAR_VMAP {
 		void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
 };
 
-std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
+FUNC_RETURN_TYPE
 ProgramExecutor( const std::vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr = 0  );
 
 

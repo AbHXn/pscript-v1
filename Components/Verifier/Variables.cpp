@@ -98,7 +98,7 @@ VariableTokens stringToVariableTokens( const std::vector<Token>& tokens, size_t&
 			}
 		}	
 	}
-	throw InvalidSyntaxError( "; didn't hit this token, hope its an erro :) " );
+	return VariableTokens( varTokens, valueToken, valueVector, VarQueue );
 }
 
 void passValidVarDeclaration( std::vector<VARIABLE_TOKENS>& varTokens, std::vector<VAR_INFO>& variableStack , std::queue<Token>& VarQueue ){

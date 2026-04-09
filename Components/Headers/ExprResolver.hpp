@@ -35,7 +35,6 @@ class ExprResolver {
 		static DEEP_VALUE_DATA evaluateVector( std::vector<Token>& vtr, FunctionHandler* func );
 		static RESOLVER_TYPE vectorResolver( const std::vector<Token>& tokens, FunctionHandler* func );
 		static DEEP_VALUE_DATA evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level = 0);
-
 };
 
 #endif

@@ -71,18 +71,20 @@ InstructionTokens stringToInsToken(const std::vector<Token>& tokens, size_t& sta
 	std::vector<Token> 		   		leftValue;
 	std::vector<INS_TOKEN> 	   		insTokens;
 
+	int curlyOpenCount = 0;
+
 	while( startIndex < tokens.size() ){
 		const Token& tok = tokens[ startIndex ];
 		const std::string& curToken = tok.token;
-			
-		if( curToken == "," )
+
+		if( curToken == "," && tok.type == TOKEN_TYPE::SPEC_CHAR)
 			insTokens.push_back( INS_TOKEN::COMMA );
 
 		else if( MainToken( curToken, Optr ) ){
 			isLhs = false;
 			insTokens.push_back( Optr );
 		}
-		else if( curToken == ";" ){
+		else if( curToken == ";" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 			insTokens.push_back( INS_TOKEN::INS_END );
 			return InstructionTokens( insTokens, Optr, rightVector, leftValue );
 		}
@@ -93,19 +95,25 @@ InstructionTokens stringToInsToken(const std::vector<Token>& tokens, size_t& sta
 			}
 			else{
 				std::vector<Token> valueVector;
-				int openBrackCnts = 0;
+				int openBrackCnts = 0, openCurlyCounts = 0;
 
 				while( startIndex < tokens.size() ){
-					if( tokens[ startIndex ].token == "(" && tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR)
+					const Token& curTok = tokens[ startIndex ];
+					const std::string& curStrTok = curTok.token;
+
+					if( curStrTok == "(" && curTok.type == TOKEN_TYPE::SPEC_CHAR)
 						openBrackCnts++;
-					else if( tokens[ startIndex ].token == ")" && tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR)
+					else if( curStrTok == ")" && curTok.type == TOKEN_TYPE::SPEC_CHAR)
 						openBrackCnts--;
 
-					if( !openBrackCnts && isRegisteredInsTokens( tokens[ startIndex ].token ) && (
-							tokens[startIndex].type == TOKEN_TYPE::OPERATOR || tokens[startIndex].type == TOKEN_TYPE::SPEC_CHAR
-						) ){
-						startIndex--;
-						break;
+					else if( curStrTok == "{" && curTok.type == TOKEN_TYPE::SPEC_CHAR )
+						openCurlyCounts++;
+					else if( curStrTok == "}" && curTok.type == TOKEN_TYPE::SPEC_CHAR )
+						openCurlyCounts--;
+
+					if( !openBrackCnts && !openCurlyCounts && isRegisteredInsTokens( curStrTok ) && (
+						curTok.type == TOKEN_TYPE::OPERATOR || curTok.type == TOKEN_TYPE::SPEC_CHAR ) ){
+						startIndex--; break;
 					}
 					valueVector.push_back( tokens[ startIndex++ ] );
 				}

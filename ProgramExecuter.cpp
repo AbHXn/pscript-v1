@@ -4,7 +4,7 @@
 
 using namespace std;
 
-optional<variant<VarDtype, shared_ptr<MapItem>>>
+FUNC_RETURN_TYPE
 ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS, FunctionHandler* prntClass, size_t endPtr ){
 	size_t backUpPtr = currentPtr;
 

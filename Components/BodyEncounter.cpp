@@ -137,7 +137,7 @@ BodyEncounters::handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DAT
 	return HandlingDtype;
 }
 
-std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
+FUNC_RETURN_TYPE
 BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 
 					std::string KEY, std::optional<FunctionCallReturns> data
 	){
@@ -359,15 +359,14 @@ void BodyEncounters::typeCastRequest( InstructionTokens& InsTokensAndData, std::
 	}
 }
 
-std::optional<std::variant<VarDtype, std::shared_ptr<MapItem>>>
+FUNC_RETURN_TYPE
 BodyEncounters::getReturnedData( const std::vector<Token>&tokens, size_t& currentPtr ){
 	currentPtr++;
 	std::vector<Token> returnStatementData;
 
 	while( currentPtr < tokens.size() ){
 		const Token& curToken = tokens[ currentPtr++ ];
-		if( curToken.token == ";" ) 
-			break;
+		if( curToken.token == ";" ) break;
 		returnStatementData.push_back( curToken );
 	}
 
@@ -376,15 +375,17 @@ BodyEncounters::getReturnedData( const std::vector<Token>&tokens, size_t& curren
 
 	if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
 		auto mapData = this->funcHandler->getFromVmap( returnStatementData.back().token );
-		
 		if( mapData == nullptr )
-			throw InvalidSyntaxError( "No variable found " + returnStatementData.back().token + 
-				"\nRemember variable should be create inside the function body" );
-
+			throw InvalidSyntaxError( 
+				"No variable found " + returnStatementData.back().token + "\nRemember variable should be create inside the function body" 
+			);
 		return mapData;				
 	}
 	DEEP_VALUE_DATA res = ExprResolver::evaluateVector( returnStatementData, this->funcHandler );
 	if( std::holds_alternative<VarDtype> ( res ) )
 		return std::get<VarDtype>( res );
+
+	else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( res ) )
+		return std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( res );
 	throw InvalidSyntaxError("Invalid return statement");
-}		
+}
