@@ -190,6 +190,7 @@ FunctionCallReturns stringToFunctionCallTokens( const std::vector<Token>& tokens
 		else if( curToken == "(" ){
 			ctokens.push_back( FUNC_CALL_TOKEN::ARG_OPEN );
 			int openCnts = 1;
+			int curlyOpens = 0;
 
 			std::vector<Token> curVector;
 			curPtr++;
@@ -202,8 +203,12 @@ FunctionCallReturns stringToFunctionCallTokens( const std::vector<Token>& tokens
 					openCnts++;
 				else if( curToken.token == ")" )
 					openCnts--;
+				else if( curToken.token == "{" )
+					curlyOpens++;
+				else if( curToken.token == "}" )
+					curlyOpens--;
 
-				if( curToken.token == "," && openCnts == 1 ){
+				if( curToken.token == "," && openCnts == 1 && !curlyOpens ){
 					argsTokens.push_back( curVector );
 					ctokens.push_back( FUNC_CALL_TOKEN::ARG_VALUE );
 					curVector.clear();

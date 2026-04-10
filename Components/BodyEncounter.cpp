@@ -149,13 +149,12 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 		funCallTok.tokens = Data;
 		funCallTok.endPtr = currentPtr;
 
+
 		if( Data.argsVector.size() ){
 			std::vector< std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> > resolvedArgs;
 			int total_comma = Data.argsVector.size() - 1;
 
 			std::vector<Token> rhsTokens;
-			rhsTokens.push_back( Token( TOKEN_TYPE::OPERATOR, "=", 0, 0 ) );
-
 			for( auto argSingleVec: Data.argsVector ){
 				auto dpData = ExprResolver::getAstRootNode(argSingleVec, this->funcHandler );
 				resolvedArgs.push_back( std::move( dpData ));
@@ -166,7 +165,7 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 			}
 			rhsTokens.push_back(Token( TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
 			size_t start = 0;
-			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start );
+			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start, false );
 			
 			passValidValueTokens( funcVars.valueTokens );
 			funCallTok.argsVcts = std::move( resolvedArgs );
