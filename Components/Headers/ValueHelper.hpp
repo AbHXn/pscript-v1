@@ -43,7 +43,10 @@ class ValueHelper{
 	static void printVarDtype(const VarDtype& value) {
 		std::visit([](const auto& v) {
 			using T = std::decay_t<decltype(v)>;
-			if constexpr (std::is_same_v<T, bool>)
+			if constexpr ( std::is_same_v<T, std::monostate> )
+				std::cout << "onnula";
+
+			else if constexpr (std::is_same_v<T, bool>)
 				std::cout << (v ? "sheri" : "thettu");
 			
 			else if constexpr (std::is_same_v<T, std::string>)
@@ -100,9 +103,7 @@ class ValueHelper{
 
 	static DEEP_VALUE_DATA
 	getDataFromVariableHolder( std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>& varData ){
-		return std::visit( [](auto& value)-> DEEP_VALUE_DATA {
-			return value;
-		}, varData->value );
+		return std::visit( [](auto& value)-> DEEP_VALUE_DATA { return value; }, varData->value );
 	}
 
 	static void
@@ -192,6 +193,9 @@ class ValueHelper{
 	    
 		else if constexpr (std::is_same_v<T, std::string>)
 			return v;
+
+		else if constexpr(std::is_same_v<T, std::monostate>)
+			return "onnula";
 	    
 		else return std::to_string(v);
 	}

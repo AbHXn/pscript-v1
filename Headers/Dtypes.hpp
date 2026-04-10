@@ -3,7 +3,7 @@
 
 #include <string>
 
-using VarDtype = std::variant<std::string, long int, double, bool>;
+using VarDtype = std::variant<std::string, long int, double, bool, std::monostate>;
 
 class DtypeHelper{
 	public:

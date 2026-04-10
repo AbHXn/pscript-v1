@@ -41,6 +41,10 @@ ExprResolver::vectorResolver( const std::vector<Token>& tokens, FunctionHandler*
 			resolvedAstNodeData.push( ValueHelper::getValueFromToken( tok ) );
 			simpleVector.push_back("NUM");
 		}
+		else if( tok.type == TOKEN_TYPE::RESERVED && tok.token == "onnula" ){
+			resolvedAstNodeData.push(VarDtype{std::monostate{}});
+			simpleVector.push_back("NONE");
+		}
 		else if( tok.type == TOKEN_TYPE::IDENTIFIER ){
 			auto mainVmapData = func->getFromVmap( curToken );
 
@@ -273,6 +277,14 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 		            if (op == AST_TOKENS::ADD)
 		                return ValueHelper::toString(x) + ValueHelper::toString(y);
 		            throw InvalidSyntaxError("Invalid operator involving string");
+		        }
+		        else if constexpr (std::is_same_v<X, std::monostate> || std::is_same_v<Y, std::monostate> ){
+		        	bool isBothEqual = std::is_same_v<X, std::monostate> && std::is_same_v<Y, std::monostate>;
+		        	if( op == AST_TOKENS::D_EQUAL_TO )
+		        		return isBothEqual;
+		        	if( op == AST_TOKENS::NOT_EQUAL_TO )
+		        		return !isBothEqual;
+		        	throw InvalidSyntaxError("Invalid operator involving onnula");
 		        }
 		        else throw InvalidSyntaxError("Invalid operation between VarDtype types");
 		    }, leftData, rightData
