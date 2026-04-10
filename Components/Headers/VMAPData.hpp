@@ -31,7 +31,7 @@ using DEEP_VALUE_DATA  		= std::variant<VarDtype, std::shared_ptr<ArrayList<ARRA
 using REAL_AST_NODE_DATA 	= std::variant<
 							  AST_TOKENS, VarDtype, std::pair<ArrayAccessTokens, std::string>, 
 							  std::pair<FunctionCallReturns, Token>, std::string, 
-							  std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
+							  std::pair<VariableTokens, Token>
 							  >;
 using FUNC_RETURN_TYPE = std::optional<std::variant<
 							VarDtype, std::shared_ptr<MapItem>, 

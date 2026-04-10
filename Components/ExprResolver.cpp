@@ -72,6 +72,8 @@ ExprResolver::vectorResolver( const std::vector<Token>& tokens, FunctionHandler*
 		else if( curToken == "{" && tok.type == TOKEN_TYPE::SPEC_CHAR ){
 			size_t start_ptr = 0;
 			VariableTokens arrayCreationToken = stringToVariableTokens( tokens, start_ptr, false );
+			resolvedAstNodeData.push( std::make_pair( arrayCreationToken, tok ) );
+			/*
 			arrayCreationToken.valueTokens.push_back( VALUE_TOKENS::VALUE_END );
 			passValidValueTokens( arrayCreationToken.valueTokens );
 
@@ -85,6 +87,7 @@ ExprResolver::vectorResolver( const std::vector<Token>& tokens, FunctionHandler*
 				arrayCreationToken.valueTokens, nstart_ptr, resolvedValueVector
 			 );
 			resolvedAstNodeData.push( tempArray );
+			*/
 			simpleVector.push_back("ARRAY");
 			x = start_ptr;
 		}
@@ -189,9 +192,21 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 				else throw std::runtime_error("unknown typed pushed to queue");
 			}
 		}
-		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( astNodeData ) ){
-			auto data = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( astNodeData );
-			if( level == 0 ) return data;
+		else if( std::holds_alternative<std::pair<VariableTokens, Token>>( astNodeData ) ){
+			auto [arrayCreationToken, tok] = std::get<std::pair<VariableTokens, Token>>( astNodeData );
+			arrayCreationToken.valueTokens.push_back( VALUE_TOKENS::VALUE_END );
+			passValidValueTokens( arrayCreationToken.valueTokens );
+
+			std::queue<DEEP_VALUE_DATA> resolvedValueVector;
+			for(int x = 0; x < arrayCreationToken.valueVector.size(); x++){
+				auto finalValue = ExprResolver::evaluateVector( arrayCreationToken.valueVector[x], helperHandler );
+				resolvedValueVector.push( finalValue );
+			}
+			size_t nstart_ptr = 1;
+			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> tempArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray( 
+				arrayCreationToken.valueTokens, nstart_ptr, resolvedValueVector );
+
+			if( level == 0 ) return tempArray;
 			throw InvalidSyntaxError("Invalid dtype for operation");
 		}
 		throw InvalidSyntaxError("Invalid dtype for operation");

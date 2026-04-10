@@ -15,8 +15,7 @@ pindi createHashMap(pidi size){
 	pindi add_or_update(pidi key){
 		pidi hash_key = hash(key);
 		nok hash_key >= buckets:valupam yo buckets[hash_key]:jaadi != "KOOTAM" {
-			pidi pair kootam = {key, 1};
-			buckets[hash_key] = pair;
+			buckets[hash_key] = {key, 1};
 		}: umbi {
 			nok key == buckets[hash_key][0] {
 				buckets[hash_key][1] = buckets[hash_key][1] + 1;
@@ -25,8 +24,7 @@ pindi createHashMap(pidi size){
 				ittuthiri cur < size um buckets[cur]:jaadi != "INT" {
 					cur = (cur + 1) % size;
 				}
-				pidi pair kootam = {key, 1};
-				buckets[cur] = pair;
+				buckets[cur] = {key, 1};
 			};
 		};
 	}
