@@ -329,7 +329,7 @@ void BodyEncounters::arrayUpdation( const std::vector<Token>& tokens, size_t& cu
 		if( arrList->totalElementsAllocated <= updationIndex ){
 			size_t cur = arrList->totalElementsAllocated;
 			for(; cur <= updationIndex; cur++)
-				arrList->push_SingleElement( VarDtype{0} );
+				arrList->push_SingleElement( VarDtype{std::monostate{}} );
 		}
 		std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
 	}
