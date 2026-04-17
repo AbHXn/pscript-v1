@@ -33,6 +33,11 @@ struct CondReturnToken{
 bool isRegisteredCondToken( const std::string& tokens );
 void passCondTokenValidation( std::vector<COND_TOKENS>& tokens );
 
-CondReturnToken stringToCondTokens( const std::vector<Token>& tokens, size_t& start );
+CondReturnToken stringToCondTokens( 
+		std::unordered_map<std::string, size_t>& bMap,
+		const std::vector<Token>& tokens, 
+		size_t& start,
+		std::string& filename 
+	);
 
 #endif 

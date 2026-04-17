@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <cctype>
 #include <string_view>
+#include <unordered_map>
 
 extern std::unordered_set<std::string_view> RESERVED_KEYS;
 extern std::unordered_set<std::string_view> SCHARS;
@@ -52,6 +53,7 @@ struct Token{
 		this->col = col;
 	}
 };
-void getTheTokens(const std::string& filename, std::vector<Token>& Tokens);
+std::unordered_map<std::string, size_t> 
+getTheTokens(const std::string& filename, std::vector<Token>& Tokens);
 
 #endif

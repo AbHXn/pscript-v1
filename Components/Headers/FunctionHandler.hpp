@@ -19,6 +19,7 @@ struct Context{
 	std::vector<Token> fullTokens;
 	size_t pointer = 0;
 	std::string filename;
+	std::unordered_map<std::string, size_t> bMap;
 };
 
 class FunctionHandler: public VAR_VMAP {

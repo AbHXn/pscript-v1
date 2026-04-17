@@ -18,25 +18,12 @@ bool isRegisteredLoopTokens( const std::string& tok ){
 	return REG_LOOP_TOKENS.find( tok ) != REG_LOOP_TOKENS.end() || isRegisteredLoopBodyTokens( tok );
 }
 
-size_t getEndPointer( const std::vector<Token>& tokens, size_t startPtr ){
-	int bodyOpenCount = 0;
-	while( startPtr < tokens.size() ){
-		const Token curToken = tokens[ startPtr ];
-		if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR )
-			bodyOpenCount++;
-
-		else if( curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR )
-			bodyOpenCount--;
-
-		if( bodyOpenCount == 0 )
-			return startPtr + 1;
-		
-		startPtr++;
-	}
-	throw InvalidSyntaxError( "forget to close '}' ? " );
-}
-
-LoopTokens stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex ){
+LoopTokens stringToLoopTokens( 
+		std::unordered_map<std::string, size_t>& bMap,
+		const std::vector<Token>& tokens, 
+		size_t& startIndex, 
+		std::string& filename
+){
 	std::vector<LOOP_TOKENS> lpTokens;
 	std::vector<Token> conditions;
 
@@ -54,8 +41,15 @@ LoopTokens stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIn
 			lpTokens.push_back( LOOP_TOKENS::BODY_OPEN );
 
 			size_t startPtr = startIndex + 1;
-			size_t endPtr 	= getEndPointer( tokens, startIndex );
+			size_t endPtr = 0;
 
+			std::string bKey = filename + std::to_string( curToken.row + 1 ) + "-" + std::to_string( curToken.col + 1 );
+
+			auto bkeyD = bMap.find(bKey);
+			if( bkeyD != bMap.end() )
+				endPtr = bkeyD->second + 1;
+			else throw InvalidSyntaxError("} failed to get closing tag");
+		
 			lpTokens.push_back( LOOP_TOKENS::BODY );
 			lpTokens.push_back( LOOP_TOKENS::BODY_CLOSE );
 
