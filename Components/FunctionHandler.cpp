@@ -79,7 +79,7 @@ void FunctionHandler::VarHandlerRunner( const std::vector<Token>& test, size_t& 
 				
 				this->addToMap( key, newMapVar );
 			}
-			else throw std::runtime_error("Type not defined");
+			else throw InternalError("Type not defined");
 		}
 		else if( curValueToken == VALUE_TOKENS::ARRAY_OPEN ){
 			x++;
@@ -156,11 +156,11 @@ void FunctionHandler::InstructionHandlerRunner( const std::vector<Token>& tokens
 
 				auto resData = bodyEncouter.getResolvedIndexVectors( arrToken.indexVector );
 				if( resData.size() > 1 )
-					throw std::runtime_error("string is a one dimensional");
+					throw InvalidSyntaxError("string is a one dimensional");
 				
 				std::string& strToUpdate = std::get<std::string> ( varDtypeData );
 				if ( !std::holds_alternative<VarDtype>( topValue ) )
-					throw std::runtime_error("Variable dtype mismatch mismatch");
+					throw InvalidSyntaxError("Variable dtype mismatch mismatch");
 				
 				( !resData.empty() ) ? bodyEncouter.updateString( strToUpdate, (long int) resData.back(), topValue ) :
 				mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );

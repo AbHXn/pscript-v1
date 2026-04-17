@@ -73,21 +73,6 @@ ExprResolver::vectorResolver( const std::vector<Token>& tokens, FunctionHandler*
 			size_t start_ptr = 0;
 			VariableTokens arrayCreationToken = stringToVariableTokens( tokens, start_ptr, false );
 			resolvedAstNodeData.push( std::make_pair( arrayCreationToken, tok ) );
-			/*
-			arrayCreationToken.valueTokens.push_back( VALUE_TOKENS::VALUE_END );
-			passValidValueTokens( arrayCreationToken.valueTokens );
-
-			std::queue<DEEP_VALUE_DATA> resolvedValueVector;
-			for(int x = 0; x < arrayCreationToken.valueVector.size(); x++){
-				auto finalValue = ExprResolver::evaluateVector( arrayCreationToken.valueVector[x], func );
-				resolvedValueVector.push( finalValue );
-			}
-			size_t nstart_ptr = 1;
-			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> tempArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray( 
-				arrayCreationToken.valueTokens, nstart_ptr, resolvedValueVector
-			 );
-			resolvedAstNodeData.push( tempArray );
-			*/
 			simpleVector.push_back("ARRAY");
 			x = start_ptr;
 		}
@@ -108,7 +93,7 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 				getline(std::cin, inputValue);
 				return inputValue;
 			}
-			throw;
+			throw InternalError("while resolving expr");
 		}
 
 		if( std::holds_alternative<VarDtype>( astNodeData ) )
@@ -189,7 +174,7 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 
 					throw InvalidSyntaxError("Invalid dtype for operation");
 				}
-				else throw std::runtime_error("unknown typed pushed to queue");
+				else throw InternalError("unknown typed pushed to queue");
 			}
 		}
 		else if( std::holds_alternative<std::pair<VariableTokens, Token>>( astNodeData ) ){
@@ -272,7 +257,7 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 		                case AST_TOKENS::NOT_EQUAL_TO:
 		                    return static_cast<double>(x) != static_cast<double>(y);
 		                default:
-		                    throw std::runtime_error("Unknown operator for numbers");
+		                    throw InvalidSyntaxError("Unknown operator for numbers");
 		            }
 		        }
 		        else if constexpr (std::is_same_v<X, std::string> && std::is_same_v<Y, std::string>){

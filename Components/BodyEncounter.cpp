@@ -30,7 +30,7 @@ BodyEncounters::handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>
 			auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
 
 			if( !std::holds_alternative< std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex ) )
-				throw std::runtime_error("irangu is only applicable to kootam type");
+				throw InvalidSyntaxError("irangu is only applicable to kootam type");
 
 			auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );					
 
@@ -43,7 +43,7 @@ BodyEncounters::handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>
 				auto adata = std::get<ARRAY_SUPPORT_TYPES>( data );
 				return std::visit( [&](auto&& cdata){ return DEEP_VALUE_DATA{ cdata }; }, adata);
 			}
-			else throw std::runtime_error("Invalid dtype in array");
+			else throw InternalError("Invalid dtype in array");
 		}
 
 		auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
@@ -119,10 +119,10 @@ BodyEncounters::handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DAT
 	DEEP_VALUE_DATA HandlingDtype = varHolder;
 	if( arrToken.indexVector.size() > 0 ){
 		if( !std::holds_alternative<VarDtype> ( varHolder ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( varHolder ) ) )
-			throw std::runtime_error("Indexing Invalid DType");
+			throw InvalidSyntaxError("Indexing Invalid DType");
 
 		if( arrToken.indexVector.size() > 1 )
-			throw std::runtime_error("Indexing ND on 1D type");
+			throw InvalidSyntaxError("Indexing ND on 1D type");
 
 		long int index = getResolvedIndexVectors( arrToken.indexVector ).back();
 
@@ -182,7 +182,7 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 		auto funcFromMap = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );
 
 		if( funcFromMap->argsInfo.size() != 0 )
-			throw std::runtime_error("pindi need args");
+			throw InvalidSyntaxError("pindi need args");
 
 		FunctionHandler newFuncRunner( this->funcHandler->ctx );
 
@@ -255,7 +255,7 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 			
 			newFuncRunner.addToMap( key, newMapVar );
 		}
-		else throw std::runtime_error("Type not defined");
+		else throw InternalError("Type not defined");
 	}
 	size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
 	size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
@@ -265,11 +265,11 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 
 void BodyEncounters::updateString( std::string& strToUpdate, long int index, DEEP_VALUE_DATA updata ){
 	if( !std::holds_alternative<VarDtype>( updata ) )
-		throw std::runtime_error("Invalid string updation dtype");
+		throw InvalidSyntaxError("Invalid string updation dtype");
 
 	auto& dataL1 = std::get<VarDtype>( updata );
 	if( !std::holds_alternative<std::string> ( dataL1 ) )
-		throw std::runtime_error( "invalid string updation dtype" );
+		throw InvalidSyntaxError( "invalid string updation dtype" );
 
 	std::string rightValue = std::get<std::string> ( dataL1 );
 

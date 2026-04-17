@@ -22,6 +22,12 @@ class VariableDeclarationMissing: public std::runtime_error{
 			runtime_error( "InvalidSyntax: Single variable holds more than 2 values\n" ){};
 };
 
+class InternalError: public std::runtime_error{
+	public:
+		explicit InternalError( const std::string& msg ):
+			runtime_error("InternalError: " + msg){};
+};
+
 class InvalidDTypeError: public std::runtime_error{
 	public:
 		explicit InvalidDTypeError( const std::string& msg ):
