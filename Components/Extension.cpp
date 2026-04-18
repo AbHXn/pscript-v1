@@ -58,15 +58,8 @@ namespace PreComputedCaching{
 		preComputed[ KEY ] = std::move( newIo );
 	}
 
-	void ConditionalCaching( 
-			std::unordered_map<std::string, size_t>& bMap, 
-			std::string& filename,
-			const std::vector<Token>& tokens, 
-			size_t& start, 
-			std::string KEY, 
-			FunctionHandler* func 
-		){
-		CondReturnToken ctokens  = stringToCondTokens( bMap, tokens, start, filename );
+	void ConditionalCaching( const std::vector<Token>& tokens, size_t& start, std::string KEY, FunctionHandler* func ){
+		CondReturnToken ctokens  = stringToCondTokens( tokens, start );
  		passCondTokenValidation( ctokens.tokens );
 
 		std::vector<std::pair<std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>, size_t>> astNodes; 
@@ -81,15 +74,8 @@ namespace PreComputedCaching{
 		preComputed[ KEY ] = std::move( newExtTok );
 	}
 
-	void LoopCaching ( 
-			std::unordered_map<std::string, size_t>& bMap, 
-			std::string& filename,
-			const std::vector<Token>& tokens, 
-			size_t& currentPtr, 
-			std::string KEY, 
-			FunctionHandler* func 
-		){
-		LoopTokens lpTokens  = stringToLoopTokens( bMap, tokens, currentPtr, filename );
+	void LoopCaching ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
+		LoopTokens lpTokens  = stringToLoopTokens( tokens, currentPtr );
  		passValidLoopTokens( lpTokens.lpTokens );
 
 		std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> astNode = ExprResolver::getAstRootNode( lpTokens.conditions, func ); 

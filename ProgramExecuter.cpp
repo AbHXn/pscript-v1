@@ -148,8 +148,7 @@ int main( int argc, char *argv[] ){
 		throw runtime_error("Invalid file format");
 
 
-	auto test = getTheTokens( cContext->filename, cContext->fullTokens );
-	cContext->bMap = test;
+	getTheTokens( cContext->filename, cContext->fullTokens );
 
 	FunctionHandler func(cContext);
 	func.functionName = "MAIN";

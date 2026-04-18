@@ -151,22 +151,8 @@ namespace PreComputedCaching{
 	void VariableCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
 	void IOCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
 	void InstructionCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
-	void ConditionalCaching( 
-			std::unordered_map<std::string, size_t>& bMap, 
-			std::string& filename,
-			const std::vector<Token>& tokens, 
-			size_t& start, 
-			std::string KEY, 
-			FunctionHandler* func 
-	 	);
-	void LoopCaching( 
-			std::unordered_map<std::string, size_t>& bMap, 
-			std::string& filename, 
-			const std::vector<Token>& tokens, 
-			size_t& startptr, 
-			std::string KEY, 
-			FunctionHandler* func 
-		);
+	void ConditionalCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
+	void LoopCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
 };
 
 #endif

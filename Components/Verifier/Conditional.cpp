@@ -55,55 +55,58 @@ void passCondTokenValidation( std::vector<COND_TOKENS>& tokens ){
 	throw InvalidSyntaxError( "Do dont encounter ; in nok statement" );
 }
 
-CondReturnToken stringToCondTokens( 
-		std::unordered_map<std::string, size_t>& bMap,
-		const std::vector<Token>& tokens, 
-		size_t& start,
-		std::string& filename 
-){
+CondReturnToken stringToCondTokens( const std::vector<Token>& tokens, size_t& start ){
 	std::vector<std::pair<std::vector<Token>, size_t>> conditions;
 	std::vector<COND_TOKENS> condTokens;
+	size_t bodyOpenCount = 0;
 
 	for( ; start < tokens.size(); start++ ){
 		const Token& curToken = tokens[ start ];
-
-		if( curToken.token == ";" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
-			condTokens.push_back( COND_TOKENS::END );
-			return CondReturnToken( condTokens, conditions, start );
-		}	
-		if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED){
-			condTokens.push_back( COND_TOKENS::IF );
-		}
-		else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR){
-			condTokens.push_back( COND_TOKENS::BODY_OPEN );
-
-			std::string bKey = filename + std::to_string( curToken.row + 1 ) + "-" + std::to_string( curToken.col + 1 );
-			auto bkeyD = bMap.find(bKey);
-			if( bkeyD != bMap.end() )
-				start = bkeyD->second;
-			else throw InvalidSyntaxError("} failed to get closing tag");
-			condTokens.push_back( COND_TOKENS::BODY_CLOSE );
-		}
-		else if( curToken.token == ":" && curToken.type == TOKEN_TYPE::OPERATOR){
-			condTokens.push_back( COND_TOKENS::CHAIN );
-		}
-		else if( curToken.token == "umbi" && curToken.type == TOKEN_TYPE::RESERVED){
-			condTokens.push_back( COND_TOKENS::ELSE );
-			conditions.push_back( { {Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 )}, start + 1 } );
-		}
-		else{
-			std::vector<Token> condVector;
-			while( start < tokens.size() ){
-				if( isRegisteredCondToken( tokens[ start ].token ) && (
-					tokens[start].type == TOKEN_TYPE::SPEC_CHAR || 
-					tokens[start].type == TOKEN_TYPE::RESERVED))
-				{
-					start--; break;
-				}
-				condVector.push_back( tokens[ start++ ] );
+		// if not inside a conditional body
+		if( !bodyOpenCount ){
+			if( curToken.token == ";" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
+				condTokens.push_back( COND_TOKENS::END );
+				return CondReturnToken( condTokens, conditions, start );
+			}	
+			if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED){
+				condTokens.push_back( COND_TOKENS::IF );
 			}
-			conditions.push_back( { condVector, start + 1 } );
-			condTokens.push_back( COND_TOKENS::CONDITION );
+			else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR){
+				condTokens.push_back( COND_TOKENS::BODY_OPEN );
+				bodyOpenCount++;
+			}
+			else if( curToken.token == ":" && curToken.type == TOKEN_TYPE::OPERATOR){
+				condTokens.push_back( COND_TOKENS::CHAIN );
+			}
+			else if( curToken.token == "umbi" && curToken.type == TOKEN_TYPE::RESERVED){
+				condTokens.push_back( COND_TOKENS::ELSE );
+				// else is always true
+				conditions.push_back( { {Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 )}, start + 1 } );
+			}
+			else if(curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR)
+				break;
+			else{
+				std::vector<Token> condVector;
+				while( start < tokens.size() ){
+					if( isRegisteredCondToken( tokens[ start ].token ) && (
+						tokens[start].type == TOKEN_TYPE::SPEC_CHAR || 
+						tokens[start].type == TOKEN_TYPE::RESERVED))
+					{
+						start--; break;
+					}
+					condVector.push_back( tokens[ start++ ] );
+				}
+				conditions.push_back( { condVector, start + 1 } );
+				condTokens.push_back( COND_TOKENS::CONDITION );
+			}
+		} 
+		else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR){
+			bodyOpenCount++;
+			continue;
+		}
+		else if( curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
+			if( --bodyOpenCount == 0 ) 
+				condTokens.push_back( COND_TOKENS::BODY_CLOSE );
 		}
 	}
 	throw InvalidSyntaxError("Forgot ; in nok statement?");

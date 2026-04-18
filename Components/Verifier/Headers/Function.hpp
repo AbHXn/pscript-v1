@@ -61,12 +61,7 @@ struct FunctionTokenReturn {
 
 void passValidFuncToken( std::vector<FUNC_TOKENS>& tokens );
 
-FunctionTokenReturn stringToFuncTokens( 
-		std::unordered_map<std::string, size_t>& bMap,
-		const std::vector<Token>&tokens, 
-		size_t& startIndex, 
-		std::string& filename \
-);
+FunctionTokenReturn stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex );
 
 /* --------------------------- FUNC CALL HANDLER --------------------------------*/
 

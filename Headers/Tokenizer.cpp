@@ -1,12 +1,10 @@
 #include "Tokenizer.hpp"
 
-
 std::unordered_set<std::string_view> RESERVED_KEYS = {
 	"pindi", "pidi", "sheri", "thettu", "poda", "pinnava",
 	"theku", "ittuthiri", "nok", "umbi", "onnula", "para", 
 	"koode", "um", "yo", "kootam", "edukku"
 };
-
 
 std::unordered_set<std::string_view> SCHARS = {
 	":", "(", ")", "[", "]", "{", "}", ",", ".", ";"
@@ -39,10 +37,9 @@ bool isValueType(TOKEN_TYPE type){
 	return ( type == TOKEN_TYPE::NUMBER || type == TOKEN_TYPE::STRING  || type == TOKEN_TYPE::FLOATING || type == TOKEN_TYPE::BOOLEAN );
 }
 
-std::unordered_map<std::string, size_t>
-getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
+void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
+
 	std::ifstream codeFile(filename);
-	std::unordered_map<std::string, size_t> BRACK_INFO;
 
 	if(!codeFile.is_open())
 		throw std::runtime_error("Cannot open file: " + filename);
@@ -54,8 +51,6 @@ getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 	size_t lineNumber = 0, colNumber = 0;
 	bool isSkip = false;
 	bool comments = false;
-
-	std::vector<std::string> brackInfo;
 
 	while(codeFile.get(cCode)){
 		if( cCode == '?' ){
@@ -155,20 +150,8 @@ getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 				else if(isOptr(currentWord))
 					currentState = TOKEN_TYPE::OPERATOR;
 
-				else if(isSpec(currentWord)){
-					if ( cCode == '{' ){
-						std::string finalKey = filename + std::to_string( lineNumber + 1 ) + "-" + std::to_string( colNumber + 1 );
-						brackInfo.push_back( finalKey );				
-					}
-					else if( cCode == '}' ){
-						if( !brackInfo.empty() ){
-							std::string key = brackInfo.back();
-							brackInfo.pop_back();
-							BRACK_INFO[ key ] = Tokens.size();
-						}
-					}
+				else if(isSpec(currentWord))
 					currentState = TOKEN_TYPE::SPEC_CHAR;
-				}
 
 				Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
 
@@ -196,7 +179,9 @@ getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 				}
 			}
 			else if(isOptr(std::string(1, cCode))){
+
 			    if((cCode == '-' || cCode == '+') && currentState == TOKEN_TYPE::NOTHING){
+
 			        bool unary = false;
 
 			        if(Tokens.empty())
@@ -215,27 +200,30 @@ getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 			            		prev.token == "para" || prev.token == "poda") )
 			            	unary = true;
 			        }
+
 			        if(unary){
 			            currentState = TOKEN_TYPE::NUMBER;
 			            currentWord.push_back(cCode);
 			            continue;
 			        }
 			    }
+
 			    if(currentState != TOKEN_TYPE::NOTHING){
 			        Tokens.push_back(Token(currentState,currentWord,lineNumber,colNumber));
 			        currentWord.clear();
 			    }
+
 			    currentWord = std::string(1, cCode);
 			    currentState = TOKEN_TYPE::OPERATOR;
 			    colNumber++;
 			}
+
 
 			else if(cCode == '.' && currentState == TOKEN_TYPE::NUMBER){
 				currentWord.push_back(cCode);
 				currentState = TOKEN_TYPE::FLOATING;
 			}
 			else if(isSpec(std::string(1, cCode))){
-
 				if(currentState != TOKEN_TYPE::NOTHING){
 					if(isReservedKey(currentWord)){
 						currentState = TOKEN_TYPE::RESERVED;
@@ -247,17 +235,6 @@ getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 					currentState = TOKEN_TYPE::NOTHING;
 					colNumber++;
 				}
-				if ( cCode == '{' ){
-					std::string finalKey = filename + std::to_string( lineNumber + 1 ) + "-" + std::to_string( colNumber + 1 );
-					brackInfo.push_back( finalKey );				
-				}
-				else if( cCode == '}' ){
-					if( !brackInfo.empty() ){
-						std::string key = brackInfo.back();
-						brackInfo.pop_back();
-						BRACK_INFO[ key ] = Tokens.size();
-					}
-				}
 				Tokens.push_back(Token(TOKEN_TYPE::SPEC_CHAR,std::string(1, cCode),lineNumber,colNumber));
 				colNumber++;
 			}
@@ -265,6 +242,5 @@ getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
 	}
 	if(currentState != TOKEN_TYPE::NOTHING)
 		Tokens.push_back(Token(currentState, currentWord, lineNumber, colNumber));
-	return BRACK_INFO;
 }
 

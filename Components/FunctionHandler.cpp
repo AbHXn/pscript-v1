@@ -9,7 +9,7 @@ FunctionHandler::FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std:
 void FunctionHandler::VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY ){
 	if( preComputed.find( KEY ) == preComputed.end() )
 		PreComputedCaching::VariableCaching( test, start, KEY, this );
-	
+
 	auto& variationalData = preComputed[ KEY ];
 	ExtendedVariableToken& tokens = std::get<ExtendedVariableToken>( variationalData );
 	start = tokens.endPtr;
@@ -179,7 +179,7 @@ void FunctionHandler::InstructionHandlerRunner( const std::vector<Token>& tokens
 }
 
 void FunctionHandler::functionDefHandlerRunner( const std::vector<Token>&token, size_t& start ){
-	FunctionTokenReturn funcTokens = stringToFuncTokens( this->ctx->bMap, token, start, this->ctx->filename );
+	FunctionTokenReturn funcTokens = stringToFuncTokens( token, start );
 	passValidFuncToken( funcTokens.tokens );
 
 	if( this->getFromVmap( funcTokens.funcName ) != nullptr )
@@ -251,7 +251,7 @@ void FunctionHandler::IOHandlerRunner( const std::vector<Token>& tokens, size_t&
 
 void FunctionHandler::CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY ){
 	if( preComputed.find( KEY ) == preComputed.end() )
-		PreComputedCaching::ConditionalCaching(this->ctx->bMap, this->ctx->filename, tokens, start, KEY, this );
+		PreComputedCaching::ConditionalCaching( tokens, start, KEY, this );
 
 	auto& variationalData = preComputed[ KEY ];
 	ExtendedConditionalToken& cTokens = std::get<ExtendedConditionalToken>( variationalData );
@@ -283,7 +283,7 @@ void FunctionHandler::CondHandlerRunner( const std::vector<Token>& tokens, size_
 void FunctionHandler::LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
 	size_t beginCopy = currentPtr;
 	if( preComputed.find( KEY ) == preComputed.end() )
-		PreComputedCaching::LoopCaching( this->ctx->bMap, this->ctx->filename, tokens, currentPtr, KEY, this );
+		PreComputedCaching::LoopCaching( tokens, currentPtr, KEY, this );
 
 	auto& variationalData = preComputed[ KEY ];
 	ExtendedLoopTokens& lpTokens = std::get<ExtendedLoopTokens>( variationalData );

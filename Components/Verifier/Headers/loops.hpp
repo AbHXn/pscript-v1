@@ -42,14 +42,10 @@ struct LoopTokens{
 	}
 };
 
-LoopTokens stringToLoopTokens( 
-	std::unordered_map<std::string, size_t>& bMap,
-	const std::vector<Token>& tokens, 
-	size_t& startIndex, 
-	std::string& filename
-);
+LoopTokens stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIndex );
 void passValidLoopTokens( std::vector<LOOP_TOKENS>& tokens );
 bool isRegisteredLoopBodyTokens( const std::string& tok );
 bool isRegisteredLoopTokens( const std::string& tok );
+size_t getEndPointer( const std::vector<Token>& tokens, size_t startPtr );
 
 #endif

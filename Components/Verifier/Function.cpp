@@ -65,12 +65,7 @@ void passValidFuncToken( std::vector<FUNC_TOKENS>& tokens ){
 	throw InvalidSyntaxError( "Do dont encounter end } token in Function" );
 }
 
-FunctionTokenReturn stringToFuncTokens( 
-		std::unordered_map<std::string, size_t>& bMap,
-		const std::vector<Token>&tokens, 
-		size_t& startIndex, 
-		std::string& filename
-){
+FunctionTokenReturn stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 	std::vector<FUNC_TOKENS> funcTokens;
 	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
 	std::string funcName;
@@ -79,7 +74,6 @@ FunctionTokenReturn stringToFuncTokens(
 	FUNC_TOKENS prev = FUNC_TOKENS::NOTHING;
 
 	for( ; startIndex < tokens.size(); startIndex++ ){
-		const Token& curTok = tokens[ startIndex ];
 		const std::string& curToken = tokens[ startIndex ].token;
 
 		if( curToken == "pindi" ){
@@ -101,20 +95,21 @@ FunctionTokenReturn stringToFuncTokens(
 			funcTokens.push_back( FUNC_TOKENS::BODY_OPEN );
 			funcTokens.push_back( FUNC_TOKENS::FUNC_BODY );
 			
-			std::string bKey = filename + std::to_string( curTok.row + 1 ) + "-" + std::to_string( curTok.col + 1 );
 			bodyStart = startIndex++;
-			auto bkeyD = bMap.find(bKey);
-			if( bkeyD != bMap.end() )
-				startIndex = bkeyD->second;
-			else throw InvalidSyntaxError("} failed to get closing tag");
-		
-			if( startIndex < tokens.size() && tokens[ startIndex ].token == "}" && 
-				tokens[ startIndex ].type == TOKEN_TYPE::SPEC_CHAR ){
-				startIndex++;
-				funcTokens.push_back( FUNC_TOKENS::BODY_CLOSE );
-				return FunctionTokenReturn(
-					funcTokens, std::move(args), funcName, bodyStart, startIndex
-				);
+			int openBody = 1;
+
+			while( startIndex < tokens.size() ){
+				const Token& curToken = tokens[ startIndex++ ];
+				if( curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
+					if( --openBody == 0 ){
+						funcTokens.push_back( FUNC_TOKENS::BODY_CLOSE );
+						return FunctionTokenReturn(
+							funcTokens, std::move(args), funcName, bodyStart, startIndex
+						);
+					}
+				}
+				else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR )
+					++openBody;
 			}
 		}
 		else{
