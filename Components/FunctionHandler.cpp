@@ -143,8 +143,7 @@ void FunctionHandler::InstructionHandlerRunner( const std::vector<Token>& tokens
 		if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
 			auto& arr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 			bodyEncouter.arrayUpdation( varsAndVals, x, topValue, arr );
-			mapData->var = arr;
-			return ;
+			continue;
 		}
 		auto vmapvariable = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
 		if( std::holds_alternative<VarDtype> ( vmapvariable->value ) ){
@@ -164,14 +163,11 @@ void FunctionHandler::InstructionHandlerRunner( const std::vector<Token>& tokens
 				
 				( !resData.empty() ) ? bodyEncouter.updateString( strToUpdate, (long int) resData.back(), topValue ) :
 				mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
-				return;
 			}
 		}
 		if( vmapvariable->isTypeArray ){
 			auto& arr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( vmapvariable->value );
 			bodyEncouter.arrayUpdation( varsAndVals, x, topValue, arr);
-			mapData->var = arr;
-			mapData->mapType = MAPTYPE::ARRAY_PTR;
 		}
 		else if( std::holds_alternative<VarDtype>( topValue ) )
 			mapData->updateSingleVariable( std::get<VarDtype>( topValue ) );
