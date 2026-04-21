@@ -13,14 +13,7 @@ pindi Qsort(pidi arr kootam, pidi left, pidi right){
 		cur = cur + 1;
 	}
 	sindex = sindex + 1;
-	? 
-	pidi temp = arr[sindex];
-	arr[sindex] = arr[right];
-	arr[right] = temp;
-	?
 	arr[sindex], arr[right] = arr[right], arr[sindex];
-
-	? arr[sindex], arr[right] = arr[right], arr[sindex]; ?
 	Qsort(arr, left, sindex - 1);
 	Qsort(arr, sindex + 1, right);
 }
