@@ -149,9 +149,7 @@ ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DA
 				return varHolder;
 
 			size_t st = 0;
-			std::string key = helperHandler->ctx->filename + std::to_string( mapDatakey.row + 1 ) + "-" + std::to_string( mapDatakey.col + 1 );
-
-			auto data = bodyEncounter.handleFunctionCall( mapData, helperHandler->ctx->fullTokens, st, key, funcRecToks);
+			auto data = bodyEncounter.handleFunctionCall( mapData, helperHandler->ctx->fullTokens, st, mapDatakey.tokenId, funcRecToks);
 			
 			if( data.has_value() ){	
 				if( std::holds_alternative<VarDtype>( data.value() ) ){

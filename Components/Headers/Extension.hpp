@@ -28,7 +28,7 @@ using EXT_TYPE = std::variant<
 					ExtendedInsTokens
 					>;
 
-extern std::unordered_map<std::string, EXT_TYPE> preComputed;
+extern std::unordered_map<unsigned int, EXT_TYPE> preComputed;
 
 struct ExtendedFunctionCall{
 	FunctionCallReturns tokens;
@@ -148,11 +148,11 @@ struct ExtendedInsTokens{
 };
 
 namespace PreComputedCaching{
-	void VariableCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
-	void IOCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
-	void InstructionCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
-	void ConditionalCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
-	void LoopCaching( const std::vector<Token>& tokens, size_t& startptr, std::string KEY, FunctionHandler* func );
+	void VariableCaching( const std::vector<Token>& tokens, size_t& startptr, const unsigned int KEY, FunctionHandler* func );
+	void IOCaching( const std::vector<Token>& tokens, size_t& startptr, const unsigned int KEY, FunctionHandler* func );
+	void InstructionCaching( const std::vector<Token>& tokens, size_t& startptr, const unsigned int KEY, FunctionHandler* func );
+	void ConditionalCaching( const std::vector<Token>& tokens, size_t& startptr, const unsigned int KEY, FunctionHandler* func );
+	void LoopCaching( const std::vector<Token>& tokens, size_t& startptr, const unsigned int KEY, FunctionHandler* func );
 };
 
 #endif

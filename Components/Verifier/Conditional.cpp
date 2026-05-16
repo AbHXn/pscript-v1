@@ -80,8 +80,10 @@ CondReturnToken stringToCondTokens( const std::vector<Token>& tokens, size_t& st
 			}
 			else if( curToken.token == "umbi" && curToken.type == TOKEN_TYPE::RESERVED){
 				condTokens.push_back( COND_TOKENS::ELSE );
-				// else is always true
-				conditions.push_back( { {Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 )}, start + 1 } );
+				// else is always true temp const
+				Token tempToken = Token( 0, TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 );
+				tempToken.tokConst = TOKEN_CONST::SHERI;
+				conditions.push_back( { {tempToken}, start + 1 } );
 			}
 			else if(curToken.token == "}" && curToken.type == TOKEN_TYPE::SPEC_CHAR)
 				break;

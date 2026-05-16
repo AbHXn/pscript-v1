@@ -1,9 +1,9 @@
 #include "Headers/Extension.hpp"
 
-std::unordered_map<std::string, EXT_TYPE> preComputed;
+std::unordered_map<unsigned int, EXT_TYPE> preComputed;
 
 namespace PreComputedCaching{
-	void VariableCaching( const std::vector<Token>& test, size_t& start, std::string KEY, FunctionHandler* func ){
+	void VariableCaching( const std::vector<Token>& test, size_t& start, const unsigned int KEY, FunctionHandler* func ){
 		VariableTokens tokens  = stringToVariableTokens( test, start );
 		size_t endPtr = start;
 
@@ -24,7 +24,7 @@ namespace PreComputedCaching{
 		preComputed[ KEY ] = std::move( newExtTok );
 	}
 
-	void InstructionCaching( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
+	void InstructionCaching( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY, FunctionHandler* func ){
 		InstructionTokens InsTokensAndData = stringToInsToken( tokens, currentPtr );
 		passValidInstructionTokens( InsTokensAndData.insToken );
 
@@ -44,7 +44,7 @@ namespace PreComputedCaching{
 		}
 	}
 
-	void IOCaching( const std::vector<Token>& tokens, size_t& start, std::string KEY, FunctionHandler* func){
+	void IOCaching( const std::vector<Token>& tokens, size_t& start, const unsigned int KEY, FunctionHandler* func){
 		auto tokensAndData = stringToIoTokens( tokens, start );
 		passValidIOTokens( tokensAndData.first );
 
@@ -58,7 +58,7 @@ namespace PreComputedCaching{
 		preComputed[ KEY ] = std::move( newIo );
 	}
 
-	void ConditionalCaching( const std::vector<Token>& tokens, size_t& start, std::string KEY, FunctionHandler* func ){
+	void ConditionalCaching( const std::vector<Token>& tokens, size_t& start, const unsigned int KEY, FunctionHandler* func ){
 		CondReturnToken ctokens  = stringToCondTokens( tokens, start );
  		passCondTokenValidation( ctokens.tokens );
 
@@ -74,7 +74,7 @@ namespace PreComputedCaching{
 		preComputed[ KEY ] = std::move( newExtTok );
 	}
 
-	void LoopCaching ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY, FunctionHandler* func ){
+	void LoopCaching ( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY, FunctionHandler* func ){
 		LoopTokens lpTokens  = stringToLoopTokens( tokens, currentPtr );
  		passValidLoopTokens( lpTokens.lpTokens );
 

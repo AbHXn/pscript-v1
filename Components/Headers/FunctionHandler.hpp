@@ -29,12 +29,12 @@ class FunctionHandler: public VAR_VMAP {
 		FunctionHandler( std::shared_ptr<Context> ctx ): ctx(ctx) {};
 		FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std::shared_ptr<Context> ctx );
 
-		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY );
-		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
+		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, const unsigned int KEY );
+		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY );
 		void functionDefHandlerRunner( const std::vector<Token>&token, size_t& start );
-		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY );
-		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY );
-		void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY );
+		void IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, const unsigned int KEY );
+		void CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, const unsigned int KEY );
+		void LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY );
 };
 
 FUNC_RETURN_TYPE

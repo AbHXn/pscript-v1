@@ -6,7 +6,7 @@ FunctionHandler::FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std:
 	this->ctx = ctx;
 }
 
-void FunctionHandler::VarHandlerRunner( const std::vector<Token>& test, size_t& start, std::string KEY ){
+void FunctionHandler::VarHandlerRunner( const std::vector<Token>& test, size_t& start, const unsigned int KEY ){
 	if( preComputed.find( KEY ) == preComputed.end() )
 		PreComputedCaching::VariableCaching( test, start, KEY, this );
 
@@ -103,7 +103,7 @@ void FunctionHandler::VarHandlerRunner( const std::vector<Token>& test, size_t& 
 	}
 }
 
-void FunctionHandler::InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
+void FunctionHandler::InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY ){
 	if( preComputed.find( KEY ) == preComputed.end() )
 		PreComputedCaching::InstructionCaching( tokens, currentPtr, KEY, this );
 
@@ -199,7 +199,7 @@ void FunctionHandler::functionDefHandlerRunner( const std::vector<Token>&token, 
 	this->addToMap( funcTokens.funcName, funcMapItem );
 }
 
-void FunctionHandler::IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY ){
+void FunctionHandler::IOHandlerRunner( const std::vector<Token>& tokens, size_t& start, const unsigned int KEY ){
 	if( preComputed.find( KEY ) == preComputed.end() )
 		PreComputedCaching::IOCaching( tokens, start, KEY, this );
 
@@ -245,7 +245,7 @@ void FunctionHandler::IOHandlerRunner( const std::vector<Token>& tokens, size_t&
 	}
 }
 
-void FunctionHandler::CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, std::string KEY ){
+void FunctionHandler::CondHandlerRunner( const std::vector<Token>& tokens, size_t& start, const unsigned int KEY ){
 	if( preComputed.find( KEY ) == preComputed.end() )
 		PreComputedCaching::ConditionalCaching( tokens, start, KEY, this );
 
@@ -276,7 +276,7 @@ void FunctionHandler::CondHandlerRunner( const std::vector<Token>& tokens, size_
 		throw InvalidSyntaxError("Conditional Expression expects boolean values");
 }
 
-void FunctionHandler::LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, std::string KEY ){
+void FunctionHandler::LoopHandlerRunner ( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY ){
 	size_t beginCopy = currentPtr;
 	if( preComputed.find( KEY ) == preComputed.end() )
 		PreComputedCaching::LoopCaching( tokens, currentPtr, KEY, this );
@@ -308,11 +308,11 @@ void FunctionHandler::LoopHandlerRunner ( const std::vector<Token>& tokens, size
 			currentPtr = bodyStart;
 			const Token& expTok = tokens[ bodyStart ];
 			
-			if( expTok.token == "theku" && expTok.type == TOKEN_TYPE::RESERVED ){
+			if( expTok.tokConst == TOKEN_CONST::THEKU && expTok.type == TOKEN_TYPE::RESERVED ){
 				currentPtr = lpTokens.lpToken.endPtr; 
 				return ;
 			}
-			if( expTok.token == "pinnava" && expTok.type == TOKEN_TYPE::RESERVED ){
+			if( expTok.tokConst == TOKEN_CONST::PINNAVA && expTok.type == TOKEN_TYPE::RESERVED ){
 				currentPtr = beginCopy; 
 				return ;
 			}

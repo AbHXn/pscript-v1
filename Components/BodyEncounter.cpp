@@ -138,8 +138,12 @@ BodyEncounters::handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DAT
 }
 
 FUNC_RETURN_TYPE
-BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 
-					std::string KEY, std::optional<FunctionCallReturns> data
+BodyEncounters::handleFunctionCall( 
+					std::shared_ptr<MapItem>& func, 
+					const std::vector<Token>& tokens, 
+					size_t& currentPtr, 
+					const unsigned int KEY, 
+					std::optional<FunctionCallReturns> data
 	){
 	if( preComputed.find( KEY ) == preComputed.end() ){
 		FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
@@ -159,11 +163,11 @@ BodyEncounters::handleFunctionCall( std::shared_ptr<MapItem>& func, const std::v
 				auto dpData = ExprResolver::getAstRootNode(argSingleVec, this->funcHandler );
 				resolvedArgs.push_back( std::move( dpData ));
 
-				rhsTokens.push_back( Token( TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
+				rhsTokens.push_back( Token( 0, TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
 				if( total_comma-- )
-					rhsTokens.push_back( Token( TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
+					rhsTokens.push_back( Token( 0, TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
 			}
-			rhsTokens.push_back(Token( TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
+			rhsTokens.push_back(Token( 0, TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
 			size_t start = 0;
 			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start, false );
 			

@@ -49,7 +49,11 @@ LoopTokens stringToLoopTokens( const std::vector<Token>& tokens, size_t& startIn
 		else if( curToken.token == "{" && curToken.type == TOKEN_TYPE::SPEC_CHAR ){
 			if( conditions.empty() ){
 				lpTokens.push_back( LOOP_TOKENS::CONDITION );
-				conditions.push_back( Token( TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 ) );
+				
+				Token tempToken = Token( 0, TOKEN_TYPE::BOOLEAN, "sheri", 0, 0 );
+				tempToken.tokConst = TOKEN_CONST::SHERI;
+
+				conditions.push_back( tempToken );
 			}
 			lpTokens.push_back( LOOP_TOKENS::BODY_OPEN );
 

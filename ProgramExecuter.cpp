@@ -16,21 +16,19 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		if( endPtr && currentPtr >= endPtr - 1 )
 			return nullopt;
 
-		if( curToken.token == "pidi" && curToken.type == TOKEN_TYPE::RESERVED ){
+		if( curToken.tokConst == TOKEN_CONST::PIDI && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				string key = prntClass->ctx->filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-				prntClass->VarHandlerRunner( tokens, currentPtr, key );
+				prntClass->VarHandlerRunner( tokens, currentPtr, curToken.tokenId );
 			}
 			catch( ... ){
 				cout << "pidi Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 		}
-		else if( curToken.token == "nok" && curToken.type == TOKEN_TYPE::RESERVED ){
+		else if( curToken.tokConst == TOKEN_CONST::NOK && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				string key = prntClass->ctx->filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				FunctionHandler newLpHander( prntClass, prntClass->runnerBody, prntClass->ctx );
-				newLpHander.CondHandlerRunner( tokens, currentPtr, key );
+				newLpHander.CondHandlerRunner( tokens, currentPtr, curToken.tokenId );
 			}
 			catch( const RecoverError& err ){
 				continue;
@@ -45,17 +43,16 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw InvalidSyntaxError( "unknown token }" );
 			return nullopt;
 		}
-		else if( curToken.token == "para" && curToken.type == TOKEN_TYPE::RESERVED ){
+		else if( curToken.tokConst == TOKEN_CONST::PARA && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				string key = prntClass->ctx->filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-				prntClass->IOHandlerRunner( tokens, currentPtr, key);
+				prntClass->IOHandlerRunner( tokens, currentPtr, curToken.tokenId);
 			}
 			catch( ... ){
 				cout << "para Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
 				throw;
 			}
 		}
-		else if( curToken.token == "pindi" && curToken.type == TOKEN_TYPE::RESERVED ){
+		else if( curToken.tokConst == TOKEN_CONST::PINDI && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
 				prntClass->functionDefHandlerRunner( tokens, currentPtr );
 				currentPtr--;
@@ -68,11 +65,10 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 				throw;
 			}
 		}
-		else if( curToken.token == "ittuthiri" && curToken.type == TOKEN_TYPE::RESERVED ){
+		else if( curToken.tokConst == TOKEN_CONST::ITTUTHIRI && curToken.type == TOKEN_TYPE::RESERVED ){
 			try{
-				string key = prntClass->ctx->filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
 				FunctionHandler newLpHander( prntClass, prntClass->runnerBody, prntClass->ctx );
-				newLpHander.LoopHandlerRunner( tokens, currentPtr, key );
+				newLpHander.LoopHandlerRunner( tokens, currentPtr, curToken.tokenId );
 				currentPtr--;
 			}
 			catch( const RecoverError& err ){
@@ -85,7 +81,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 		}
 		else{
 			BodyEncounters bodyEncounter( prntClass );
-			if( C_CLASS == CALLER::FUNCTION && curToken.token == "poda" && curToken.type == TOKEN_TYPE::RESERVED ){
+			if( C_CLASS == CALLER::FUNCTION && curToken.tokConst == TOKEN_CONST::PODA && curToken.type == TOKEN_TYPE::RESERVED ){
 				try{
 					return bodyEncounter.getReturnedData( tokens, currentPtr );
 				} 
@@ -103,8 +99,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			auto func = prntClass->getFromVmap( tokens[ currentPtr ].token );
 			if( func && func->mapType == MAPTYPE::FUNC_PTR ){
 				try{
-					string key = prntClass->ctx->filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-					bodyEncounter.handleFunctionCall( func, tokens, currentPtr, key );
+					bodyEncounter.handleFunctionCall( func, tokens, currentPtr, curToken.tokenId );
 				}
 				catch(...){
 					cout << "Pindi call Line " + to_string( tokens[backUpPtr].row + 1 ) << ": \n";
@@ -114,8 +109,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 			else{
 				try{
 					backUpPtr = currentPtr;
-					string key = prntClass->ctx->filename + to_string( tokens[ currentPtr ].row + 1 ) + "-" + to_string( tokens[ currentPtr ].col + 1 );
-					prntClass->InstructionHandlerRunner( tokens, currentPtr, key);
+					prntClass->InstructionHandlerRunner( tokens, currentPtr, curToken.tokenId);
 				}
 				catch( const RecoverError& err ){
 					currentPtr = backUpPtr;

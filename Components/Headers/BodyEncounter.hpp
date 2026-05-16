@@ -27,7 +27,7 @@ class BodyEncounters {
 
 		FUNC_RETURN_TYPE
 		handleFunctionCall( std::shared_ptr<MapItem>& func, const std::vector<Token>& tokens, size_t& currentPtr, 
-							std::string KEY, std::optional<FunctionCallReturns> data = std::nullopt );
+							const unsigned int KEY, std::optional<FunctionCallReturns> data = std::nullopt );
 
 		void updateString( std::string& strToUpdate, long int index, DEEP_VALUE_DATA updata );
 		std::vector<long int> getResolvedIndexVectors( std::vector<std::vector<Token>>& indexVector );
