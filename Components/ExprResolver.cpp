@@ -81,211 +81,253 @@ ExprResolver::vectorResolver( const std::vector<Token>& tokens, FunctionHandler*
 	return RESOLVER_TYPE( resolvedAstNodeData, simpleVector );
 }
 
+
 DEEP_VALUE_DATA 
-ExprResolver::evaluate_AST_NODE( const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode, FunctionHandler* helperHandler, size_t level ){
-	auto& astNodeData = astNode->AST_DATA;
+ExprResolver::evaluate_AST_NODE(
+    const std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>>& astNode,
+    FunctionHandler* helperHandler,
+    size_t level
+){
+    auto& astNodeData = astNode->AST_DATA;
 
-	if( !std::holds_alternative<AST_TOKENS>( astNodeData ) ){
-		if( std::holds_alternative<std::string>( astNodeData ) ){
-			std::string test = std::get<std::string> ( astNodeData );
-			if( test == "edukku" ){
-				std::string inputValue; 
-				getline(std::cin, inputValue);
-				return inputValue;
-			}
-			throw InternalError("while resolving expr");
-		}
+    if( !std::holds_alternative<AST_TOKENS>( astNodeData ) ){
+        if( std::holds_alternative<std::string>( astNodeData ) ){
+            const std::string& test = std::get<std::string>( astNodeData );
+            if( test == "edukku" ){
+                std::string inputValue;
+                getline(std::cin, inputValue);
+                return inputValue;
+            }
+            throw InternalError("while resolving expr");
+        }
+        if( std::holds_alternative<VarDtype>( astNodeData ) )
+            return std::get<VarDtype>( astNodeData );
 
-		if( std::holds_alternative<VarDtype>( astNodeData ) )
-			return std::get<VarDtype>( astNodeData );
-		
-		BodyEncounters bodyEncounter( helperHandler );
-		if( std::holds_alternative<std::pair<ArrayAccessTokens, std::string>> ( astNodeData ) ){
-			auto [accessTok, mapDataKey] = std::get<std::pair<ArrayAccessTokens, std::string>>( astNodeData );
-			std::shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDataKey );
+        BodyEncounters bodyEncounter(helperHandler);
+        if( std::holds_alternative< std::pair<ArrayAccessTokens, std::string> >( astNodeData ) ){
+            auto& [accessTok, mapDataKey] =std::get<std::pair<ArrayAccessTokens, std::string>>( astNodeData );
+            std::shared_ptr<MapItem> mapData = helperHandler->getFromVmap(mapDataKey);
 
-			if( mapData->mapType == MAPTYPE::VARIABLE ){
-				auto varHolder = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( mapData->var );
+            if( mapData->mapType == MAPTYPE::VARIABLE ){
+                auto varHolder = std::get< std::shared_ptr< VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES> > >( mapData->var );
 
-				if( !varHolder->isTypeArray ){
-					DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
-					auto datan = bodyEncounter.handleVarDtypeCases( accessTok,  tdata );
-					if( level == 0 ) return datan;
+                if( !varHolder->isTypeArray ){
+                    DEEP_VALUE_DATA tdata = ValueHelper::getDataFromVariableHolder( varHolder );
+                    auto datan = bodyEncounter.handleVarDtypeCases( accessTok, tdata );
 
-					if( std::holds_alternative<VarDtype>( datan ) )
-						return datan;		
+                    if( level == 0 ) return datan;
 
-					throw InvalidSyntaxError("Invalid dtype for operation");
-				}
-				else {
-					auto& arrayData = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
-					auto datan = bodyEncounter.handleArrayCases( arrayData, accessTok );
-					if( level == 0 ) return datan;
+                    if( std::holds_alternative<VarDtype>( datan ) )
+                        return datan;
 
-					if( std::holds_alternative<VarDtype>( datan ) )
-						return datan;
+                    throw InvalidSyntaxError( "Invalid dtype for operation" );
+                }
+                auto& arrayData =std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( varHolder->value );
+                auto datan = bodyEncounter.handleArrayCases( arrayData, accessTok );
 
-					throw InvalidSyntaxError("Invalid dtype for operation");
-				}
-			}
-			if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
-				auto arryListPtr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( mapData->var );
-				auto datan = bodyEncounter.handleArrayCases( arryListPtr, accessTok );
-				if( level == 0) return datan;
+                if( level == 0 )
+                    return datan;
 
-				if( std::holds_alternative<VarDtype>( datan ) )
-					return datan;
+                if( std::holds_alternative<VarDtype>( datan ) )
+                    return datan;
 
-				throw InvalidSyntaxError("Invalid dtype for operation");
-			}
-		}
-		else if( std::holds_alternative<std::pair<FunctionCallReturns, Token>>( astNodeData ) ){
-			auto [funcRecToks, mapDatakey] = std::get<std::pair<FunctionCallReturns, Token>>( astNodeData );
-			std::shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDatakey.token );
+                throw InvalidSyntaxError( "Invalid dtype for operation" );
+            }
 
-			auto varHolder = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( mapData->var );
-			
-			if( isFuncPtr( funcRecToks.callTokens ) )
-				return varHolder;
+            if( mapData->mapType == MAPTYPE::ARRAY_PTR ){
+                auto arrayPtr = std::get< std::shared_ptr< ArrayList<ARRAY_SUPPORT_TYPES> > >( mapData->var );
+                auto datan = bodyEncounter.handleArrayCases( arrayPtr, accessTok );
 
-			size_t st = 0;
-			auto data = bodyEncounter.handleFunctionCall( mapData, helperHandler->ctx->fullTokens, st, mapDatakey.tokenId, funcRecToks);
-			
-			if( data.has_value() ){	
-				if( std::holds_alternative<VarDtype>( data.value() ) ){
-					return std::get<VarDtype>(data.value());
-				}
-				else if( std::holds_alternative<std::shared_ptr<MapItem>>( data.value() ) ){
-					auto returnedData = std::move( std::get<std::shared_ptr<MapItem>>( data.value() ) );
-					DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData );
+                if( level == 0 )
+                    return datan;
 
-					if( level == 0 ) return final;
-					
-					if( std::holds_alternative<VarDtype>(final) )
-						return final;
+                if( std::holds_alternative<VarDtype>( datan ) )
+                    return datan;
 
-					throw InvalidSyntaxError("Invalid dtype for operation");
-				}
-				else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data.value() ) ){
-					DEEP_VALUE_DATA final = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data.value() );
-					if( level == 0 ) return final;
+                throw InvalidSyntaxError( "Invalid dtype for operation" );
+            }
+        }
+        else if( std::holds_alternative< std::pair<FunctionCallReturns, Token> >( astNodeData ) ){
+            auto& [funcRecToks, mapDatakey] = std::get< std::pair<FunctionCallReturns, Token> >( astNodeData );
+            std::shared_ptr<MapItem> mapData = helperHandler->getFromVmap( mapDatakey.token );
 
-					throw InvalidSyntaxError("Invalid dtype for operation");
-				}
-				else throw InternalError("unknown typed pushed to queue");
-			}
-		}
-		else if( std::holds_alternative<std::pair<VariableTokens, Token>>( astNodeData ) ){
-			auto [arrayCreationToken, tok] = std::get<std::pair<VariableTokens, Token>>( astNodeData );
-			arrayCreationToken.valueTokens.push_back( VALUE_TOKENS::VALUE_END );
-			passValidValueTokens( arrayCreationToken.valueTokens );
+            auto varHolder = std::get< std::shared_ptr<FUNCTION_MAP_DATA> >( mapData->var );
 
-			std::queue<DEEP_VALUE_DATA> resolvedValueVector;
-			for(int x = 0; x < arrayCreationToken.valueVector.size(); x++){
-				auto finalValue = ExprResolver::evaluateVector( arrayCreationToken.valueVector[x], helperHandler );
-				resolvedValueVector.push( finalValue );
-			}
-			size_t nstart_ptr = 1;
-			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> tempArray = ArrayList<ARRAY_SUPPORT_TYPES>::createArray( 
-				arrayCreationToken.valueTokens, nstart_ptr, resolvedValueVector );
+            if( isFuncPtr(funcRecToks.callTokens) )
+                return varHolder;
 
-			if( level == 0 ) return tempArray;
-			throw InvalidSyntaxError("Invalid dtype for operation");
-		}
-		throw InvalidSyntaxError("Invalid dtype for operation");
-	}
-	else{
-		if( !astNode->left || !astNode->right ) 
-			throw InvalidSyntaxError("Invalid Expression");
-		VarDtype leftData  = std::get<VarDtype>(evaluate_AST_NODE(astNode->left, helperHandler, level + 1));
-		auto op = astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData) : AST_TOKENS::ADD;
+            size_t st = 0;
+            auto data = bodyEncounter.handleFunctionCall(
+                    mapData,
+                    helperHandler->ctx->fullTokens,
+                    st,
+                    mapDatakey.tokenId,
+                    funcRecToks
+                );
 
-		if (op == AST_TOKENS::AND){
-		    if (!ValueHelper::toBool(leftData))
-		        return false;
-		    VarDtype rightData = std::get<VarDtype>(evaluate_AST_NODE(astNode->right, helperHandler, level + 1));
-		    return ValueHelper::toBool(rightData);
-		}
+            if( data.has_value() ){
+                if( std::holds_alternative<VarDtype>( data.value() ) )
+					return std::get<VarDtype>( data.value() );
 
-		if (op == AST_TOKENS::OR){
-		    if (ValueHelper::toBool(leftData))
-		        return true;
-		    VarDtype rightData = std::get<VarDtype>(evaluate_AST_NODE(astNode->right, helperHandler, level + 1));
-		    return ValueHelper::toBool(rightData);
-		}
-		VarDtype rightData = std::get<VarDtype>(evaluate_AST_NODE(astNode->right, helperHandler, level + 1));
+                else if( std::holds_alternative< std::shared_ptr<MapItem> >( data.value() ) ){
+                    auto returnedData = std::move( std::get< std::shared_ptr<MapItem> >( data.value() ) );
 
-		return std::visit(
-		    [&](const auto& x, const auto& y) -> VarDtype {
+                    DEEP_VALUE_DATA final = ValueHelper::getFinalValueFromMap( returnedData );
 
-		        using X = std::decay_t<decltype(x)>;
-		        using Y = std::decay_t<decltype(y)>;
+                    if( level == 0 ) return final;
 
-		        if constexpr (is_number_v<X> && is_number_v<Y>){
-		            switch (op){
-		                case AST_TOKENS::ADD:
-		                    if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
-		                        return x + y;
-		                    else
-		                        return static_cast<double>(x) + static_cast<double>(y);
-		                case AST_TOKENS::SUB:
-		                    if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
-		                        return x - y;
-		                    else
-		                        return static_cast<double>(x) - static_cast<double>(y);
-		                case AST_TOKENS::MUL:
-		                    if constexpr (std::is_same_v<X,long> && std::is_same_v<Y,long>)
-		                        return x * y;
-		                    else
-		                        return static_cast<double>(x) * static_cast<double>(y);
-		                case AST_TOKENS::DIV:
-		                    return static_cast<double>(x) / static_cast<double>(y);
-		                case AST_TOKENS::MOD:
-		                    return static_cast<long>(x) % static_cast<long>(y);
-		                case AST_TOKENS::LS_THAN:
-		                    return static_cast<double>(x) < static_cast<double>(y);
-		                case AST_TOKENS::GT_THAN:
-		                    return static_cast<double>(x) > static_cast<double>(y);
-		                case AST_TOKENS::LS_THAN_EQ:
-		                    return static_cast<double>(x) <= static_cast<double>(y);
-		                case AST_TOKENS::GT_THAN_EQ:
-		                    return static_cast<double>(x) >= static_cast<double>(y);
-		                case AST_TOKENS::D_EQUAL_TO:
-		                    return static_cast<double>(x) == static_cast<double>(y);
-		                case AST_TOKENS::NOT_EQUAL_TO:
-		                    return static_cast<double>(x) != static_cast<double>(y);
-		                default:
-		                    throw InvalidSyntaxError("Unknown operator for numbers");
-		            }
-		        }
-		        else if constexpr (std::is_same_v<X, std::string> && std::is_same_v<Y, std::string>){
-		            switch (op){
-		                case AST_TOKENS::ADD:  return x + y;
-		                case AST_TOKENS::LS_THAN:      return x <  y;
-		                case AST_TOKENS::GT_THAN:      return x >  y;
-		                case AST_TOKENS::LS_THAN_EQ:   return x <= y;
-		                case AST_TOKENS::GT_THAN_EQ:   return x >= y;
-		                case AST_TOKENS::D_EQUAL_TO:   return x == y;
-		                case AST_TOKENS::NOT_EQUAL_TO: return x != y;
-		                default:
-		                    throw InvalidSyntaxError("Invalid operator for strings");
-		            }
-		        }
-		        else if constexpr (std::is_same_v<X, std::string> || std::is_same_v<Y, std::string> ){
-		            if (op == AST_TOKENS::ADD)
-		                return ValueHelper::toString(x) + ValueHelper::toString(y);
-		            throw InvalidSyntaxError("Invalid operator involving string");
-		        }
-		        else if constexpr (std::is_same_v<X, std::monostate> || std::is_same_v<Y, std::monostate> ){
-		        	bool isBothEqual = std::is_same_v<X, std::monostate> && std::is_same_v<Y, std::monostate>;
-		        	if( op == AST_TOKENS::D_EQUAL_TO )
-		        		return isBothEqual;
-		        	if( op == AST_TOKENS::NOT_EQUAL_TO )
-		        		return !isBothEqual;
-		        	throw InvalidSyntaxError("Invalid operator involving onnula");
-		        }
-		        else throw InvalidSyntaxError("Invalid operation between VarDtype types");
-		    }, leftData, rightData
-		);
-	}
+                    if(std::holds_alternative<VarDtype>(final))
+                        return final;
+
+                    throw InvalidSyntaxError( "Invalid dtype for operation" );
+                }
+                else if( std::holds_alternative< std::shared_ptr< ArrayList<ARRAY_SUPPORT_TYPES> > >( data.value() ) ){
+                    DEEP_VALUE_DATA final = std::get< std::shared_ptr< ArrayList<ARRAY_SUPPORT_TYPES> > >( data.value() );
+
+                    if( level == 0 ) return final;
+                    throw InvalidSyntaxError( "Invalid dtype for operation" );
+                }
+                throw InternalError( "unknown typed pushed to queue" );
+            }
+        }
+        else if( std::holds_alternative< std::pair<VariableTokens, Token> >( astNodeData ) ){
+            auto [arrayCreationToken, tok] = std::get< std::pair<VariableTokens, Token> >( astNodeData );
+
+            arrayCreationToken.valueTokens.push_back( VALUE_TOKENS::VALUE_END );
+            passValidValueTokens( arrayCreationToken.valueTokens );
+
+            std::queue<DEEP_VALUE_DATA>
+                resolvedValueVector;
+
+            for( size_t x = 0; x < arrayCreationToken.valueVector.size(); x++){
+                auto finalValue = ExprResolver::evaluateVector(arrayCreationToken.valueVector[x],helperHandler);
+                resolvedValueVector.push(finalValue);
+            }
+            size_t nstart_ptr = 1;
+            auto tempArray =ArrayList<ARRAY_SUPPORT_TYPES>::createArray(arrayCreationToken.valueTokens,nstart_ptr,resolvedValueVector);
+
+            if( level == 0 )
+                return tempArray;
+
+            throw InvalidSyntaxError( "Invalid dtype for operation" );
+        }
+        throw InvalidSyntaxError( "Invalid dtype for operation" );
+    }
+    if( !astNode->left || !astNode->right )
+        throw InvalidSyntaxError( "Invalid Expression" );
+
+    VarDtype leftData =std::get<VarDtype>(evaluate_AST_NODE(astNode->left,helperHandler,level + 1));
+
+    auto op = astNode->isASTTokens ? std::get<AST_TOKENS>(astNodeData): AST_TOKENS::ADD;
+
+    if( op == AST_TOKENS::AND ){
+        if( !ValueHelper::toBool(leftData) )
+            return false;
+
+        VarDtype rightData = std::get<VarDtype>(evaluate_AST_NODE(astNode->right,helperHandler,level + 1));
+        return ValueHelper::toBool(rightData);
+    }
+
+    if( op == AST_TOKENS::OR ){
+        if( ValueHelper::toBool(leftData) )
+            return true;
+
+        VarDtype rightData = std::get<VarDtype>( evaluate_AST_NODE( astNode->right, helperHandler, level + 1 ));
+        return ValueHelper::toBool(rightData);
+    }
+    VarDtype rightData = std::get<VarDtype>( evaluate_AST_NODE( astNode->right, helperHandler, level + 1 ) );
+
+    return std::visit(
+        [&](const auto& x, const auto& y) -> VarDtype {
+            using X = std::decay_t<decltype(x)>;
+            using Y = std::decay_t<decltype(y)>;
+            if constexpr ( is_number_v<X> && is_number_v<Y> ){
+                constexpr bool bothLong =
+                    std::is_same_v<X,long> &&
+                    std::is_same_v<Y,long>;
+
+                switch(op){
+                    case AST_TOKENS::ADD:
+                        if constexpr (bothLong)
+                            return x + y;
+                        else
+                            return (double)x + (double)y;
+                    case AST_TOKENS::SUB:
+                        if constexpr (bothLong)
+                            return x - y;
+                        else
+                            return (double)x - (double)y;
+                    case AST_TOKENS::MUL:
+                        if constexpr (bothLong)
+                            return x * y;
+                        else
+                            return (double)x * (double)y;
+
+                    case AST_TOKENS::DIV:
+                        return (double)x / (double)y;
+                    case AST_TOKENS::MOD:
+                        return (long)x % (long)y;
+                    case AST_TOKENS::LS_THAN:
+                        return (double)x < (double)y;
+                    case AST_TOKENS::GT_THAN:
+                        return (double)x > (double)y;
+                    case AST_TOKENS::LS_THAN_EQ:
+                        return (double)x <= (double)y;
+                    case AST_TOKENS::GT_THAN_EQ:
+                        return (double)x >= (double)y;
+                    case AST_TOKENS::D_EQUAL_TO:
+                        return (double)x == (double)y;
+                    case AST_TOKENS::NOT_EQUAL_TO:
+                        return (double)x != (double)y;
+                    default:
+                        throw InvalidSyntaxError( "Unknown operator for numbers" );
+                }
+            }
+            else if constexpr ( std::is_same_v<X,std::string> && std::is_same_v<Y,std::string> ){
+                switch(op){
+                    case AST_TOKENS::ADD:
+                        return x + y;
+                    case AST_TOKENS::LS_THAN:
+                        return x < y;
+                    case AST_TOKENS::GT_THAN:
+                        return x > y;
+                    case AST_TOKENS::LS_THAN_EQ:
+                        return x <= y;
+                    case AST_TOKENS::GT_THAN_EQ:
+                        return x >= y;
+                    case AST_TOKENS::D_EQUAL_TO:
+                        return x == y;
+                    case AST_TOKENS::NOT_EQUAL_TO:
+                        return x != y;
+                    default:
+                        throw InvalidSyntaxError( "Invalid operator for strings" );
+                }
+            }
+            else if constexpr ( std::is_same_v<X,std::string> || std::is_same_v<Y,std::string> ){
+                if( op == AST_TOKENS::ADD ){
+                    return
+                        ValueHelper::toString(x) +
+                        ValueHelper::toString(y);
+                }
+
+                throw InvalidSyntaxError( "Invalid operator involving string" );
+            }
+            else if constexpr (std::is_same_v<X,std::monostate> || std::is_same_v<Y,std::monostate> ){
+                constexpr bool equal = std::is_same_v<X,std::monostate> && std::is_same_v<Y,std::monostate>;
+                if( op == AST_TOKENS::D_EQUAL_TO )
+                    return equal;
+
+                if( op == AST_TOKENS::NOT_EQUAL_TO )
+                    return !equal;
+
+                throw InvalidSyntaxError( "Invalid operator involving onnula" );
+            }
+            else throw InvalidSyntaxError( "Invalid operation between VarDtype types" );
+   
+        },
+        leftData,
+        rightData
+    );
 }
+
+
