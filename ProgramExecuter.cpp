@@ -130,7 +130,7 @@ ProgramExecutor( const vector<Token>& tokens, size_t& currentPtr, CALLER C_CLASS
 
 int main( int argc, char *argv[] ){
 	if( argc != 2 )
-		throw runtime_error("./pscript <filename>.ps");
+		throw runtime_error("./pscript <filename>.pp");
 
 	std::shared_ptr<Context> cContext = std::make_shared<Context>();
 
@@ -138,7 +138,7 @@ int main( int argc, char *argv[] ){
 	if (cContext->filename.size() <= 3)
 		throw runtime_error("Invalid file format");
 
-	if( cContext->filename.substr(cContext->filename.size() - 3) != ".ps" )
+	if( cContext->filename.substr(cContext->filename.size() - 3) != ".pp" )
 		throw runtime_error("Invalid file format");
 
 
