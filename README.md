@@ -37,7 +37,7 @@ make
 ### Run a Program
 
 ```
-./pscript program.ps
+./pscript program.pp
 ```
 
 ---
