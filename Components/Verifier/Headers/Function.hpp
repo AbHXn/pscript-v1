@@ -11,8 +11,6 @@
 #include "../../../Headers/Tokenizer.hpp"
 #include "../../../Headers/MBExceptions.hpp"
 
-extern std::unordered_set<std::string_view> REGISTERED_FUNC_TOKEN, REGISTERED_FUNC_BODY_TOKENS;
-
 enum class FUNC_TOKENS{
 	NOTHING 	,
 	FUNC_START 	,
@@ -31,13 +29,13 @@ enum class FUNC_TOKENS{
 // For arg Name and Type ( Single or Array )
 struct ARG_VAR_INFO{
 	std::string name;
-	bool isArray;
+	bool isArray = false;
 };
 
 // Func Info
 struct FunctionTokenReturn {
 	std::vector<FUNC_TOKENS> 			 tokens;
-	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
+	std::vector<ARG_VAR_INFO> 			 args;
 	std::string 					 funcName;
 	size_t 							 funcStartPtr;
 	size_t 							 funcEndPtr;
@@ -46,7 +44,7 @@ struct FunctionTokenReturn {
 
 	FunctionTokenReturn( 
 		std::vector<FUNC_TOKENS> tokens,
-		std::vector<std::unique_ptr<ARG_VAR_INFO>> args,
+		std::vector<ARG_VAR_INFO> args,
 		std::string funcName,
 		size_t funcStartPtr,
 		size_t funcEndPtr

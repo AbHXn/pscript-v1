@@ -1,140 +1,107 @@
 #include "Headers/BodyEncounter.hpp"
 
-BodyEncounters::BodyEncounters( FunctionHandler* funcHandler ){
-	this->funcHandler = funcHandler;
+// a stored array element ( single value / pindi ) as a general value
+static DEEP_VALUE_DATA deep( const ARRAY_SUPPORT_TYPES& item ){
+	return std::visit( []( const auto& x ){ return DEEP_VALUE_DATA{ x }; }, item );
 }
 
 std::optional<VarDtype>
-BodyEncounters::handleArrayProperties( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array, ArrayAccessTokens& arrToken){
-	if( arrToken.arrProperty == "valupam" )
-		return (long int) array->totalElementsAllocated;
+BodyEncounters::handleArrayProperties( const ArrayPtr& array, const ArrayAccessTokens& tok ){
+	if( tok.arrProperty == "valupam" )
+		return (long) array->totalElementsAllocated;
 	
-	else if( arrToken.arrProperty == "jaadi" )
-		return "KOOTAM";
+	if( tok.arrProperty == "jaadi" )
+		return std::string( "KOOTAM" );
 
-	else if( arrToken.arrProperty == "irangu" )
-		throw InvalidSyntaxError("irangu is for elements inside the array");
+	if( tok.arrProperty == "irangu" )
+		throw InvalidSyntaxError( "irangu is for elements inside the array" );
 	
 	return std::nullopt;
 }
 
 DEEP_VALUE_DATA
-BodyEncounters::handleArrayCases( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayData, ArrayAccessTokens& arrToken ){
-	if( arrToken.indexVector.size() ){
-		std::vector<long int> resolvedIndexVector = getResolvedIndexVectors( arrToken.indexVector );
-
-		// ONE INDEX BEFORE TYPE / * can extend later */
-		if( arrToken.isTouchedArrayProperty && arrToken.arrProperty == "irangu"){
-			auto lastIndex = resolvedIndexVector.back();
-			resolvedIndexVector.pop_back();
-			auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
-
-			if( !std::holds_alternative< std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex ) )
-				throw InvalidSyntaxError("irangu is only applicable to kootam type");
-
-			auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );					
-
-			auto data = ArrayList<ARRAY_SUPPORT_TYPES>::removeElementAtIndex( arrList, lastIndex );
-			
-			if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data ) )
-				return DEEP_VALUE_DATA{ std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( data ) };
-
-			else if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( data ) ){
-				auto adata = std::get<ARRAY_SUPPORT_TYPES>( data );
-				return std::visit( [&](auto&& cdata){ return DEEP_VALUE_DATA{ cdata }; }, adata);
-			}
-			else throw InternalError("Invalid dtype in array");
-		}
-
-		auto returnIndex = arrayData->getElementAtIndex( resolvedIndexVector, 0 );
-
-		if( std::holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) ){
-			auto spData = std::get<ARRAY_SUPPORT_TYPES>( returnIndex );
-			return std::visit( [&]( auto&& data ) {
-			    if (arrToken.isTouchedArrayProperty) {
-			    	DEEP_VALUE_DATA dv = data;
-			        return DEEP_VALUE_DATA{handlerVarDtypePrpperties(dv, arrToken)};
-			    } 
-			    return DEEP_VALUE_DATA{data};
-			}, spData);
-		}
-		else{
-			auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );
-			if( arrToken.isTouchedArrayProperty ){
-				auto data = this->handleArrayProperties( arrList, arrToken );
-				if( data.has_value() ) return data.value();
-			}
-			return arrList;
-		}
-	}
-	else {
-		if( arrToken.isTouchedArrayProperty ){
-			auto data = this->handleArrayProperties( arrayData, arrToken );
-			if( data.has_value() ) return data.value();
-		}
+BodyEncounters::handleArrayCases( const ArrayPtr& arrayData, const ArrayAccessTokens& tok ){
+	if( tok.indexVector.empty() ){
+		if( tok.isTouchedArrayProperty )
+			if( auto prop = handleArrayProperties( arrayData, tok ) ) return *prop;
 		return arrayData;
 	}
+	std::vector<long int> path = getResolvedIndexVectors( tok );
+
+	// a[ i ][ j ]:irangu removes element j of a[ i ] and gives it back
+	if( tok.isTouchedArrayProperty && tok.arrProperty == "irangu" ){
+		const long int last = path.back();
+		path.pop_back();
+
+		auto holder = arrayData->getElementAtIndex( path, 0 );
+		auto* list = std::get_if<ArrayPtr>( &holder );
+		if( !list )
+			throw InvalidSyntaxError( "irangu is only applicable to kootam type" );
+
+		auto removed = ArrayList<ARRAY_SUPPORT_TYPES>::removeElementAtIndex( *list, last );
+		if( auto* nested = std::get_if<ArrayPtr>( &removed ) )
+			return *nested;
+		return deep( std::get<ARRAY_SUPPORT_TYPES>( removed ) );
+	}
+	auto element = arrayData->getElementAtIndex( path, 0 );
+
+	if( auto* single = std::get_if<ARRAY_SUPPORT_TYPES>( &element ) ){
+		DEEP_VALUE_DATA value = deep( *single );
+		return tok.isTouchedArrayProperty ? DEEP_VALUE_DATA{ handlerVarDtypePrpperties( value, tok ) } : value;
+	}
+	auto& list = std::get<ArrayPtr>( element );
+	if( tok.isTouchedArrayProperty )
+		if( auto prop = handleArrayProperties( list, tok ) ) return *prop;
+	return list;
 }
 
 VarDtype 
-BodyEncounters::handlerVarDtypePrpperties( DEEP_VALUE_DATA& Vdata, ArrayAccessTokens& tok ){
-	if( tok.arrProperty == "jaadi" )
-		return ValueHelper::getValueType( Vdata );
-	
-	else if( tok.arrProperty == "kanam" )
-		return ValueHelper::getVariableSize( Vdata );
-	
-	else if( tok.arrProperty == "THA_ASCII" ){
-		if( !std::holds_alternative<VarDtype>( Vdata ) )
-			throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
+BodyEncounters::handlerVarDtypePrpperties( const DEEP_VALUE_DATA& Vdata, const ArrayAccessTokens& tok ){
+	const std::string& property = tok.arrProperty;
 
-		VarDtype data = std::get<VarDtype>( Vdata );
+	if( property == "jaadi" ) return ValueHelper::getValueType( Vdata );
+	if( property == "kanam" ) return ValueHelper::getVariableSize( Vdata );
 
-		if( !std::holds_alternative<std::string> ( data ) )
-			throw InvalidSyntaxError("THA_ASCII is only for string of size 1");
+	const VarDtype* data = std::get_if<VarDtype>( &Vdata );
 
-		std::string str = std::get<std::string> (data);
-		if( str.size() != 1 )
-			throw InvalidSyntaxError("ASCII is only for size 1");
+	if( property == "THA_ASCII" ){
+		const std::string* str = data ? std::get_if<std::string>( data ) : nullptr;
+		if( !str )
+			throw InvalidSyntaxError( "THA_ASCII is only for string of size 1" );
+		if( str->size() != 1 )
+			throw InvalidSyntaxError( "ASCII is only for size 1" );
 
-		return (long) str[0];
+		return (long) (unsigned char) (*str)[ 0 ];
 	}
-	else if( tok.arrProperty == "PO_ASCII" ){
-		if( !std::holds_alternative<VarDtype>( Vdata ) )
-			throw InvalidSyntaxError("PO_ASCII is only for INT");
+	if( property == "PO_ASCII" ){
+		const long* code = data ? std::get_if<long>( data ) : nullptr;
+		if( !code )
+			throw InvalidSyntaxError( "PO_ASCII is only for INT" );
 
-		VarDtype data = std::get<VarDtype>( Vdata );
-
-		if( !std::holds_alternative<long int> ( data ) )
-			throw InvalidSyntaxError("PO_ASCII is only for INT");
-
-		long str = std::get<long int> (data);
-		return std::string(1, (char) str);
+		return std::string( 1, (char) *code );
 	}
-	throw InvalidSyntaxError("Invalid variable property");
+	throw InvalidSyntaxError( "Invalid variable property" );
 }
 
 DEEP_VALUE_DATA 
-BodyEncounters::handleVarDtypeCases( ArrayAccessTokens& arrToken, DEEP_VALUE_DATA& varHolder ){
-	DEEP_VALUE_DATA HandlingDtype = varHolder;
-	if( arrToken.indexVector.size() > 0 ){
-		if( !std::holds_alternative<VarDtype> ( varHolder ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( varHolder ) ) )
-			throw InvalidSyntaxError("Indexing Invalid DType");
+BodyEncounters::handleVarDtypeCases( const ArrayAccessTokens& tok, const VarDtype& varHolder ){
+	if( tok.indexVector.empty() )
+		return tok.isTouchedArrayProperty ? DEEP_VALUE_DATA{ handlerVarDtypePrpperties( DEEP_VALUE_DATA{ varHolder }, tok ) }
+										  : DEEP_VALUE_DATA{ varHolder };
 
-		if( arrToken.indexVector.size() > 1 )
-			throw InvalidSyntaxError("Indexing ND on 1D type");
+	const std::string* str = std::get_if<std::string>( &varHolder );
+	if( !str )
+		throw InvalidSyntaxError( "Indexing Invalid DType" );
 
-		long int index = getResolvedIndexVectors( arrToken.indexVector ).back();
+	if( tok.indexVector.size() > 1 )
+		throw InvalidSyntaxError( "Indexing ND on 1D type" );
 
-		std::string& stringVarHolder = std::get<std::string>( std::get<VarDtype>( varHolder ) );
+	const long int index = getResolvedIndexVectors( tok ).back();
+	if( index < 0 || index >= (long int) str->size() )
+		throw ArrayOutOfBound( std::to_string( index ) );	// used to hand back the whole string
 
-		if( index >= 0 && index < stringVarHolder.size() )
-			HandlingDtype =  DEEP_VALUE_DATA { std::string(1, stringVarHolder[ index ]) };
-	}
-	if( arrToken.isTouchedArrayProperty )
-		return handlerVarDtypePrpperties( HandlingDtype, arrToken );	
-
-	return HandlingDtype;
+	DEEP_VALUE_DATA letter{ VarDtype{ std::string( 1, (*str)[ index ] ) } };
+	return tok.isTouchedArrayProperty ? DEEP_VALUE_DATA{ handlerVarDtypePrpperties( letter, tok ) } : letter;
 }
 
 FUNC_RETURN_TYPE
@@ -143,252 +110,220 @@ BodyEncounters::handleFunctionCall(
 					const std::vector<Token>& tokens, 
 					size_t& currentPtr, 
 					const unsigned int KEY, 
-					std::optional<FunctionCallReturns> data
+					const FunctionCallReturns* data
 	){
-	if( preComputed.find( KEY ) == preComputed.end() ){
-		FunctionCallReturns Data = ( data.has_value() ) ? data.value() : stringToFunctionCallTokens( tokens, currentPtr );
-		passValidFuncCallToken( Data.callTokens ); 
+	EXT_TYPE* cached = findPre( KEY );
+	if( !cached ){
+		FunctionCallReturns call = data ? *data : stringToFunctionCallTokens( tokens, currentPtr );
+		passValidFuncCallToken( call.callTokens ); 
 
-		ExtendedFunctionCall funCallTok;
-		funCallTok.tokens = Data;
-		funCallTok.endPtr = currentPtr;
+		ExtendedFunctionCall ext;
+		ext.endPtr = currentPtr;
+		for( auto& arg: call.argsVector )
+			ext.argsVcts.push_back( ExprResolver::getAstRootNode( arg, funcHandler ) );
+		ext.tokens = std::move( call );
 
-
-		if( Data.argsVector.size() ){
-			std::vector< std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> > resolvedArgs;
-			int total_comma = Data.argsVector.size() - 1;
-
-			std::vector<Token> rhsTokens;
-			for( auto argSingleVec: Data.argsVector ){
-				auto dpData = ExprResolver::getAstRootNode(argSingleVec, this->funcHandler );
-				resolvedArgs.push_back( std::move( dpData ));
-
-				rhsTokens.push_back( Token( 0, TOKEN_TYPE::IDENTIFIER, "NUM", 0, 0) );
-				if( total_comma-- )
-					rhsTokens.push_back( Token( 0, TOKEN_TYPE::SPEC_CHAR, ",", 0, 0) );
-			}
-			rhsTokens.push_back(Token( 0, TOKEN_TYPE::SPEC_CHAR, ";", 0, 0));
-			size_t start = 0;
-			VariableTokens funcVars = stringToVariableTokens( rhsTokens, start, false );
-			
-			passValidValueTokens( funcVars.valueTokens );
-			funCallTok.argsVcts = std::move( resolvedArgs );
-		}
-		preComputed[ KEY ] = std::move( funCallTok );
+		preComputed[ KEY ] = std::move( ext );
+		indexPre( KEY );
+		cached = findPre( KEY );
 	}
+	ExtendedFunctionCall& ext = std::get<ExtendedFunctionCall>( *cached );
+	currentPtr = ext.endPtr;
 
-	auto& variantData = preComputed[KEY];
-	auto& extFuncCallToken = std::get<ExtendedFunctionCall>( variantData );
-	currentPtr = extFuncCallToken.endPtr;
+	// keeps the pindi alive even if its variable is re-assigned while it runs
+	FuncPtr def = std::get<FuncPtr>( func->var );
 
-	// if it is zero arg function then no need to resolve arg vectors
-	if( extFuncCallToken.tokens.argsVector.size() == 0 ){
-		auto funcFromMap = std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );
+	if( ext.argsVcts.empty() && !def->argsInfo.empty() )
+		throw InvalidSyntaxError( "pindi need args" );
 
-		if( funcFromMap->argsInfo.size() != 0 )
-			throw InvalidSyntaxError("pindi need args");
+	if( ext.argsVcts.size() > def->argsInfo.size() )
+		throw InvalidSyntaxError( "Too many arguments for pindi " + ext.tokens.funcName );	// used to be ignored silently
 
-		FunctionHandler newFuncRunner( this->funcHandler->ctx );
+	FunctionHandler runner( funcHandler->ctx );
+	runner.runnerBody = ext.tokens.funcName;
+	runner.VMAP_COPY  = def->varMapCopy.first;
+	runner.parent 	  = def->varMapCopy.second;
 
-		size_t funcBodyStartPtr 	= funcFromMap->bodyStartPtr + 1;
-		size_t funcEndStartPtr  	= funcFromMap->bodyEndPtr;
-		newFuncRunner.runnerBody 	= extFuncCallToken.tokens.funcName;
-		newFuncRunner.VMAP_COPY 	= funcFromMap->varMapCopy.first;
-		newFuncRunner.parent 		= funcFromMap->varMapCopy.second;
+	// arguments are evaluated in the caller's scope, they become variables of the new one
+	for( size_t i = 0; i < def->argsInfo.size(); i++ ){
+		const ARG_VAR_INFO& arg = def->argsInfo[ i ];
 
-		return ProgramExecutor( tokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
+		if( i >= ext.argsVcts.size() )
+			throw InvalidSyntaxError( "No value to initialize the args in function" );
+
+		if( runner.VMAP_COPY->count( arg.name ) )
+			throw VariableAlreayExists( arg.name );
+
+		DEEP_VALUE_DATA value = ExprResolver::getFinalValue( ext.argsVcts[ i ], funcHandler );
+
+		if( std::holds_alternative<VarDtype>( value ) && arg.isArray )
+			throw InvalidSyntaxError( "Argument expects kootam\n" );
+
+		if( std::holds_alternative<ArrayPtr>( value ) && !arg.isArray )
+			throw InvalidSyntaxError( "Argument is not kootam type" );
+
+		runner.addToMap( arg.name, MapItem::make( arg.name, std::move( value ) ) );
 	}
-	FunctionHandler newFuncRunner( this->funcHandler->ctx );
-	newFuncRunner.runnerBody = extFuncCallToken.tokens.funcName;
-				
-	auto funcFromMap 		= std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( func->var );
-	newFuncRunner.VMAP_COPY = funcFromMap->varMapCopy.first;
-	newFuncRunner.parent 	= funcFromMap->varMapCopy.second;
-
-	std::queue<DEEP_VALUE_DATA> resolvedArgs;
-
-	for(int x = 0; x < extFuncCallToken.argsVcts.size(); x++){
-		auto& tree = extFuncCallToken.argsVcts[x];
-		DEEP_VALUE_DATA value = ExprResolver::getFinalValue( tree, this->funcHandler );
-		resolvedArgs.push( value );
-	}
-
-	for( auto& ArgsInfo: funcFromMap->argsInfo ){
-		if( resolvedArgs.empty() )
-			throw InvalidSyntaxError("No value to initialize the args in function");
-
-		if( newFuncRunner.VMAP_COPY.find( ArgsInfo->name ) != newFuncRunner.VMAP_COPY.end() )
-			throw VariableAlreayExists( ArgsInfo->name );
-
-		DEEP_VALUE_DATA topValue = resolvedArgs.front();
-		resolvedArgs.pop();
-
-		if( std::holds_alternative<VarDtype> ( topValue ) ){
-			if( ArgsInfo->isArray )
-				throw InvalidSyntaxError("Argument expects kootam\n");
-
-			// create variable
-			std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>> newVariable = std::make_shared<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
-			newVariable->key 	= ArgsInfo->name;							
-			newVariable->value 	= std::get<VarDtype>( topValue );
-
-			// add to vmap
-			auto newMapVar 		= std::make_shared<MapItem>( );
-			newMapVar->mapType  = MAPTYPE::VARIABLE;
-			newMapVar->var 		= newVariable;
-
-			newFuncRunner.addToMap( ArgsInfo->name, newMapVar );
-		}
-		else if(std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>> ( topValue )){
-			// no need to create variable add to map
-			if( !ArgsInfo->isArray )
-				throw InvalidSyntaxError("Argument is not kootam type");
-
-			std::string& key    = ArgsInfo->name;
-			auto newMapVar		= std::make_shared<MapItem>( );
-			newMapVar->mapType 	= MAPTYPE::ARRAY_PTR;
-
-			newMapVar->var = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>(topValue) ;
-			newFuncRunner.addToMap( key, newMapVar );
-		}
-		else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( topValue ) ){
-			std::string& key    = ArgsInfo->name;
-			auto newMapVar 		= std::make_shared<MapItem>( );
-			newMapVar->mapType 	= MAPTYPE::FUNC_PTR;
-			newMapVar->var 		= std::get<std::shared_ptr<FUNCTION_MAP_DATA>>(topValue);
-			
-			newFuncRunner.addToMap( key, newMapVar );
-		}
-		else throw InternalError("Type not defined");
-	}
-	size_t funcBodyStartPtr = funcFromMap->bodyStartPtr + 1;
-	size_t funcEndStartPtr  = funcFromMap->bodyEndPtr;
-	
-	return ProgramExecutor( tokens, funcBodyStartPtr, CALLER::FUNCTION, &newFuncRunner, funcEndStartPtr );
+	size_t bodyStart = def->bodyStartPtr + 1;
+	return ProgramExecutor( tokens, bodyStart, CALLER::FUNCTION, &runner, def->bodyEndPtr );
 }
 
-void BodyEncounters::updateString( std::string& strToUpdate, long int index, DEEP_VALUE_DATA updata ){
-	if( !std::holds_alternative<VarDtype>( updata ) )
-		throw InvalidSyntaxError("Invalid string updation dtype");
+void BodyEncounters::updateString( std::string& strToUpdate, long int index, const DEEP_VALUE_DATA& updata ){
+	const VarDtype* value = std::get_if<VarDtype>( &updata );
+	const std::string* replacement = value ? std::get_if<std::string>( value ) : nullptr;
 
-	auto& dataL1 = std::get<VarDtype>( updata );
-	if( !std::holds_alternative<std::string> ( dataL1 ) )
-		throw InvalidSyntaxError( "invalid string updation dtype" );
+	if( !replacement )
+		throw InvalidSyntaxError( "Invalid string updation dtype" );
 
-	std::string rightValue = std::get<std::string> ( dataL1 );
+	if( index < 0 || index >= (long int) strToUpdate.size() )
+		throw ArrayOutOfBound( std::to_string( index ) );
 
-	( index >= 0 && index < strToUpdate.size() ) ? strToUpdate.replace(index, 1, rightValue) : throw std::runtime_error("Index limit failed");
+	strToUpdate.replace( index, 1, *replacement );
 }
 
-std::vector<long int> BodyEncounters::getResolvedIndexVectors( std::vector<std::vector<Token>>& indexVector ){
-	std::vector<long int> resolvedIndexVector;
+// index expressions are parsed once ( lazily ) and their ASTs are kept inside the access token
+std::vector<long int> BodyEncounters::getResolvedIndexVectors( const ArrayAccessTokens& tok ){
+	const size_t total = tok.indexVector.size();
+	std::vector<long int> resolved;
+	resolved.reserve( total );
 
-	for( auto& vec: indexVector ){
-		DEEP_VALUE_DATA val = ExprResolver::evaluateVector( vec, this->funcHandler );
+	tok.indexAst.resize( total );
+	for( size_t k = 0; k < total; k++ ){
+		if( !tok.indexAst[ k ] )
+			tok.indexAst[ k ] = keepAst( ExprResolver::getAstRootNode( tok.indexVector[ k ], funcHandler ) );
 
-		if( !std::holds_alternative<VarDtype>( val ) )
-			throw InvalidSyntaxError("Array Index Expects Type Integer");
-		
-		VarDtype vDtypeIndex = std::get<VarDtype>( val );
-		
-		if( !std::holds_alternative<long int> ( vDtypeIndex ) && !std::holds_alternative<double> ( vDtypeIndex ))
-			throw InvalidSyntaxError("Array Index Expects Integer");
+		DEEP_VALUE_DATA val = ExprResolver::evalNode( static_cast<AST_NODE_PTR>( tok.indexAst[ k ].get() ), funcHandler, 0 );
 
-		long int index = ( std::holds_alternative<long int>( vDtypeIndex ) ) ? std::get<long int> ( vDtypeIndex ) : (long int) std::get<double>( vDtypeIndex );
-		resolvedIndexVector.push_back( index );
+		const VarDtype* number = std::get_if<VarDtype>( &val );
+		if( !number )
+			throw InvalidSyntaxError( "Array Index Expects Type Integer" );
+
+		if( auto* li = std::get_if<long int>( number ) )  resolved.push_back( *li );
+		else if( auto* di = std::get_if<double>( number ) ) resolved.push_back( (long int) *di );
+		else throw InvalidSyntaxError( "Array Index Expects Integer" );
 	}
-	return resolvedIndexVector;
+	return resolved;
 }
 
-void BodyEncounters::arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>& arr ){
-	ArrayAccessTokens arrToken = stringToArrayAccesToken( tokens, curPtr );
+// NOTE: the token vector must stay alive and unchanged for the whole program run ( key is the token address )
+const ArrayAccessTokens& BodyEncounters::getCachedArrayAccess( const std::vector<Token>& tokens, size_t& curPtr ){
+	struct CachedAccess{ ArrayAccessTokens tok; size_t endPtr; };
+	static std::unordered_map<const Token*, CachedAccess> accessCache;
+
+	const Token* key = tokens.data() + curPtr;
+	auto it = accessCache.find( key );
+
+	if( it == accessCache.end() ){
+		size_t endPtr = curPtr;
+		ArrayAccessTokens parsed = stringToArrayAccesToken( tokens, endPtr );
+		it = accessCache.emplace( key, CachedAccess{ std::move( parsed ), endPtr } ).first;
+	}
+	curPtr = it->second.endPtr;
+	return it->second.tok;
+}
+
+void BodyEncounters::arrayUpdation( const std::vector<Token>& tokens, size_t& curPtr, DEEP_VALUE_DATA upvalue, ArrayPtr& arr ){
+	const ArrayAccessTokens& tok = getCachedArrayAccess( tokens, curPtr );
 	curPtr--;
 
-	if( arrToken.isTouchedArrayProperty )
-		throw InvalidSyntaxError("Using array property in updatation is not allowed");
+	if( tok.isTouchedArrayProperty )
+		throw InvalidSyntaxError( "Using array property in updatation is not allowed" );
 
-	if( arrToken.indexVector.size() ){
-		std::vector<long int> resolvedIndexVector = getResolvedIndexVectors( arrToken.indexVector );
+	// no index : the whole kootam is replaced
+	if( tok.indexVector.empty() ){
+		auto* list = std::get_if<ArrayPtr>( &upvalue );
+		if( !list )
+			throw InvalidSyntaxError( "Dtype mismatch in array updation" );
 
-		long int updationIndex = resolvedIndexVector.back();
-		resolvedIndexVector.pop_back();
-
-		if( updationIndex < 0 ) throw InvalidSyntaxError("Array Index Expects Unsigned Integer");
-
-		auto returnIndex = arr->getElementAtIndex( resolvedIndexVector, 0 );
-
-		if( std::holds_alternative<ARRAY_SUPPORT_TYPES> ( returnIndex ) ){
-			auto arrData = std::get<ARRAY_SUPPORT_TYPES>( returnIndex );
-
-			if( !std::holds_alternative<VarDtype>( arrData ) || !std::holds_alternative<std::string> ( std::get<VarDtype>( arrData ) ) )
-				throw InvalidSyntaxError("Failed to index an non array type");
-			
-			auto& ttt = std::get<VarDtype>( arrData );
-			std::string& strToUpdate = std::get<std::string>( ttt );
-			updateString( strToUpdate, updationIndex, upvalue );
-			return ;
-		}
-		auto arrList = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( returnIndex );
-
-		if( arrList->totalElementsAllocated <= updationIndex ){
-			size_t cur = arrList->totalElementsAllocated;
-			for(; cur <= updationIndex; cur++)
-				arrList->push_SingleElement( VarDtype{std::monostate{}} );
-		}
-		std::visit( [&]( auto&& data ){ arrList->arrayList[updationIndex] = data; }, upvalue );
+		arr = std::move( *list );
+		return;
 	}
-	else {
-		if( !std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue ) )
-			throw InvalidSyntaxError("Dtype mismatch in array updation");
-		arr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( upvalue );
+	std::vector<long int> path = getResolvedIndexVectors( tok );
+	const long int index = path.back();
+	path.pop_back();
+
+	if( index < 0 )
+		throw InvalidSyntaxError( "Array Index Expects Unsigned Integer" );
+
+	auto target = arr->getElementAtIndex( path, 0 );
+
+	// a[ ... ][ index ] = "x"  where a[ ... ] is a string : change that letter
+	if( auto* single = std::get_if<ARRAY_SUPPORT_TYPES>( &target ) ){
+		auto* value = std::get_if<VarDtype>( single );
+		auto* text = value ? std::get_if<std::string>( value ) : nullptr;
+		if( !text )
+			throw InvalidSyntaxError( "Failed to index an non array type" );
+
+		updateString( *text, index, upvalue );
+
+		// the lookup hands out a copy : store the changed string back ( the change used to be lost )
+		const long int slot = path.back();
+		path.pop_back();
+		std::get<ArrayPtr>( arr->getElementAtIndex( path, 0 ) )->arrayList[ slot ] = std::move( *single );
+		return;
 	}
+	auto& list = std::get<ArrayPtr>( target );
+
+	while( list->totalElementsAllocated <= (size_t) index )
+		list->push_SingleElement( VarDtype{ std::monostate{} } );
+
+	std::visit( [&]( auto&& item ){ list->arrayList[ index ] = std::move( item ); }, upvalue );
 }
 
-void BodyEncounters::typeCastRequest( InstructionTokens& InsTokensAndData, std::vector<Token>& varsAndVals ){
-	for( int x = 0; x < varsAndVals.size(); x++ ){
-		auto mapData = this->funcHandler->getFromVmap( varsAndVals[ x ].token );
+void BodyEncounters::typeCastRequest( InstructionTokens& ins, std::vector<Token>& names ){
+	for( size_t x = 0; x < names.size(); x++ ){
+		if( x >= ins.rightVector.size() || ins.rightVector[ x ].size() != 1 )
+			throw InvalidSyntaxError( "Typecasting error" );
 
-		if( x >= InsTokensAndData.rightVector.size() )
-			throw InvalidSyntaxError("Typecasting error");
+		auto item = funcHandler->getFromVmap( names[ x ].token );
+		if( item == nullptr )
+			throw InvalidSyntaxError( "Unknown token: " + names[ x ].token );
 
-		std::vector<Token>castInfo = InsTokensAndData.rightVector[x];
-		if( castInfo.size() != 1 )
-			throw InvalidSyntaxError("Typecasting error");
-
-		if( mapData == nullptr )
-			throw InvalidSyntaxError("Unknown token: " + varsAndVals[x].token   );
-
-		mapData->typeCast(castInfo.back());
+		item->typeCast( ins.rightVector[ x ].back() );
 	}
 }
 
 FUNC_RETURN_TYPE
 BodyEncounters::getReturnedData( const std::vector<Token>&tokens, size_t& currentPtr ){
-	currentPtr++;
-	std::vector<Token> returnStatementData;
+	static std::unordered_map<unsigned int, ExtendedReturnToken> returnCache;
 
-	while( currentPtr < tokens.size() ){
-		const Token& curToken = tokens[ currentPtr++ ];
-		if( curToken.token == ";" ) break;
-		returnStatementData.push_back( curToken );
+	auto it = returnCache.find( tokens[ currentPtr ].tokenId );
+	if( it == returnCache.end() ){
+		ExtendedReturnToken ret;
+		std::vector<Token> expr;
+
+		size_t at = currentPtr + 1;
+		for( ; at < tokens.size() && !( tokens[ at ].token == ";" && tokens[ at ].type == TOKEN_TYPE::SPEC_CHAR ); at++ )
+			expr.push_back( tokens[ at ] );
+
+		ret.endPtr = std::min( at + 1, tokens.size() );
+
+		if( expr.size() == 1 && expr[ 0 ].type == TOKEN_TYPE::IDENTIFIER )
+			ret.identifier = expr[ 0 ].token;
+		else if( !expr.empty() )
+			ret.ast = ExprResolver::getAstRootNode( expr, funcHandler );
+
+		it = returnCache.emplace( tokens[ currentPtr ].tokenId, std::move( ret ) ).first;
 	}
+	ExtendedReturnToken& ret = it->second;
+	currentPtr = ret.endPtr;
 
-	if( returnStatementData.empty() )
+	if( !ret.identifier.empty() ){	// poda name;  hands over the variable itself ( no copy )
+		auto item = funcHandler->getFromVmap( ret.identifier );
+		if( item == nullptr )
+			throw InvalidSyntaxError( "No variable found " + ret.identifier + "\nRemember variable should be create inside the function body" );
+		return item;
+	}
+	if( !ret.ast )
 		return std::nullopt;
 
-	if( returnStatementData.size() == 1 && returnStatementData.back().type == TOKEN_TYPE::IDENTIFIER ){
-		auto mapData = this->funcHandler->getFromVmap( returnStatementData.back().token );
-		if( mapData == nullptr )
-			throw InvalidSyntaxError( 
-				"No variable found " + returnStatementData.back().token + "\nRemember variable should be create inside the function body" 
-			);
-		return mapData;				
-	}
-	DEEP_VALUE_DATA res = ExprResolver::evaluateVector( returnStatementData, this->funcHandler );
-	if( std::holds_alternative<VarDtype> ( res ) )
-		return std::get<VarDtype>( res );
+	DEEP_VALUE_DATA res = ExprResolver::getFinalValue( ret.ast, funcHandler );
 
-	else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( res ) )
-		return std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( res );
-	throw InvalidSyntaxError("Invalid return statement");
+	if( auto* v = std::get_if<VarDtype>( &res ) )
+		return std::move( *v );
+
+	if( auto* a = std::get_if<ArrayPtr>( &res ) )
+		return std::move( *a );
+
+	throw InvalidSyntaxError( "Invalid return statement" );
 }

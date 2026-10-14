@@ -44,6 +44,10 @@ struct VariableTokens{
 	std::vector<std::vector<Token>>	valueVector;
 	std::queue<Token> 			VarQueue;
 
+	// lazily filled when the tokens are used as an array literal expression
+	mutable bool preparedAsExpr = false;
+	mutable std::vector<std::shared_ptr<void>> elementAst;
+
 	VariableTokens() = default;
 
 	// constructor
@@ -78,6 +82,9 @@ struct ArrayAccessTokens{
 	bool isTouchedArrayProperty = false;
 	std::string arrProperty;
 
+	// lazily built ASTs of every index expression ( type erased, see BodyEncounters::getResolvedIndexVectors )
+	mutable std::vector<std::shared_ptr<void>> indexAst;
+
 	ArrayAccessTokens( 
 		std::vector<ARRAY_ACCESS> tokens,
 		std::string arrayName,
@@ -101,9 +108,9 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 		std::vector<size_t> dimensions;	
 		size_t totalElementsAllocated = 0;
 		
-		template <typename DEEP_VALUE>
+		template <typename DEEP_VALUE, typename QUEUE>
 		static std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
-		_arrayListBuilder( std::vector<VALUE_TOKENS>& arrayTokenList, size_t& curIndex, std::queue<DEEP_VALUE>& valueQueue ){
+		_arrayListBuilder( std::vector<VALUE_TOKENS>& arrayTokenList, size_t& curIndex, QUEUE& valueQueue ){
 			auto newArrayList = std::make_shared< ArrayList<ARRAY_SUPPORT_TYPES> >();
 			while( curIndex < arrayTokenList.size() ){
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::COMMA ){
@@ -112,13 +119,12 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 				}
 				if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_OPEN ){
 					curIndex++ 	  ; 
-					std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder( arrayTokenList, curIndex, valueQueue );
+					std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array = _arrayListBuilder<DEEP_VALUE>( arrayTokenList, curIndex, valueQueue );
 					newArrayList->push_ArrayList( array );
 				}
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_VALUE ){
-					DEEP_VALUE value = valueQueue.front();
+					newArrayList->push_SingleElement( std::move( valueQueue.front() ) );
 					valueQueue.pop( );
-					newArrayList->push_SingleElement( value );
 				}
 				else if( arrayTokenList[ curIndex ] == VALUE_TOKENS::ARRAY_CLOSE )
 					return newArrayList;
@@ -127,17 +133,17 @@ class ArrayList: public std::enable_shared_from_this<ArrayList<ARRAY_SUPPORT_TYP
 			throw InvalidSyntaxError("encounter invalid syntax in array creation");
 		}
 
-		template <typename DEEP_VALUE>
+		template <typename DEEP_VALUE, typename QUEUE>
 		static std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
-		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, std::queue<DEEP_VALUE>& ValueQueue ){
-			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::_arrayListBuilder( arrayTokenList, currentPointer, ValueQueue );	
+		createArray( std::vector<VALUE_TOKENS>& arrayTokenList,  size_t& currentPointer, QUEUE& ValueQueue ){
+			std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> arrayResult = ArrayList<ARRAY_SUPPORT_TYPES>::template _arrayListBuilder<DEEP_VALUE>( arrayTokenList, currentPointer, ValueQueue );	
 			return arrayResult;
 		}
 
 		template <typename DEEP_VALUE>
 		void push_SingleElement( DEEP_VALUE singleElement ){
 			this->totalElementsAllocated++;
-			visit( [&]( auto&& data ){ this->arrayList.push_back( data ); }, singleElement );
+			visit( [&]( auto&& data ){ this->arrayList.push_back( std::move( data ) ); }, singleElement );
 		}
 		
 		std::variant<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>, ARRAY_SUPPORT_TYPES>

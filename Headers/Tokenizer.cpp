@@ -1,287 +1,155 @@
 #include "Tokenizer.hpp"
+#include <unordered_map>
+#include <iterator>
+#include <cctype>
 
-std::unordered_map<std::string, TOKEN_CONST> RESERVED = {
-	{ "pindi", TOKEN_CONST::PINDI },
-	{ "pidi", TOKEN_CONST::PIDI },
-	{ "sheri", TOKEN_CONST::SHERI },
-	{ "thettu", TOKEN_CONST::THETTU },
-	{ "poda", TOKEN_CONST::PODA },
-	{ "pinnava", TOKEN_CONST::PINNAVA },
-	{ "theku", TOKEN_CONST::THEKU },
-	{ "ittuthiri", TOKEN_CONST::ITTUTHIRI },
-	{ "nok", TOKEN_CONST::NOK },
-	{ "umbi", TOKEN_CONST::UMBI },
-	{ "onnula", TOKEN_CONST::ONNULA },
-	{ "para", TOKEN_CONST::PARA },
-	{ "koode", TOKEN_CONST::KOODE },
-	{ "um", TOKEN_CONST::UM },
-	{ "yo", TOKEN_CONST::YO },
-	{ "kootam", TOKEN_CONST::KOOTAM },
-	{ "edukku", TOKEN_CONST::EDUKKU },
+static const std::unordered_map<std::string, TOKEN_CONST> RESERVED = {
+	{ "pindi", TOKEN_CONST::PINDI }, { "pidi", TOKEN_CONST::PIDI }, { "sheri", TOKEN_CONST::SHERI },
+	{ "thettu", TOKEN_CONST::THETTU }, { "poda", TOKEN_CONST::PODA }, { "pinnava", TOKEN_CONST::PINNAVA },
+	{ "theku", TOKEN_CONST::THEKU }, { "ittuthiri", TOKEN_CONST::ITTUTHIRI }, { "nok", TOKEN_CONST::NOK },
+	{ "umbi", TOKEN_CONST::UMBI }, { "onnula", TOKEN_CONST::ONNULA }, { "para", TOKEN_CONST::PARA },
+	{ "koode", TOKEN_CONST::KOODE }, { "um", TOKEN_CONST::UM }, { "yo", TOKEN_CONST::YO },
+	{ "kootam", TOKEN_CONST::KOOTAM }, { "edukku", TOKEN_CONST::EDUKKU },
 };
 
-TOKEN_CONST getTokenConst( const std::string& str ){
-	auto elem = RESERVED.find( str );
-	if( elem != RESERVED.end() )
-		return elem->second;
-	return TOKEN_CONST::NOTHING;
+static inline bool isOptrChar( char c ){
+	switch( c ){
+		case '+': case '-': case '*': case '/': case '%': case '>': case '<': case '=': case '!': case ':': return true;
+		default: return false;
+	}
 }
 
-std::unordered_set<std::string_view> SCHARS = {
-	":", "(", ")", "[", "]", "{", "}", ",", ".", ";"
-};
-
-std::unordered_set<std::string_view> OPTR{
-	"+", "-", "*", "/", "%", ">", "<", "=", "!", ":", "?"
-};
-
-
-bool isReservedKey(const std::string& tok){
-	return RESERVED.find(tok) != RESERVED.end();
+static inline bool isSpecChar( char c ){
+	switch( c ){
+		case '(': case ')': case '[': case ']': case '{': case '}': case ',': case '.': case ';': return true;
+		default: return false;
+	}
 }
 
-bool isOptr(const std::string& tok){
-	return OPTR.find(tok) != OPTR.end();
+// a sign belongs to the number after it only where a value is expected ( start, after an operator, "(", ",", para ... )
+static bool signStartsValue( const std::vector<Token>& tokens ){
+	if( tokens.empty() ) return true;
+
+	const Token& prev = tokens.back();
+	switch( prev.type ){
+		case TOKEN_TYPE::OPERATOR: return true;
+		case TOKEN_TYPE::SPEC_CHAR: return prev.token == "(" || prev.token == "[" || prev.token == "{" || prev.token == ",";
+		case TOKEN_TYPE::RESERVED:
+			switch( prev.tokConst ){
+				case TOKEN_CONST::PARA: case TOKEN_CONST::KOODE: case TOKEN_CONST::PODA: case TOKEN_CONST::NOK:
+				case TOKEN_CONST::ITTUTHIRI: case TOKEN_CONST::UM: case TOKEN_CONST::YO: return true;
+				default: return false;
+			}
+		default: return false;
+	}
 }
 
-bool isSpec(const std::string& tok){
-	return SCHARS.find(tok) != SCHARS.end();
-}
+void getTheTokens( const std::string& filename, std::vector<Token>& Tokens ){
+	std::ifstream codeFile( filename, std::ios::binary );
 
-std::vector<std::string> debug_string = { 
-	"NOTHING", "NUMBER", "FLOATING", 
-	"STRING", "BOOLEAN", "IDENTIFIER", 
-	"RESERVED", "SPEC_CHAR", "OPTR" 
-};
+	if( !codeFile.is_open() )
+		throw std::runtime_error( "Cannot open file: " + filename );
 
-bool isValueType(TOKEN_TYPE type){
-	return ( type == TOKEN_TYPE::NUMBER || type == TOKEN_TYPE::STRING  || type == TOKEN_TYPE::FLOATING || type == TOKEN_TYPE::BOOLEAN );
-}
+	const std::string src(( std::istreambuf_iterator<char>( codeFile ) ), std::istreambuf_iterator<char>());
 
-void getTheTokens(const std::string& filename, std::vector<Token>& Tokens){
-	std::ifstream codeFile(filename);
-
-	if(!codeFile.is_open())
-		throw std::runtime_error("Cannot open file: " + filename);
-
-	char cCode;
-	std::string currentWord = "";
-	TOKEN_TYPE currentState = TOKEN_TYPE::NOTHING;
-
-	size_t lineNumber = 0, colNumber = 0;
-	bool isSkip = false;
-	bool comments = false;
-
+	TOKEN_TYPE state = TOKEN_TYPE::NOTHING;
+	std::string word;
+	size_t row = 0, lineStart = 0, wordRow = 0, wordStart = 0;
 	unsigned int tokenId = 0;
+	bool comments = false, escaped = false;
 
-	while(codeFile.get(cCode)){
-		if( cCode == '?' ){
+	auto begin = [&]( TOKEN_TYPE type, size_t at ){
+		state = type; wordRow = row; wordStart = at - lineStart;
+	};
+	auto flush = [&](){
+		if( state == TOKEN_TYPE::NOTHING ) return;
+
+		TOKEN_TYPE type = state;
+		TOKEN_CONST tokConst = TOKEN_CONST::NOTHING;
+
+		if( state == TOKEN_TYPE::IDENTIFIER ){
+			auto it = RESERVED.find( word );
+			if( it != RESERVED.end() ){
+				if( word == "sheri" || word == "thettu" ) type = TOKEN_TYPE::BOOLEAN;
+				else{ type = TOKEN_TYPE::RESERVED; tokConst = it->second; }
+			}
+		}
+		Tokens.emplace_back( ++tokenId, type, std::move( word ), wordRow, wordStart );
+		Tokens.back().tokConst = tokConst;
+		word.clear();
+		state = TOKEN_TYPE::NOTHING;
+	};
+
+	for( size_t i = 0; i < src.size(); i++ ){
+		const char c = src[ i ];
+
+		if( state == TOKEN_TYPE::STRING ){
+			if( c == '"' && !escaped ){ flush(); continue; }
+
+			escaped = ( c == '\\' ) && !escaped;
+			if( c == '\n' ){ row++; lineStart = i + 1; }
+			word.push_back( c );
+			continue;
+		}
+		if( c == '?' ){
+			flush();
 			comments = !comments;
 			continue;
 		}
 		if( comments ){
-			if( cCode == '\n' )
-				lineNumber++;
+			if( c == '\n' ){ row++; lineStart = i + 1; }
 			continue;
 		}
-
-		if(cCode == '"' && currentState != TOKEN_TYPE::STRING){
-			if(currentState != TOKEN_TYPE::NOTHING)
-				throw std::runtime_error("Invalid token at line: " + std::to_string(lineNumber) + " Column: " + std::to_string(colNumber));
-			currentState = TOKEN_TYPE::STRING;
-			continue;
+		if( c == ' ' || c == '\t' || c == '\r' || c == '\n' ){
+			flush();
+			if( c == '\n' ){ row++; lineStart = i + 1; }
 		}
-
-		if(currentState == TOKEN_TYPE::STRING){
-			if(cCode == '\\')
-				isSkip = true;
-
-			if(cCode == '"'){
-				if(!currentWord.empty() && currentWord.back() == '\\'){
-					currentWord.push_back('"');
-					continue;
-				}
-				// currentState will be a string 
-				Tokens.push_back(Token(++tokenId, currentState, currentWord, lineNumber, colNumber));
-				currentWord = "";
-				currentState = TOKEN_TYPE::NOTHING;
-				colNumber++;
-			}
-			else{
-				currentWord.push_back(cCode);
-				isSkip = false;
-			}
-			continue;
+		else if( c == '"' ){
+			flush();
+			begin( TOKEN_TYPE::STRING, i );
+			escaped = false;
 		}
-		if(cCode == '\n'){
-			lineNumber++;
-			colNumber = 0;
-			continue;
+		else if( isdigit( (unsigned char) c ) ){
+			if( state == TOKEN_TYPE::NOTHING || state == TOKEN_TYPE::OPERATOR ){
+				flush();
+				begin( TOKEN_TYPE::NUMBER, i );
+			}
+			word.push_back( c );
 		}
-		/* if current char is a digit */
-		if( isdigit( static_cast<unsigned char>(cCode) ) ){
-		    if( currentState == TOKEN_TYPE::NUMBER ||  currentState == TOKEN_TYPE::IDENTIFIER || currentState == TOKEN_TYPE::FLOATING )
-		        currentWord.push_back(cCode);
-		    
-		    else if( currentState == TOKEN_TYPE::NOTHING ){
-		    	currentState = TOKEN_TYPE::NUMBER;
-		        currentWord.push_back(cCode);
-		    }
-		    else{
-		    	Token newToken = Token( ++tokenId, currentState,currentWord,lineNumber,colNumber );
-		        if( currentState == TOKEN_TYPE::RESERVED ){
-		        	TOKEN_CONST tokConst = getTokenConst( currentWord );
-		      		newToken.tokConst = tokConst;
-		      	}
-		        Tokens.push_back( newToken );
-
-		        currentWord = std::string( 1, cCode );
-		    	currentState = TOKEN_TYPE::NUMBER;
-		    }
+		else if( isalpha( (unsigned char) c ) || c == '_' ){
+			if( state != TOKEN_TYPE::IDENTIFIER ){
+				flush();
+				begin( TOKEN_TYPE::IDENTIFIER, i );
+			}
+			word.push_back( c );
 		}
-
-		else if( isalpha( (unsigned char)cCode ) || cCode == '_' ){
-			if( currentState == TOKEN_TYPE::IDENTIFIER )
-				currentWord.push_back(cCode);
-
-			else if( currentState == TOKEN_TYPE::NOTHING ){
-				currentState = TOKEN_TYPE::IDENTIFIER;
-				currentWord.push_back(cCode);
-			}
-			else if( currentState == TOKEN_TYPE::OPERATOR ){
-				Tokens.push_back( Token( ++tokenId, currentState, currentWord, lineNumber, colNumber ) );
-				colNumber++;
-				currentWord = std::string(1, cCode);
-				currentState = TOKEN_TYPE::IDENTIFIER;
-			}			
+		else if( c == '.' && state == TOKEN_TYPE::NUMBER ){
+			word.push_back( c );
+			state = TOKEN_TYPE::FLOATING;
 		}
-		else if(cCode == ' '){
-			if(!currentWord.empty() && currentState != TOKEN_TYPE::NOTHING){
-				if(currentState == TOKEN_TYPE::NUMBER ||
-				   currentState == TOKEN_TYPE::FLOATING ||
-				   currentState == TOKEN_TYPE::STRING){
-
-					Tokens.push_back(Token(++tokenId, currentState, currentWord, lineNumber, colNumber));
-					currentWord = "";
-					currentState = TOKEN_TYPE::NOTHING;
-					colNumber++;
-					continue;
-				}
-				if(isReservedKey(currentWord)){
-					currentState = TOKEN_TYPE::RESERVED;
-					if(currentWord == "sheri" || currentWord == "thettu")
-						currentState = TOKEN_TYPE::BOOLEAN;
-				}
-				else if(isOptr(currentWord))
-					currentState = TOKEN_TYPE::OPERATOR;
-
-				else if(isSpec(currentWord))
-					currentState = TOKEN_TYPE::SPEC_CHAR;
-
-				Token newToken = Token( ++tokenId, currentState,currentWord,lineNumber,colNumber );
-		        if( currentState == TOKEN_TYPE::RESERVED ){
-		        	TOKEN_CONST tokConst = getTokenConst( currentWord );
-		      		newToken.tokConst = tokConst;
-		      	}
-		        Tokens.push_back( newToken );
-
-				currentWord = "";
-				currentState = TOKEN_TYPE::NOTHING;
-				colNumber++;
-			}
+		else if( c == '=' && state == TOKEN_TYPE::OPERATOR && word.size() == 1 ){
+			word.push_back( c );
+			flush();
 		}
-		else{
-			if(cCode == '='){
-				if(isOptr(currentWord)){
-					currentWord.push_back(cCode);
-					Tokens.push_back(Token(++tokenId, TOKEN_TYPE::OPERATOR,currentWord,lineNumber,colNumber));
-					currentWord = "";
-					currentState = TOKEN_TYPE::NOTHING;
-					colNumber++;
-				}
-				else{
-					if(currentState != TOKEN_TYPE::NOTHING){
-						Token newToken = Token( ++tokenId, currentState,currentWord,lineNumber,colNumber );
-				        if( currentState == TOKEN_TYPE::RESERVED ){
-				        	TOKEN_CONST tokConst = getTokenConst( currentWord );
-				      		newToken.tokConst = tokConst;
-				      	}
-				        Tokens.push_back( newToken );
-						colNumber++;
-					}
-					currentState = TOKEN_TYPE::OPERATOR;
-					currentWord = std::string(1, cCode);
-				}
-			}
-			else if(isOptr(std::string(1, cCode))){
-			    if((cCode == '-' || cCode == '+') && currentState == TOKEN_TYPE::NOTHING){
-			        bool unary = false;
+		else if( isOptrChar( c ) ){
+			flush();
 
-			        if(Tokens.empty())
-			            unary = true;
-			        else{
-			            Token prev = Tokens.back();
-
-			            if(prev.type == TOKEN_TYPE::OPERATOR)
-			                unary = true;
-
-			            else if(prev.type == TOKEN_TYPE::SPEC_CHAR &&
-			               (prev.token == "(" || prev.token == "[" || prev.token == "{" || prev.token == ",")){
-			                unary = true;
-			            }
-			            else if( prev.type == TOKEN_TYPE::RESERVED && (
-			            		prev.token == "para" || prev.token == "poda") )
-			            	unary = true;
-			        }
-			        if(unary){
-			            currentState = TOKEN_TYPE::NUMBER;
-			            currentWord.push_back(cCode);
-			            continue;
-			        }
-			    }
-			    if(currentState != TOKEN_TYPE::NOTHING){
-					Token newToken = Token( ++tokenId, currentState,currentWord,lineNumber,colNumber );
-			        if( currentState == TOKEN_TYPE::RESERVED ){
-			        	TOKEN_CONST tokConst = getTokenConst( currentWord );
-			      		newToken.tokConst = tokConst;
-			      	}
-			        Tokens.push_back( newToken );
-			        currentWord.clear();
-			    }
-
-			    currentWord = std::string(1, cCode);
-			    currentState = TOKEN_TYPE::OPERATOR;
-			    colNumber++;
-			}
-			else if(cCode == '.' && currentState == TOKEN_TYPE::NUMBER){
-				currentWord.push_back(cCode);
-				currentState = TOKEN_TYPE::FLOATING;
-			}
-			else if(isSpec(std::string(1, cCode))){
-				if(currentState != TOKEN_TYPE::NOTHING){
-					if(isReservedKey(currentWord)){
-						currentState = TOKEN_TYPE::RESERVED;
-						if(currentWord == "sheri" || currentWord == "thettu")
-							currentState = TOKEN_TYPE::BOOLEAN;
-					}
-
-					Token newToken = Token( ++tokenId, currentState,currentWord,lineNumber,colNumber );
-			        if( currentState == TOKEN_TYPE::RESERVED ){
-			        	TOKEN_CONST tokConst = getTokenConst( currentWord );
-			      		newToken.tokConst = tokConst;
-			      	}
-			        Tokens.push_back( newToken );
-
-					currentWord = "";
-					currentState = TOKEN_TYPE::NOTHING;
-					colNumber++;
-				}
-				Tokens.push_back(Token(++tokenId, TOKEN_TYPE::SPEC_CHAR,std::string(1, cCode),lineNumber,colNumber));
-				colNumber++;
-			}
+			const bool isSign = c == '-' || c == '+';
+			if( isSign && i + 1 < src.size() && isdigit( (unsigned char) src[ i + 1 ] ) && signStartsValue( Tokens ) )
+				begin( TOKEN_TYPE::NUMBER, i );
+			else
+				begin( TOKEN_TYPE::OPERATOR, i );
+			word.push_back( c );
 		}
+		else if( isSpecChar( c ) ){
+			flush();
+			Tokens.emplace_back( ++tokenId, TOKEN_TYPE::SPEC_CHAR, std::string( 1, c ), row, i - lineStart );
+		}
+		else
+			throw std::runtime_error( "Invalid character '" + std::string( 1, c ) + "' at line: " + std::to_string( row + 1 ) );
 	}
-	if(currentState != TOKEN_TYPE::NOTHING)
-		Tokens.push_back(Token(++tokenId, currentState, currentWord, lineNumber, colNumber));
-}
+	if( state == TOKEN_TYPE::STRING )
+		throw std::runtime_error( "Unterminated string starting at line: " + std::to_string( wordRow + 1 ) );
 
+	flush();
+}

@@ -18,6 +18,7 @@ struct ExtendedConditionalToken;
 struct ExtendedLoopTokens;
 struct ExtendedInsTokens;
 struct ExtendedFunctionCall;
+struct ExtendedReturnToken;
 
 using EXT_TYPE = std::variant<
 					ExtendedFunctionCall,
@@ -29,6 +30,23 @@ using EXT_TYPE = std::variant<
 					>;
 
 extern std::unordered_map<unsigned int, EXT_TYPE> preComputed;
+
+// direct ( array ) index over preComputed, keyed by token id. Elements of an unordered_map never move,
+// so the stored pointers stay valid for the whole run.
+extern std::vector<EXT_TYPE*> preComputedFast;
+
+inline EXT_TYPE* findPre( const unsigned int KEY ){
+	return KEY < preComputedFast.size() ? preComputedFast[ KEY ] : nullptr;
+}
+
+void indexPre( const unsigned int KEY );
+
+// cached form of a "poda <expr>;" statement ( identifier = returns that variable, ast = returns the value, none = nothing )
+struct ExtendedReturnToken{
+	size_t endPtr = 0;
+	std::string identifier;
+	std::unique_ptr<AST_NODE<REAL_AST_NODE_DATA>> ast;
+};
 
 struct ExtendedFunctionCall{
 	FunctionCallReturns tokens;

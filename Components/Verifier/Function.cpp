@@ -1,13 +1,5 @@
 #include "Headers/Function.hpp"
 
-std::unordered_set<std::string_view> REGISTERED_FUNC_TOKEN = { 
-	"pindi", "(", ")", "{", "}", ",", "pidi", "kootam" 
-};
-
-std::unordered_set<std::string_view> REGISTERED_FUNC_BODY_TOKENS = {
-	"poda"
-};
-
 std::unordered_map<FUNC_TOKENS, std::vector<FUNC_TOKENS>> FUNC_GRAPH = {
 	{ FUNC_TOKENS::FUNC_START, 	{ FUNC_TOKENS::FUNC_NAME } 	},
 	{ FUNC_TOKENS::FUNC_NAME, 	{ FUNC_TOKENS::ARGS_OPEN }  },
@@ -67,7 +59,7 @@ void passValidFuncToken( std::vector<FUNC_TOKENS>& tokens ){
 
 FunctionTokenReturn stringToFuncTokens( const std::vector<Token>&tokens, size_t& startIndex ){
 	std::vector<FUNC_TOKENS> funcTokens;
-	std::vector<std::unique_ptr<ARG_VAR_INFO>> args;
+	std::vector<ARG_VAR_INFO> args;
 	std::string funcName;
 
 	size_t bodyStart = 0;
@@ -118,17 +110,14 @@ FunctionTokenReturn stringToFuncTokens( const std::vector<Token>&tokens, size_t&
 				funcTokens.push_back( FUNC_TOKENS::FUNC_NAME );
 			}
 			else if( prev == FUNC_TOKENS::VAR_START ){
-				std::unique_ptr<ARG_VAR_INFO> newVar = std::make_unique<ARG_VAR_INFO>();
-				newVar->name = curToken;
 				funcTokens.push_back( FUNC_TOKENS::VAR_NAME );
-				args.push_back( std::move(newVar) );
+				args.push_back( ARG_VAR_INFO{ curToken, false } );
 			}
 			else if( curToken == "kootam" ){
 				if( args.empty() )
 					throw InvalidSyntaxError(" kootam keyword misuse ");
 				
-				auto& backArg = args.back();
-				backArg->isArray = true;
+				args.back().isArray = true;
 			}
 			else throw InvalidSyntaxError("Unknown token " + curToken );
 		}

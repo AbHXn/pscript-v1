@@ -14,7 +14,12 @@
 
 enum class CALLER{ LOOP, FUNCTION, CONDITIONAL };
 
+// a pending poda / theku / pinnava travels up through the running statements until a function or loop consumes it
+enum class SIGNAL{ NONE, BREAK, CONTINUE, RETURN };
+
 struct Context{
+	SIGNAL signal = SIGNAL::NONE;
+	FUNC_RETURN_TYPE ret;
 	size_t LastRecoverErrorList = 0;
 	std::vector<Token> fullTokens;
 	size_t pointer = 0;
@@ -24,10 +29,11 @@ struct Context{
 class FunctionHandler: public VAR_VMAP {
 	public:
 		std::string functionName;
-		std::shared_ptr<Context> ctx;
+		Context* ctx = nullptr;
 
-		FunctionHandler( std::shared_ptr<Context> ctx ): ctx(ctx) {};
-		FunctionHandler( VAR_VMAP* parent, std::string runnerBody, std::shared_ptr<Context> ctx );
+		FunctionHandler( Context* ctx ): ctx(ctx) {};
+		FunctionHandler( const std::shared_ptr<Context>& ctx ): ctx(ctx.get()) {};
+		FunctionHandler( VAR_VMAP* parent, const std::string& runnerBody, Context* ctx );
 
 		void VarHandlerRunner( const std::vector<Token>& test, size_t& start, const unsigned int KEY );
 		void InstructionHandlerRunner( const std::vector<Token>& tokens, size_t& currentPtr, const unsigned int KEY );

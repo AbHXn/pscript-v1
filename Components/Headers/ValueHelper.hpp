@@ -12,213 +12,118 @@
 
 class ValueHelper{
 	public:
-		static
-		std::string unescapeString(const std::string& input) {
-	    std::string out;
-	    out.reserve(input.size());
+		// string literals are unescaped once, when the value is created from its token
+		static std::string unescapeString( const std::string& in ){
+			std::string out;
+			out.reserve( in.size() );
 
-	    for (size_t i = 0; i < input.size(); ++i) {
-	        if (input[i] == '\\' && i + 1 < input.size()) {
-	            char e = input[i + 1];
-	            switch (e) {
-	                case 'n':  out.push_back('\n'); break;
-	                case 't':  out.push_back('\t'); break;
-	                case 'r':  out.push_back('\r'); break;
-	                case 'b':  out.push_back('\b'); break;
-	                case 'f':  out.push_back('\f'); break;
-	                case 'v':  out.push_back('\v'); break;
-	                case '\\': out.push_back('\\'); break;
-	                case '\'': out.push_back('\''); break;
-	                case '0':  out.push_back('\0'); break;
-	                default:
-	                    out.push_back(e);
-	                    break;
-	            }
-	            ++i; 
-	        } else out.push_back(input[i]);
-	    }
-	    return out;
-	}
+			for( size_t i = 0; i < in.size(); i++ ){
+				if( in[ i ] != '\\' || i + 1 >= in.size() ){ out += in[ i ]; continue; }
 
-	static void printVarDtype(const VarDtype& value) {
-		std::visit([](const auto& v) {
-			using T = std::decay_t<decltype(v)>;
-			if constexpr ( std::is_same_v<T, std::monostate> )
-				std::cout << "onnula";
-
-			else if constexpr (std::is_same_v<T, bool>)
-				std::cout << (v ? "sheri" : "thettu");
-			
-			else if constexpr (std::is_same_v<T, std::string>)
-				std::cout << ValueHelper::unescapeString(v);
-
-	        else std::cout << v;
-	  
-	    }, value);
-	}
-
-	 static void printArrayList( std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>> array) {
-        if (!array) {
-            std::cout << "null";
-            return;
-        }
-        std::cout << "{";
-        for (size_t i = 0; i < array->arrayList.size(); ++i) {
-            auto& elem = array->arrayList[i];
-            if( std::holds_alternative<ARRAY_SUPPORT_TYPES>( elem ) ){
-            	auto arrSpType = std::get<ARRAY_SUPPORT_TYPES>( elem );
-            	if( std::holds_alternative<VarDtype>(arrSpType) ){
-            		ValueHelper::printVarDtype( std::get<VarDtype>( arrSpType ) );
-            	}
-            	else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>(arrSpType) ){
-            		std::cout << "FUNC";
-            	}
-            	else std::cout << "Unknown";
-            }
-            else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem ) ){
-            	auto arrptr = std::get<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( elem );
-            	ValueHelper::printArrayList( arrptr );
-            }
-            if (i + 1 < array->arrayList.size()) std::cout << ", ";
-        }
-        std::cout << "}";
-    }
-
-	static DEEP_VALUE_DATA
-	getFinalValueFromMap(std::shared_ptr<MapItem>& mapData) {
-	    return std::visit([](auto& value) -> DEEP_VALUE_DATA {
-			using T = std::decay_t<decltype(value)>;
-			if constexpr (std::is_same_v<T, std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>) 
-				return ValueHelper::getDataFromVariableHolder(value);
-			
-			else if constexpr (std::is_same_v<T, std::shared_ptr<FUNCTION_MAP_DATA>>) 
-				return value;
-			
-			else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>)
-				return value;
-			
-			else throw std::runtime_error("Unknown type in MAP");
-		}, mapData->var);
-	}
-
-	static DEEP_VALUE_DATA
-	getDataFromVariableHolder( std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>& varData ){
-		return std::visit( [](auto& value)-> DEEP_VALUE_DATA { return value; }, varData->value );
-	}
-
-	static void
-	printDEEP_VALUE_DATA(DEEP_VALUE_DATA& data) {
-	    std::visit([](auto& value) {
-			using T = std::decay_t<decltype(value)>;
-
-			if constexpr (std::is_same_v<T, VarDtype>)
-				printVarDtype(value);
-
-			else if constexpr (std::is_same_v<T, std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>)
-				printArrayList(value);
-			
-			else throw std::runtime_error("Unknown type");
-	    }, data);
-	}
-
-	static std::string getValueType( DEEP_VALUE_DATA& Vdata ){
-		if( std::holds_alternative<VarDtype> (Vdata) ){
-			auto data = std::get<VarDtype>( Vdata );
-			
-			if( std::holds_alternative<std::string> ( data ) )
-				return "STR";
-			
-			else if( std::holds_alternative<double> (data) )
-				return "THULA";
-			
-			else if( std::holds_alternative<long> (data) )
-				return "INT";
-			
-			else if( std::holds_alternative<bool> (data) )
-				return "BOOL";
-			
-			else return "ARILA";
+				switch( const char e = in[ ++i ] ){
+					case 'n': out += '\n'; break;
+					case 't': out += '\t'; break;
+					case 'r': out += '\r'; break;
+					case 'b': out += '\b'; break;
+					case 'f': out += '\f'; break;
+					case 'v': out += '\v'; break;
+					case '0': out += '\0'; break;
+					default:  out += e;		// \\ \' \" and unknown escapes keep the character itself
+				}
+			}
+			return out;
 		}
-		else if( std::holds_alternative<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( Vdata ) )
-			return "ARRAY_PTR";
-		
-		else if( std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( Vdata ) )
-			return "FUNC_PTR";
-		
-		else return "ARILA";
-	}
 
-	static VarDtype getVariableSize( DEEP_VALUE_DATA& Vdata ){
-		if( std::holds_alternative<VarDtype>(Vdata) ){
-			auto data = std::get<VarDtype>(Vdata);
-			
-			if( std::holds_alternative<std::string> ( data ) )
-				return (long) std::get<std::string>(data).size();
-			
-			else if( std::holds_alternative<double> (data) )
-				return (long) sizeof(double);
-			
-			else if( std::holds_alternative<long> (data) )
-				return (long) sizeof(long);
+		static void printVarDtype( const VarDtype& value ){
+			std::visit( []( const auto& v ){
+				using T = std::decay_t<decltype( v )>;
 
-			else if( std::holds_alternative<bool> (data) )
-				return (long) sizeof(bool);
-
-			throw InvalidSyntaxError("Invalid Type for kanam");
+				if constexpr( std::is_same_v<T, std::monostate> )  std::cout << "onnula";
+				else if constexpr( std::is_same_v<T, bool> )       std::cout << ( v ? "sheri" : "thettu" );
+				else 											   std::cout << v;
+			}, value );
 		}
-		throw InvalidSyntaxError("Kanam property is only for single type variable");
-	}
 
-	static VarDtype getValueFromToken( const Token& tok ){
-		if( tok.type == TOKEN_TYPE::STRING )
-			return VarDtype{ ValueHelper::unescapeString( tok.token ) };
-		
-		else if( tok.type == TOKEN_TYPE::NUMBER )
-			return VarDtype{  DtypeHelper::toLong( tok.token ) };
-		
-		else if( tok.type == TOKEN_TYPE::FLOATING )
-			return VarDtype{ DtypeHelper::toDouble( tok.token ) };
+		static void printArrayList( const std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>& array ){
+			std::cout << '{';
+			for( size_t i = 0; i < array->arrayList.size(); i++ ){
+				if( i ) std::cout << ", ";
 
-		else if( tok.type == TOKEN_TYPE::BOOLEAN && 
-				( tok.token == "sheri" || tok.token == "thettu" ) )
-			return VarDtype{ DtypeHelper::toBoolean( tok.token ) };
-		
-		throw InvalidDTypeError("not a value");
-	}
+				const auto& elem = array->arrayList[ i ];
+				if( auto* nested = std::get_if<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( &elem ) )
+					printArrayList( *nested );
+				else if( auto* v = std::get_if<VarDtype>( &std::get<ARRAY_SUPPORT_TYPES>( elem ) ) )
+					printVarDtype( *v );
+				else std::cout << "FUNC";
+			}
+			std::cout << '}';
+		}
 
-	template<typename T>
-	static std::string toString(T v) {
-		if constexpr (std::is_same_v<T, bool>)
-			return v ? "sheri" : "thettu";
-	    
-		else if constexpr (std::is_same_v<T, std::string>)
-			return v;
+		static void printDEEP_VALUE_DATA( const DEEP_VALUE_DATA& data ){
+			if( auto* v = std::get_if<VarDtype>( &data ) )
+				printVarDtype( *v );
+			else if( auto* a = std::get_if<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( &data ) )
+				printArrayList( *a );
+			else std::cout << "FUNC";
+		}
 
-		else if constexpr(std::is_same_v<T, std::monostate>)
-			return "onnula";
-	    
-		else return std::to_string(v);
-	}
-	static bool toBool(const VarDtype& value){
-        return std::visit([](auto&& v) -> bool {
-            using T = std::decay_t<decltype(v)>;
+		// whatever a map entry holds, as a general value
+		static DEEP_VALUE_DATA getFinalValueFromMap( const std::shared_ptr<MapItem>& item ){
+			return std::visit( []( const auto& v ) -> DEEP_VALUE_DATA {
+				if constexpr( std::is_same_v<std::decay_t<decltype( v )>, std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>> )
+					return std::visit( []( const auto& x ) -> DEEP_VALUE_DATA { return x; }, v->value );
+				else return v;
+			}, item->var );
+		}
 
-            if constexpr (std::is_same_v<T, bool>)
-				return v;
-            
-			else if constexpr (std::is_same_v<T, long>)
-				return v != 0;
-            
-			else if constexpr (std::is_same_v<T, double>)
-				return v != 0.0;
-            
-			else if constexpr (std::is_same_v<T, std::string>)
-				return !v.empty();
-            
-			else return false;
-            
-        }, value);
-    }
+		static std::string getValueType( const DEEP_VALUE_DATA& value ){
+			static const char* const names[] = { "STR", "INT", "THULA", "BOOL", "ARILA" };	// same order as VarDtype
+
+			if( auto* v = std::get_if<VarDtype>( &value ) )
+				return names[ v->index() ];
+
+			return std::holds_alternative<std::shared_ptr<FUNCTION_MAP_DATA>>( value ) ? "FUNC_PTR" : "ARRAY_PTR";
+		}
+
+		static VarDtype getVariableSize( const DEEP_VALUE_DATA& value ){
+			const VarDtype* v = std::get_if<VarDtype>( &value );
+			if( !v )
+				throw InvalidSyntaxError( "Kanam property is only for single type variable" );
+
+			if( auto* s = std::get_if<std::string>( v ) ) return (long) s->size();
+			if( std::holds_alternative<double>( *v ) )    return (long) sizeof( double );
+			if( std::holds_alternative<long>( *v ) )      return (long) sizeof( long );
+			if( std::holds_alternative<bool>( *v ) )      return (long) sizeof( bool );
+			throw InvalidSyntaxError( "Invalid Type for kanam" );
+		}
+
+		static VarDtype getValueFromToken( const Token& tok ){
+			switch( tok.type ){
+				case TOKEN_TYPE::STRING:   return VarDtype{ unescapeString( tok.token ) };
+				case TOKEN_TYPE::NUMBER:   return VarDtype{ DtypeHelper::toLong( tok.token ) };
+				case TOKEN_TYPE::FLOATING: return VarDtype{ DtypeHelper::toDouble( tok.token ) };
+				case TOKEN_TYPE::BOOLEAN:  return VarDtype{ tok.token == "sheri" };
+				default: throw InvalidDTypeError( "not a value" );
+			}
+		}
+
+		template<typename T>
+		static std::string toString( const T& v ){
+			if constexpr( std::is_same_v<T, bool> )               return v ? "sheri" : "thettu";
+			else if constexpr( std::is_same_v<T, std::string> )   return v;
+			else if constexpr( std::is_same_v<T, std::monostate> ) return "onnula";
+			else 												  return std::to_string( v );
+		}
+
+		static bool toBool( const VarDtype& value ){
+			return std::visit( []( const auto& v ) -> bool {
+				using T = std::decay_t<decltype( v )>;
+
+				if constexpr( std::is_same_v<T, std::monostate> )    return false;
+				else if constexpr( std::is_same_v<T, std::string> )  return !v.empty();
+				else 												 return static_cast<bool>( v );
+			}, value );
+		}
 };
 
 #endif

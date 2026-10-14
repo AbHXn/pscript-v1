@@ -16,14 +16,27 @@ enum class MAPTYPE{ VARIABLE, ARRAY_PTR, FUNC_PTR };
 struct MapItem;
 class VAR_VMAP;
 
+// identifiers are short : an inlined FNV-1a is cheaper than the out-of-line std::hash<std::string>
+struct FastStringHash{
+	inline size_t operator()( const std::string& key ) const noexcept {
+		size_t h = 1469598103934665603ULL;
+		for( unsigned char c: key ){
+			h ^= c;
+			h *= 1099511628211ULL;
+		}
+		return h;
+	}
+};
+using VMAP_TYPE = std::unordered_map<std::string, std::shared_ptr<MapItem>, FastStringHash>;
+
 struct FUNCTION_MAP_DATA{
 	std::string funcName;
 	size_t		argsSize;
 	size_t 		bodyStartPtr;
 	size_t 		bodyEndPtr;
 
-	std::vector<std::unique_ptr<ARG_VAR_INFO>> argsInfo;
-	std::pair<std::unordered_map<std::string, std::shared_ptr<MapItem>>, VAR_VMAP*> varMapCopy;
+	std::vector<ARG_VAR_INFO> argsInfo;
+	std::pair<std::shared_ptr<VMAP_TYPE>, VAR_VMAP*> varMapCopy;
 };
 
 using ARRAY_SUPPORT_TYPES	= std::variant<VarDtype, std::shared_ptr<FUNCTION_MAP_DATA>>;
@@ -33,6 +46,21 @@ using REAL_AST_NODE_DATA 	= std::variant<
 							  std::pair<FunctionCallReturns, Token>, std::string, 
 							  std::pair<VariableTokens, Token>
 							  >;
+
+// light weight FIFO (vector backed) used instead of std::queue<std::deque> on hot paths
+class ValueQueue{
+	private:
+		std::vector<DEEP_VALUE_DATA> data;
+		size_t head = 0;
+	public:
+		inline void reserve( size_t n ){ data.reserve( n ); }
+		inline bool empty() const { return head >= data.size(); }
+		inline size_t size() const { return data.size() - head; }
+		inline void push( DEEP_VALUE_DATA v ){ data.push_back( std::move( v ) ); }
+		inline DEEP_VALUE_DATA& front(){ return data[ head ]; }
+		inline void pop(){ ++head; }
+};
+
 using FUNC_RETURN_TYPE = std::optional<std::variant<
 							VarDtype, std::shared_ptr<MapItem>, 
 							std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>
@@ -46,116 +74,68 @@ struct MapItem{
 		std::shared_ptr<FUNCTION_MAP_DATA>
 	> var;
 
+	// the map entry that stores a value : single value, kootam or pindi
+	static std::shared_ptr<MapItem> make( const std::string& name, DEEP_VALUE_DATA&& value ){
+		auto item = std::make_shared<MapItem>();
+
+		if( auto* single = std::get_if<VarDtype>( &value ) ){
+			auto holder = std::make_shared<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>();
+			holder->key = name;
+			holder->isTypeArray = false;
+			holder->value = std::move( *single );
+			item->var = std::move( holder );
+		}
+		else if( auto* array = std::get_if<std::shared_ptr<ArrayList<ARRAY_SUPPORT_TYPES>>>( &value ) ){
+			item->mapType = MAPTYPE::ARRAY_PTR;
+			item->var = std::move( *array );
+		}
+		else{
+			item->mapType = MAPTYPE::FUNC_PTR;
+			item->var = std::move( std::get<std::shared_ptr<FUNCTION_MAP_DATA>>( value ) );
+		}
+		return item;
+	}
+
 	inline void updateSingleVariable( VarDtype newValue ){
 		if( this->mapType == MAPTYPE::VARIABLE ){
-			auto varHolderData = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+			auto& varHolderData = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
 			if( varHolderData->isTypeArray )
 				throw std::runtime_error("var is an array");
-			varHolderData->value = newValue;
+			varHolderData->value = std::move( newValue );
 		}
 		else throw std::runtime_error("not an single element");
 	}
 
-	inline void typeCast(Token& tok){
+	// := INT / THULA / STR / BOOL ( onnula stays onnula )
+	inline void typeCast( const Token& tok ){
 		if( this->mapType != MAPTYPE::VARIABLE )
 			throw InvalidSyntaxError("Only variables are allowed for TYPE_CASTING");
-		
-		if( tok.token == "INT" )
-			this->typeCastToInt();
-		
-		else if( tok.token == "THULA" )
-			this->typeCastToDouble();
-		
-		else if( tok.token == "STR" )
-			this->typeCastToString();
-		
-		else if( tok.token == "BOOL" )
-			this->typeCastToBool();
-		
-		else throw TypeCastError("Failed to cast");
-	}
 
-	inline void typeCastToInt(){
-		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
-			
-			if( VHdata->isTypeArray )
-				TypeCastError("Cannot cast array type");
+		const std::string& to = tok.token;
+		if( to != "INT" && to != "THULA" && to != "STR" && to != "BOOL" )
+			throw TypeCastError("Failed to cast");
 
-			auto& vardata = std::get<VarDtype>(VHdata->value);
-			
-			if (auto p = std::get_if<double>(&vardata)) {
-				vardata = static_cast<long>(*p);
-			}
-			else if (auto s = std::get_if<std::string>(&vardata)) {
-            	vardata = std::stol(*s);
-        	}
-        	else if (auto p = std::get_if<bool>(&vardata)) {
-    			vardata = static_cast<long>(*p);
-			}
+		auto& holder = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
+		if( holder->isTypeArray )
+			throw TypeCastError("Cannot cast array type");	// used to be missing its throw
+
+		VarDtype& v = std::get<VarDtype>( holder->value );
+		const long*        l = std::get_if<long>( &v );
+		const double*      d = std::get_if<double>( &v );
+		const bool*        b = std::get_if<bool>( &v );
+		const std::string* s = std::get_if<std::string>( &v );
+
+		if( to == "INT" ){
+			if( d ) v = (long) *d; else if( s ) v = DtypeHelper::toLong( *s ); else if( b ) v = (long) *b;
 		}
-	}
-
-	inline void typeCastToDouble(){
-		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
-			
-			if( VHdata->isTypeArray )
-				TypeCastError("Cannot cast array type");
-
-			auto& vardata = std::get<VarDtype>(VHdata->value);
-			
-			if (auto p = std::get_if<long>(&vardata)) {
-				vardata = static_cast<double>(*p);
-			}
-			else if (auto s = std::get_if<std::string>(&vardata)) {
-            	vardata = std::stod(*s);
-        	}
-        	else if (auto p = std::get_if<bool>(&vardata)) {
-    			vardata = static_cast<double>(*p);
-			}
+		else if( to == "THULA" ){
+			if( l ) v = (double) *l; else if( s ) v = DtypeHelper::toDouble( *s ); else if( b ) v = (double) *b;
 		}
-	}
-
-	inline void typeCastToString(){
-		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
-			
-			if( VHdata->isTypeArray )
-				TypeCastError("Cannot cast array type");
-
-			auto& vardata = std::get<VarDtype>(VHdata->value);
-			
-			if (auto p = std::get_if<long>(&vardata)) {
-				vardata = std::to_string(*p);
-			}
-			else if (auto s = std::get_if<double>(&vardata)) {
-            	vardata = std::to_string(*s);
-        	}
-        	else if (auto p = std::get_if<bool>(&vardata)) {
-    			vardata = std::to_string(*p);
-			}
+		else if( to == "STR" ){
+			if( l ) v = std::to_string( *l ); else if( d ) v = std::to_string( *d ); else if( b ) v = std::string( *b ? "sheri" : "thettu" );
 		}
-	}
-
-	inline void typeCastToBool(){
-		if( mapType == MAPTYPE::VARIABLE ){
-			auto VHdata = std::get<std::shared_ptr<VARIABLE_HOLDER<ARRAY_SUPPORT_TYPES>>>( this->var );
-			
-			if( VHdata->isTypeArray )
-				TypeCastError("Cannot cast array type");
-
-			auto& vardata = std::get<VarDtype>(VHdata->value);
-			
-			if (auto p = std::get_if<long>(&vardata)) {
-				vardata = static_cast<bool>(*p);
-			}
-			else if (auto s = std::get_if<double>(&vardata)) {
-            	vardata = static_cast<bool>(*s);
-        	}
-        	else if (auto p = std::get_if<std::string>(&vardata)) {
-    			vardata = DtypeHelper::toBoolean( *p );
-			}
+		else{
+			if( l ) v = (bool) *l; else if( d ) v = (bool) *d; else if( s ) v = DtypeHelper::toBoolean( *s );
 		}
 	}
 };

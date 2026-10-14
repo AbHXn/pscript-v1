@@ -5,58 +5,21 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <unordered_set>
 #include <stdexcept>
-#include <cctype>
-#include <string_view>
-#include <unordered_map>
-
-extern std::unordered_set<std::string_view> RESERVED_KEYS;
-extern std::unordered_set<std::string_view> SCHARS;
-extern std::unordered_set<std::string_view> OPTR;
-
-bool isReservedKey(const std::string& tok);
-bool isOptr(const std::string& tok);
-bool isSpec(const std::string& tok);
-
-extern std::vector<std::string> debug_string;
-
 
 enum class TOKEN_TYPE{
-	NOTHING,
-	NUMBER,
-	FLOATING,
-	STRING,
-	BOOLEAN,
-	IDENTIFIER,
-	RESERVED,
-	SPEC_CHAR,
-	OPERATOR
+	NOTHING, NUMBER, FLOATING, STRING, BOOLEAN, IDENTIFIER, RESERVED, SPEC_CHAR, OPERATOR
 };
 
 // same order
 enum class TOKEN_CONST {
-	PINDI,
-	PIDI,
-	SHERI,
-	THETTU,
-	PODA,
-	PINNAVA,
-	THEKU,
-	ITTUTHIRI,
-	NOK,
-	UMBI,
-	ONNULA,
-	PARA,
-	KOODE,
-	UM,
-	YO,
-	KOOTAM,
-	EDUKKU,
-	NOTHING
+	PINDI, PIDI, SHERI, THETTU, PODA, PINNAVA, THEKU, ITTUTHIRI, NOK, UMBI,
+	ONNULA, PARA, KOODE, UM, YO, KOOTAM, EDUKKU, NOTHING
 };
 
-bool isValueType(TOKEN_TYPE type);
+inline bool isValueType( TOKEN_TYPE type ){
+	return type == TOKEN_TYPE::NUMBER || type == TOKEN_TYPE::STRING || type == TOKEN_TYPE::FLOATING || type == TOKEN_TYPE::BOOLEAN;
+}
 
 struct Token{
 	unsigned int tokenId;
@@ -66,20 +29,10 @@ struct Token{
 	size_t row;
 	size_t col;
 
-	Token(
-		unsigned int tokenId,
-		TOKEN_TYPE type,
-		std::string token,
-		size_t row,
-		size_t col
-	){
-		this->tokenId = tokenId;
-		this->type = type;
-		this->token = token;
-		this->row = row;
-		this->col = col;
-	}
+	Token( unsigned int tokenId, TOKEN_TYPE type, std::string token, size_t row, size_t col ):
+		tokenId( tokenId ), type( type ), token( std::move( token ) ), row( row ), col( col ) {}
 };
-void getTheTokens(const std::string& filename, std::vector<Token>& Tokens);
+
+void getTheTokens( const std::string& filename, std::vector<Token>& Tokens );
 
 #endif

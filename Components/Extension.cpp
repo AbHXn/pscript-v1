@@ -1,6 +1,13 @@
 #include "Headers/Extension.hpp"
 
 std::unordered_map<unsigned int, EXT_TYPE> preComputed;
+std::vector<EXT_TYPE*> preComputedFast;
+
+void indexPre( const unsigned int KEY ){
+	if( KEY >= preComputedFast.size() )
+		preComputedFast.resize( std::max<size_t>( (size_t) KEY + 1, preComputedFast.size() * 2 ), nullptr );
+	preComputedFast[ KEY ] = &preComputed[ KEY ];
+}
 
 namespace PreComputedCaching{
 	void VariableCaching( const std::vector<Token>& test, size_t& start, const unsigned int KEY, FunctionHandler* func ){
